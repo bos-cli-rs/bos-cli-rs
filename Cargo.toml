@@ -1,0 +1,40 @@
+[package]
+name = "near-social"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "near-social"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.0.18", features = ["derive"] }
+inquire = "0.5"
+strum = { version = "0.24", features = ["derive"] }
+strum_macros = "0.24"
+
+tokio = { version = "1.0", features = [ "rt-multi-thread" ] }
+
+shell-words = "1.0.0"
+
+color-eyre = "0.6"
+
+near-ledger = { version = "0.2.0", optional = true }
+
+near-crypto = "0.15"
+near-primitives = "0.15"
+near-jsonrpc-client = "0.4.0"
+near-jsonrpc-primitives = "0.15"
+
+interactive-clap = "0.1.0"
+interactive-clap-derive = "0.1.0"
+near-cli-rs = {path = "/mnt/storage/Vova/Documents/Rust/near-cli-rs"}
+
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework = "2.7.0"
+
+[features]
+default = ["ledger"]
+ledger = ["near-ledger"]

@@ -1,6 +1,4 @@
-use clap::Parser;
-use interactive_clap::FromCli;
-use interactive_clap::ToCliArgs;
+use interactive_clap::{FromCli, ToCliArgs};
 pub use near_cli_rs::{common, config, types, CliResult};
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
@@ -24,9 +22,9 @@ impl Cmd {
 #[interactive_clap(context = crate::GlobalContext)]
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
 #[interactive_clap(disable_back)]
-/// "Deploy" command
+/// Deploy command
 pub enum Command {
-    #[strum_discriminants(strum(message = "Deploy widget if code has changed"))]
+    #[strum_discriminants(strum(message = "Deploy -   Deploy widget if code has changed"))]
     /// Deploy widget if code has changed
     Deploy,
 }
@@ -44,7 +42,10 @@ fn main() -> CliResult {
 
     color_eyre::install()?;
 
-    let cli = CliCmd::try_parse()?;
+    let cli = match Cmd::try_parse() {
+        Ok(cli) => cli,
+        Err(error) => error.exit(),
+    };
 
     let cmd = loop {
         match Cmd::from_cli(Some(cli.clone()), (config.clone(),)) {

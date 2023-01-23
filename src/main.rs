@@ -2,6 +2,8 @@ use interactive_clap::{FromCli, ToCliArgs};
 pub use near_cli_rs::{common, config, types, CliResult};
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
+mod sign_as;
+
 /// near-cli is a toolbox for interacting with NEAR protocol
 pub type GlobalContext = (crate::config::Config,);
 
@@ -26,13 +28,13 @@ impl Cmd {
 pub enum Command {
     #[strum_discriminants(strum(message = "Deploy -   Deploy widget if code has changed"))]
     /// Deploy widget if code has changed
-    Deploy,
+    Deploy(self::sign_as::SignAs),
 }
 
 impl Command {
     pub async fn process(&self, _config: crate::config::Config) -> crate::CliResult {
         match self {
-            Self::Deploy => Ok(()),
+            Self::Deploy(_) => Ok(()),
         }
     }
 }

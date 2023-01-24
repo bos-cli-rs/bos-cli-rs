@@ -108,14 +108,16 @@ impl SignerAccountId {
         // )?;
         let function_args = serde_json::Value::from_str(
             "{
-                \"volodymyr.testnet\": {
-                  \"widget\": {
-                    \"Test\": {
-                      \"\": \"return <div>Hello World</div>;\"
+                \"data\": {
+                    \"volodymyr.testnet\": {
+                        \"widget\": {
+                            \"Test\": {
+                            \"\": \"return <h1>Hello World</h1>;\"
+                            }
+                        }
                     }
-                  }
                 }
-              }",
+            }",
         )
         .map_err(|err| color_eyre::Report::msg(format!("Data not in JSON format! Error: {}", err)))?
         .to_string()

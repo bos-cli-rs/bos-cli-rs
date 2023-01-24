@@ -1,3 +1,4 @@
+use similar::{ChangeTag, TextDiff};
 use std::io::Write;
 use std::str::FromStr;
 
@@ -55,20 +56,20 @@ impl SignerAccountId {
             })
             .collect::<Result<Vec<_>, std::io::Error>>()?;
         println!("--------------  {:#?}", &entries);
-        // let args =
-        //     serde_json::Value::from_str("{\"keys\": [\"frol14.testnet/widget/HelloWorld/**\"]}")
-        //         .map_err(|err| {
-        //             color_eyre::Report::msg(format!("Data not in JSON format! Error: {}", err))
-        //         })?
-        //         .to_string()
-        //         .into_bytes();
         let args =
-            serde_json::Value::from_str("{\"keys\": [\"volodymyr.testnet/widget/Test/**\"]}")
+            serde_json::Value::from_str("{\"keys\": [\"frol14.testnet/widget/HelloWorld/**\"]}")
                 .map_err(|err| {
                     color_eyre::Report::msg(format!("Data not in JSON format! Error: {}", err))
                 })?
                 .to_string()
                 .into_bytes();
+        // let args =
+        //     serde_json::Value::from_str("{\"keys\": [\"volodymyr.testnet/widget/Test/**\"]}")
+        //         .map_err(|err| {
+        //             color_eyre::Report::msg(format!("Data not in JSON format! Error: {}", err))
+        //         })?
+        //         .to_string()
+        //         .into_bytes();
         let query_view_method_response = network_config
             .json_rpc_client()
             .call(near_jsonrpc_client::methods::query::RpcQueryRequest {
@@ -91,11 +92,10 @@ impl SignerAccountId {
             } else {
                 return Err(color_eyre::Report::msg("Error call result".to_string()));
             };
-
         let serde_call_result = if call_result.result.is_empty() {
             serde_json::Value::Null
         } else {
-            std::fs::File::create("./src/output.json")
+            std::fs::File::create("./src/input.json")
                 .map_err(|err| {
                     color_eyre::Report::msg(format!("Failed to create file: {:?}", err))
                 })?
@@ -106,38 +106,119 @@ impl SignerAccountId {
             serde_json::from_slice(&call_result.result)
                 .map_err(|err| color_eyre::Report::msg(format!("serde json: {:?}", err)))?
         };
-        println!("--------------");
-        if call_result.logs.is_empty() {
-            println!("No logs")
+        println!("{:#?}", serde_call_result);
+        let old_code = if let Some(code) = serde_call_result
+            .get("frol14.testnet")
+            .and_then(|value| value.get("widget"))
+            .and_then(|value| value.get("HelloWorld"))
+            .and_then(|value| value.get(""))
+        {
+            code.as_str().expect("Unable to get widget code!")
         } else {
-            println!("Logs:");
-            println!("  {}", call_result.logs.join("\n  "));
-        }
-        println!("--------------");
-        println!("Result:");
-        println!("{}", serde_json::to_string_pretty(&serde_call_result)?);
-        println!("--------------");
+            return Err(color_eyre::Report::msg(
+                "This widget has no code".to_string(),
+            ));
+        };
+        println!("***Code: {:#?}", &old_code);
+        let new_code = std::fs::read_to_string("./src/Test.jsx")?;
+        println!("***New Code: {:#?}", &new_code);
+        // println!("--------------");
+        // if call_result.logs.is_empty() {
+        //     println!("No logs")
+        // } else {
+        //     println!("Logs:");
+        //     println!("  {}", call_result.logs.join("\n  "));
+        // }
+        // println!("--------------");
+        // println!("Result:");
+        // println!("{}", serde_json::to_string_pretty(&serde_call_result)?);
+        // println!("--------------");
 
         // let function_args = super::call_function_args_type::function_args(
         //     self.function_args.clone(),
         //     self.function_args_type.clone(),
         // )?;
-        let function_args = serde_json::Value::from_str(
-            "{
-                \"data\": {
-                    \"volodymyr.testnet\": {
-                        \"widget\": {
-                            \"Test\": {
-                            \"\": \"return <h2>Hello Volodymyr</h2>;\"
-                            }
-                        }
-                    }
-                }
-            }",
-        )
-        .map_err(|err| color_eyre::Report::msg(format!("Data not in JSON format! Error: {}", err)))?
-        .to_string()
-        .into_bytes();
+        let output_function_args = serde_json::json!({
+            "data": serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string("./src/output.json")?)?
+        })
+        .to_string();
+        // let function_args = serde_json::Value::from_str(
+        //     "{
+        //         \"data\": {
+        //             \"volodymyr.testnet\": {
+        //                 \"widget\": {
+        //                     \"Test\": {
+        //                     \"\": \"return <h2>Hello Volodymyr</h2>;\"
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }",
+        // )
+        // .map_err(|err| color_eyre::Report::msg(format!("Data not in JSON format! Error: {}", err)))?
+        // .to_string()
+        // .into_bytes();
+
+        if need_code_deploy(old_code, &new_code)? {
+            return self
+                .deploy_widget_code(
+                    config,
+                    network_config,
+                    near_social_account_id,
+                    output_function_args,
+                )
+                .await;
+        }
+        println!("Widget code has not changed");
+
+        // let old_metadata_from_file = serde_json::json!(
+        //     {
+        //         "key": serde_json::from_str::<serde_json::Value>(
+        //             &std::fs::read_to_string("./src/input.json")?,
+        //         )?
+        //     }
+        // );
+        // println!("from file: {:#?}", old_metadata_from_file);
+        let new_metadata = std::fs::read_to_string("./src/Test.metadata.json")?;
+        println!("***New metadata: {:#?}", &new_metadata);
+
+        let old_metadata = if let Some(code) = serde_call_result
+            .get("frol14.testnet")
+            .and_then(|value| value.get("widget"))
+            .and_then(|value| value.get("HelloWorld"))
+            .and_then(|value| value.get("metadata"))
+        {
+            code.as_str().expect("Unable to get widget metadata!")
+        } else {
+            return Err(color_eyre::Report::msg(
+                "This widget has no metadata".to_string(),
+            ));
+        };
+        println!("***metadata: {:#?}", &old_metadata);
+
+
+        if need_code_deploy(old_metadata, &new_metadata)? {
+            return self
+                .deploy_widget_code(
+                    config,
+                    network_config,
+                    near_social_account_id,
+                    output_function_args,
+                )
+                .await;
+        }
+        println!("Widget metadata has not changed");
+
+        Ok(())
+    }
+
+    async fn deploy_widget_code(
+        &self,
+        config: crate::config::Config,
+        network_config: crate::config::NetworkConfig,
+        near_social_account_id: near_primitives::types::AccountId,
+        function_args: String,
+    ) -> crate::CliResult {
         let prepopulated_unsigned_transaction = near_primitives::transaction::Transaction {
             signer_id: self.signer_account_id.clone().into(),
             public_key: near_crypto::PublicKey::empty(near_crypto::KeyType::ED25519),
@@ -147,9 +228,13 @@ impl SignerAccountId {
             actions: vec![near_primitives::transaction::Action::FunctionCall(
                 near_primitives::transaction::FunctionCallAction {
                     method_name: "set".to_string(),
-                    args: function_args,
-                    gas: 100_000_000_000_000, // 100 TeraGas
-                    deposit: 1,               // 1 yNear
+                    args: function_args.into_bytes(),
+                    gas: crate::common::NearGas::from_str("100 TeraGas")
+                        .unwrap()
+                        .inner,
+                    deposit: crate::common::NearBalance::from_str("0.01 Near")
+                        .unwrap()
+                        .to_yoctonear(),
                 },
             )],
         };
@@ -165,7 +250,23 @@ impl SignerAccountId {
             }
             None => Ok(()),
         }
-
-        // Ok(())
     }
+}
+
+fn need_code_deploy(old_code: &str, new_code: &str) -> color_eyre::eyre::Result<bool> {
+    let diff = TextDiff::from_lines(old_code, &new_code);
+
+    for change in diff.iter_all_changes() {
+        let sign = match change.tag() {
+            ChangeTag::Delete => "-",
+            ChangeTag::Insert => "+",
+            ChangeTag::Equal => " ",
+        };
+        print!("{}{}", sign, change);
+    }
+
+    if old_code == new_code {
+        return Ok(false);
+    }
+    Ok(true)
 }

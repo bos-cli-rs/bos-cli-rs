@@ -1350,6 +1350,7 @@ dependencies = [
 [[package]]
 name = "near-cli-rs"
 version = "0.2.1"
+source = "git+https://github.com/near/near-cli-rs?rev=80b12c5a92a2889cd333cd6abf904a312122ab4f#80b12c5a92a2889cd333cd6abf904a312122ab4f"
 dependencies = [
  "async-recursion",
  "base64 0.13.1",
@@ -1547,6 +1548,8 @@ dependencies = [
  "near-ledger",
  "near-primitives",
  "security-framework",
+ "serde",
+ "serde_json",
  "shell-words",
  "strum",
  "strum_macros",

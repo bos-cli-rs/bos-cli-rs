@@ -32,9 +32,9 @@ pub enum Command {
 }
 
 impl Command {
-    pub async fn process(&self, _config: crate::config::Config) -> crate::CliResult {
+    pub async fn process(&self, config: crate::config::Config) -> crate::CliResult {
         match self {
-            Self::Deploy(_) => Ok(()),
+            Self::Deploy(sign_as) => sign_as.process(config).await,
         }
     }
 }

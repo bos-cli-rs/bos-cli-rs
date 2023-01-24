@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
@@ -54,6 +55,13 @@ impl SignerAccountId {
             })
             .collect::<Result<Vec<_>, std::io::Error>>()?;
         println!("--------------  {:#?}", &entries);
+        // let args =
+        //     serde_json::Value::from_str("{\"keys\": [\"frol14.testnet/widget/HelloWorld/**\"]}")
+        //         .map_err(|err| {
+        //             color_eyre::Report::msg(format!("Data not in JSON format! Error: {}", err))
+        //         })?
+        //         .to_string()
+        //         .into_bytes();
         let args =
             serde_json::Value::from_str("{\"keys\": [\"volodymyr.testnet/widget/Test/**\"]}")
                 .map_err(|err| {
@@ -87,6 +95,14 @@ impl SignerAccountId {
         let serde_call_result = if call_result.result.is_empty() {
             serde_json::Value::Null
         } else {
+            std::fs::File::create("./src/output.json")
+                .map_err(|err| {
+                    color_eyre::Report::msg(format!("Failed to create file: {:?}", err))
+                })?
+                .write(&call_result.result)
+                .map_err(|err| {
+                    color_eyre::Report::msg(format!("Failed to write to file: {:?}", err))
+                })?;
             serde_json::from_slice(&call_result.result)
                 .map_err(|err| color_eyre::Report::msg(format!("serde json: {:?}", err)))?
         };
@@ -112,7 +128,7 @@ impl SignerAccountId {
                     \"volodymyr.testnet\": {
                         \"widget\": {
                             \"Test\": {
-                            \"\": \"return <h1>Hello World</h1>;\"
+                            \"\": \"return <h2>Hello Volodymyr</h2>;\"
                             }
                         }
                     }

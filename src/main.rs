@@ -1,6 +1,5 @@
 use interactive_clap::{FromCli, ToCliArgs};
 pub use near_cli_rs::{common, config, types, CliResult};
-use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
 mod sign_as;
 
@@ -10,32 +9,14 @@ pub type GlobalContext = (crate::config::Config,);
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = crate::GlobalContext)]
 struct Cmd {
-    #[interactive_clap(subcommand)]
-    command: self::Command,
+    #[interactive_clap(named_arg)]
+    /// Deploy command
+    deploy: sign_as::SignerAccountId,
 }
 
 impl Cmd {
     async fn process(&self, config: crate::config::Config) -> CliResult {
-        self.command.process(config).await
-    }
-}
-
-#[derive(Debug, EnumDiscriminants, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(context = crate::GlobalContext)]
-#[strum_discriminants(derive(EnumMessage, EnumIter))]
-#[interactive_clap(disable_back)]
-/// Deploy command
-pub enum Command {
-    #[strum_discriminants(strum(message = "Deploy -   Deploy widget if code has changed"))]
-    /// Deploy widget if code has changed
-    Deploy(self::sign_as::SignAs),
-}
-
-impl Command {
-    pub async fn process(&self, config: crate::config::Config) -> crate::CliResult {
-        match self {
-            Self::Deploy(sign_as) => sign_as.process(config).await,
-        }
+        self.deploy.process(config).await
     }
 }
 

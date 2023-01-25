@@ -4,25 +4,11 @@ use std::str::FromStr;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = crate::GlobalContext)]
-pub struct SignAs {
-    #[interactive_clap(named_arg)]
-    ///What is the signer account ID?
-    sign_as: SignerAccountId,
-}
-
-impl SignAs {
-    pub async fn process(&self, config: crate::config::Config) -> crate::CliResult {
-        self.sign_as.process(config).await
-    }
-}
-
-#[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(context = crate::GlobalContext)]
 pub struct SignerAccountId {
-    ///What is the signer account ID?
+    /// What is the signer account ID?
     signer_account_id: crate::types::account_id::AccountId,
     #[interactive_clap(named_arg)]
-    ///Select network
+    /// Select network
     network_config: near_cli_rs::network_for_transaction::NetworkForTransactionArgs,
 }
 
@@ -106,58 +92,27 @@ impl SignerAccountId {
             serde_json::from_slice(&call_result.result)
                 .map_err(|err| color_eyre::Report::msg(format!("serde json: {:?}", err)))?
         };
-        println!("{:#?}", serde_call_result);
+        println!("serde_call_result: {:#?}", serde_call_result);
         let old_code = if let Some(code) = serde_call_result
             .get("frol14.testnet")
             .and_then(|value| value.get("widget"))
             .and_then(|value| value.get("HelloWorld"))
             .and_then(|value| value.get(""))
         {
-            code.as_str().expect("Unable to get widget code!")
+            code.as_str().expect("Unable to get widget code!").trim()
         } else {
             return Err(color_eyre::Report::msg(
                 "This widget has no code".to_string(),
             ));
         };
-        println!("***Code: {:#?}", &old_code);
+        println!("***Old Code: {:#?}", &old_code);
         let new_code = std::fs::read_to_string("./src/Test.jsx")?;
+        let new_code = new_code.trim();
         println!("***New Code: {:#?}", &new_code);
-        // println!("--------------");
-        // if call_result.logs.is_empty() {
-        //     println!("No logs")
-        // } else {
-        //     println!("Logs:");
-        //     println!("  {}", call_result.logs.join("\n  "));
-        // }
-        // println!("--------------");
-        // println!("Result:");
-        // println!("{}", serde_json::to_string_pretty(&serde_call_result)?);
-        // println!("--------------");
-
-        // let function_args = super::call_function_args_type::function_args(
-        //     self.function_args.clone(),
-        //     self.function_args_type.clone(),
-        // )?;
         let output_function_args = serde_json::json!({
             "data": serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string("./src/output.json")?)?
         })
         .to_string();
-        // let function_args = serde_json::Value::from_str(
-        //     "{
-        //         \"data\": {
-        //             \"volodymyr.testnet\": {
-        //                 \"widget\": {
-        //                     \"Test\": {
-        //                     \"\": \"return <h2>Hello Volodymyr</h2>;\"
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }",
-        // )
-        // .map_err(|err| color_eyre::Report::msg(format!("Data not in JSON format! Error: {}", err)))?
-        // .to_string()
-        // .into_bytes();
 
         if need_code_deploy(old_code, &new_code)? {
             return self
@@ -171,16 +126,8 @@ impl SignerAccountId {
         }
         println!("Widget code has not changed");
 
-        // let old_metadata_from_file = serde_json::json!(
-        //     {
-        //         "key": serde_json::from_str::<serde_json::Value>(
-        //             &std::fs::read_to_string("./src/input.json")?,
-        //         )?
-        //     }
-        // );
-        // println!("from file: {:#?}", old_metadata_from_file);
         let new_metadata = std::fs::read_to_string("./src/Test.metadata.json")?;
-        println!("***New metadata: {:#?}", &new_metadata);
+        println!("\n***New metadata: {:#?}", &new_metadata);
 
         let old_metadata = if let Some(code) = serde_call_result
             .get("frol14.testnet")
@@ -195,7 +142,6 @@ impl SignerAccountId {
             ));
         };
         println!("***metadata: {:#?}", &old_metadata);
-
 
         if need_code_deploy(old_metadata, &new_metadata)? {
             return self
@@ -232,7 +178,7 @@ impl SignerAccountId {
                     gas: crate::common::NearGas::from_str("100 TeraGas")
                         .unwrap()
                         .inner,
-                    deposit: crate::common::NearBalance::from_str("0.01 Near")
+                    deposit: crate::common::NearBalance::from_str("0.01 Near") // need calculation!!!!!!!!
                         .unwrap()
                         .to_yoctonear(),
                 },
@@ -254,6 +200,7 @@ impl SignerAccountId {
 }
 
 fn need_code_deploy(old_code: &str, new_code: &str) -> color_eyre::eyre::Result<bool> {
+    println!();
     let diff = TextDiff::from_lines(old_code, &new_code);
 
     for change in diff.iter_all_changes() {

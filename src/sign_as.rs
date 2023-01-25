@@ -12,6 +12,45 @@ pub struct SignerAccountId {
     network_config: near_cli_rs::network_for_transaction::NetworkForTransactionArgs,
 }
 
+#[derive(Debug, serde::Serialize)]
+pub struct SocialDbQuery {
+    keys: Vec<String>
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct SocialDb {
+    #[serde(flatten)]
+    accounts: std::collections::HashMap<near_primitives::types::AccountId, SocialDbAccountMetadata>,
+}
+
+pub type WidgetName = String;
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct SocialDbAccountMetadata {
+    #[serde(rename = "widget")]
+    widgets: std::collections::HashMap<WidgetName, SocialDbWidget>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct SocialDbWidget {
+    #[serde(rename = "")]
+    code: String,
+    metadata: Option<SocialDbWidgetMetadata>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
+pub struct SocialDbWidgetMetadata {
+    description: Option<String>,
+    image: Option<SocialDbWidgetMetadataImage>,
+    name: Option<String>,
+    tags: Option<std::collections::HashMap<String, String>>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
+pub struct SocialDbWidgetMetadataImage {
+    url: Option<String>,
+}
+
 impl SignerAccountId {
     pub async fn process(&self, config: crate::config::Config) -> crate::CliResult {
         // let args = super::call_function_args_type::function_args(
@@ -42,12 +81,13 @@ impl SignerAccountId {
             })
             .collect::<Result<Vec<_>, std::io::Error>>()?;
         println!("--------------  {:#?}", &entries);
-        let args =
-            serde_json::Value::from_str("{\"keys\": [\"frol14.testnet/widget/HelloWorld/**\"]}")
+        let args = 
+            // serde_json::Value::from_str("{\"keys\": [\"frol14.testnet/widget/HelloWorld/**\"]}")
+            // serde_json::json!({"keys": ["frol14.testnet/widget/HelloWorld/**"]})
+            serde_json::to_string(&SocialDbQuery { keys: vec!["frol14.testnet/widget/HelloWorld/**".to_string()] })
                 .map_err(|err| {
                     color_eyre::Report::msg(format!("Data not in JSON format! Error: {}", err))
                 })?
-                .to_string()
                 .into_bytes();
         // let args =
         //     serde_json::Value::from_str("{\"keys\": [\"volodymyr.testnet/widget/Test/**\"]}")
@@ -78,8 +118,8 @@ impl SignerAccountId {
             } else {
                 return Err(color_eyre::Report::msg("Error call result".to_string()));
             };
-        let serde_call_result = if call_result.result.is_empty() {
-            serde_json::Value::Null
+        let serde_call_result: Option<SocialDb> = if call_result.result.is_empty() {
+            None
         } else {
             std::fs::File::create("./src/input.json")
                 .map_err(|err| {
@@ -89,15 +129,15 @@ impl SignerAccountId {
                 .map_err(|err| {
                     color_eyre::Report::msg(format!("Failed to write to file: {:?}", err))
                 })?;
-            serde_json::from_slice(&call_result.result)
-                .map_err(|err| color_eyre::Report::msg(format!("serde json: {:?}", err)))?
+            Some(serde_json::from_slice(&call_result.result)
+                .map_err(|err| color_eyre::Report::msg(format!("serde json: {:?}", err)))?)
         };
         println!("serde_call_result: {:#?}", serde_call_result);
         let old_code = if let Some(code) = serde_call_result
+            .accounts
             .get("frol14.testnet")
-            .and_then(|value| value.get("widget"))
-            .and_then(|value| value.get("HelloWorld"))
-            .and_then(|value| value.get(""))
+            .and_then(|value| value.widgets.get("HelloWorld"))
+            .map(|value| value.code)
         {
             code.as_str().expect("Unable to get widget code!").trim()
         } else {
@@ -110,7 +150,18 @@ impl SignerAccountId {
         let new_code = new_code.trim();
         println!("***New Code: {:#?}", &new_code);
         let output_function_args = serde_json::json!({
-            "data": serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string("./src/output.json")?)?
+            //"data": serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string("./src/output.json")?)?
+            // "data": {
+            //     "frol14.testnet": {
+            //         "widget": {
+            //             "": "code"
+            //         }
+            //     }
+            // }
+            "data": SocialDb { accounts: ... }
+            "data": {
+                account_id: SocialDbAccountMetadata { widgets: ... },
+            }
         })
         .to_string();
 
@@ -178,7 +229,7 @@ impl SignerAccountId {
                     gas: crate::common::NearGas::from_str("100 TeraGas")
                         .unwrap()
                         .inner,
-                    deposit: crate::common::NearBalance::from_str("0.01 Near") // need calculation!!!!!!!!
+                    deposit: crate::common::NearBalance::from_str("0.01 NEAR") // need calculation!!!!!!!!
                         .unwrap()
                         .to_yoctonear(),
                 },

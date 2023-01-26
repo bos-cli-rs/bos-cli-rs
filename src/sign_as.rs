@@ -12,12 +12,12 @@ pub struct SignerAccountId {
     network_config: near_cli_rs::network_for_transaction::NetworkForTransactionArgs,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct SocialDbQuery {
-    keys: Vec<String>
+    keys: Vec<String>,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SocialDb {
     #[serde(flatten)]
     accounts: std::collections::HashMap<near_primitives::types::AccountId, SocialDbAccountMetadata>,
@@ -25,20 +25,20 @@ pub struct SocialDb {
 
 pub type WidgetName = String;
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SocialDbAccountMetadata {
     #[serde(rename = "widget")]
     widgets: std::collections::HashMap<WidgetName, SocialDbWidget>,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SocialDbWidget {
     #[serde(rename = "")]
     code: String,
     metadata: Option<SocialDbWidgetMetadata>,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 pub struct SocialDbWidgetMetadata {
     description: Option<String>,
     image: Option<SocialDbWidgetMetadataImage>,
@@ -46,7 +46,7 @@ pub struct SocialDbWidgetMetadata {
     tags: Option<std::collections::HashMap<String, String>>,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 pub struct SocialDbWidgetMetadataImage {
     url: Option<String>,
 }
@@ -81,14 +81,11 @@ impl SignerAccountId {
             })
             .collect::<Result<Vec<_>, std::io::Error>>()?;
         println!("--------------  {:#?}", &entries);
-        let args = 
-            // serde_json::Value::from_str("{\"keys\": [\"frol14.testnet/widget/HelloWorld/**\"]}")
-            // serde_json::json!({"keys": ["frol14.testnet/widget/HelloWorld/**"]})
-            serde_json::to_string(&SocialDbQuery { keys: vec!["frol14.testnet/widget/HelloWorld/**".to_string()] })
-                .map_err(|err| {
-                    color_eyre::Report::msg(format!("Data not in JSON format! Error: {}", err))
-                })?
-                .into_bytes();
+        let input_args = serde_json::to_string(&SocialDbQuery {
+            keys: vec!["volodymyr.testnet/widget/HelloWorld/**".to_string(), "volodymyr.testnet/widget/Test/**".to_string()],
+        })
+        .map_err(|err| color_eyre::Report::msg(format!("Data not in JSON format! Error: {}", err)))?
+        .into_bytes();
         // let args =
         //     serde_json::Value::from_str("{\"keys\": [\"volodymyr.testnet/widget/Test/**\"]}")
         //         .map_err(|err| {
@@ -103,7 +100,7 @@ impl SignerAccountId {
                 request: near_primitives::views::QueryRequest::CallFunction {
                     account_id: near_social_account_id.clone(),
                     method_name: "get".to_string(),
-                    args: near_primitives::types::FunctionArgs::from(args),
+                    args: near_primitives::types::FunctionArgs::from(input_args),
                 },
             })
             .await
@@ -114,13 +111,14 @@ impl SignerAccountId {
             if let near_jsonrpc_primitives::types::query::QueryResponseKind::CallResult(result) =
                 query_view_method_response.kind
             {
+                if result.result.is_empty() {
+                    return Err(color_eyre::Report::msg("Error call result".to_string()));
+                }
                 result
             } else {
                 return Err(color_eyre::Report::msg("Error call result".to_string()));
             };
-        let serde_call_result: Option<SocialDb> = if call_result.result.is_empty() {
-            None
-        } else {
+        let old_social_db: SocialDb = {
             std::fs::File::create("./src/input.json")
                 .map_err(|err| {
                     color_eyre::Report::msg(format!("Failed to create file: {:?}", err))
@@ -129,41 +127,64 @@ impl SignerAccountId {
                 .map_err(|err| {
                     color_eyre::Report::msg(format!("Failed to write to file: {:?}", err))
                 })?;
-            Some(serde_json::from_slice(&call_result.result)
-                .map_err(|err| color_eyre::Report::msg(format!("serde json: {:?}", err)))?)
+
+            serde_json::from_slice(&call_result.result)
+                .map_err(|err| color_eyre::Report::msg(format!("serde json: {:?}", err)))?
         };
-        println!("serde_call_result: {:#?}", serde_call_result);
-        let old_code = if let Some(code) = serde_call_result
-            .accounts
-            .get("frol14.testnet")
-            .and_then(|value| value.widgets.get("HelloWorld"))
-            .map(|value| value.code)
-        {
-            code.as_str().expect("Unable to get widget code!").trim()
-        } else {
-            return Err(color_eyre::Report::msg(
-                "This widget has no code".to_string(),
-            ));
-        };
-        println!("***Old Code: {:#?}", &old_code);
+        println!("serde_call_result: {:#?}", old_social_db);
+
         let new_code = std::fs::read_to_string("./src/Test.jsx")?;
         let new_code = new_code.trim();
         println!("***New Code: {:#?}", &new_code);
+
+        let new_metadata: SocialDbWidgetMetadata =
+            serde_json::from_str(&std::fs::read_to_string("./src/Test.metadata.json")?)
+                .map_err(|err| color_eyre::Report::msg(format!("Error reading data: {}", err)))?;
+        println!("\n***New metadata: {:#?}", &new_metadata);
+
+        let new_social_widget = SocialDbWidget {
+            code: new_code.to_string(),
+            metadata: Some(new_metadata.clone()),
+        };
+        let mut widgets = std::collections::HashMap::new();
+        widgets.insert("HelloWorld".to_string(), new_social_widget);
+        let social_account_metadata = SocialDbAccountMetadata { widgets };
+        let mut accounts = std::collections::HashMap::new();
+        accounts.insert(
+            near_primitives::types::AccountId::from_str("volodymyr.testnet")?,
+            social_account_metadata,
+        );
+        let new_social_db = SocialDb { accounts };
+
         let output_function_args = serde_json::json!({
-            //"data": serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string("./src/output.json")?)?
-            // "data": {
-            //     "frol14.testnet": {
-            //         "widget": {
-            //             "": "code"
-            //         }
-            //     }
-            // }
-            "data": SocialDb { accounts: ... }
-            "data": {
-                account_id: SocialDbAccountMetadata { widgets: ... },
-            }
+            "data": serde_json::from_str::<serde_json::Value>(&serde_json::to_string(&new_social_db)?)?
         })
         .to_string();
+        println!("output_function_args: {}", &output_function_args);
+
+        let old_social_widget = if let Some(widget) = old_social_db
+            .accounts
+            .get("volodymyr.testnet")
+            .and_then(|account_metadata| account_metadata.widgets.get("HelloWorld"))
+        {
+            widget
+        } else {
+            println!(
+                "Widget named <{}> does not exist. So need to deploy it.",
+                "HelloWorld"
+            );
+            return self
+                .deploy_widget_code(
+                    config,
+                    network_config,
+                    near_social_account_id,
+                    output_function_args,
+                )
+                .await;
+        };
+
+        let old_code = old_social_widget.code.as_str();
+        println!("***Old Code: {:#?}", &old_code);
 
         if need_code_deploy(old_code, &new_code)? {
             return self
@@ -177,24 +198,10 @@ impl SignerAccountId {
         }
         println!("Widget code has not changed");
 
-        let new_metadata = std::fs::read_to_string("./src/Test.metadata.json")?;
-        println!("\n***New metadata: {:#?}", &new_metadata);
-
-        let old_metadata = if let Some(code) = serde_call_result
-            .get("frol14.testnet")
-            .and_then(|value| value.get("widget"))
-            .and_then(|value| value.get("HelloWorld"))
-            .and_then(|value| value.get("metadata"))
-        {
-            code.as_str().expect("Unable to get widget metadata!")
-        } else {
-            return Err(color_eyre::Report::msg(
-                "This widget has no metadata".to_string(),
-            ));
-        };
+        let old_metadata = &old_social_widget.metadata;
         println!("***metadata: {:#?}", &old_metadata);
 
-        if need_code_deploy(old_metadata, &new_metadata)? {
+        if old_metadata != &Some(new_metadata) {
             return self
                 .deploy_widget_code(
                     config,

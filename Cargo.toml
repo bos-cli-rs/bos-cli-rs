@@ -25,6 +25,7 @@ shell-words = "1.0.0"
 color-eyre = "0.6"
 
 similar = "2.2.1"
+glob = "0.3.1"
 
 near-ledger = { version = "0.2.0", optional = true }
 

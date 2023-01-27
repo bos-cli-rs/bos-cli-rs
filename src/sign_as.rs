@@ -1,5 +1,7 @@
+use glob::glob;
 use similar::{ChangeTag, TextDiff};
-use std::io::Write;
+use std::collections::{HashMap, HashSet};
+// use std::io::Write;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
@@ -18,9 +20,14 @@ pub struct SocialDbQuery {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct TransactionFunctionArgs {
+    data: SocialDb,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SocialDb {
     #[serde(flatten)]
-    accounts: std::collections::HashMap<near_primitives::types::AccountId, SocialDbAccountMetadata>,
+    accounts: HashMap<near_primitives::types::AccountId, SocialDbAccountMetadata>,
 }
 
 pub type WidgetName = String;
@@ -28,7 +35,7 @@ pub type WidgetName = String;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SocialDbAccountMetadata {
     #[serde(rename = "widget")]
-    widgets: std::collections::HashMap<WidgetName, SocialDbWidget>,
+    widgets: HashMap<WidgetName, SocialDbWidget>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -43,7 +50,7 @@ pub struct SocialDbWidgetMetadata {
     description: Option<String>,
     image: Option<SocialDbWidgetMetadataImage>,
     name: Option<String>,
-    tags: Option<std::collections::HashMap<String, String>>,
+    tags: Option<HashMap<String, String>>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
@@ -53,10 +60,6 @@ pub struct SocialDbWidgetMetadataImage {
 
 impl SignerAccountId {
     pub async fn process(&self, config: crate::config::Config) -> crate::CliResult {
-        // let args = super::call_function_args_type::function_args(
-        //     self.function_args.clone(),
-        //     self.function_args_type.clone(),
-        // )?;
         let network_config = self.network_config.get_network_config(config.clone());
         let near_social_account_id = match &network_config.near_social_account_id {
             Some(account_id) => account_id.clone(),
@@ -67,32 +70,69 @@ impl SignerAccountId {
                 )))
             }
         };
-        let entries = std::fs::read_dir("./src")?
-            .map(|res| res.map(|e| e.path()))
-            .filter(|e| match e {
-                Ok(res) => {
-                    if let Some(extension) = res.extension().and_then(|s| s.to_str()) {
-                        ["jsx", "json"].contains(&extension)
-                    } else {
-                        false
-                    }
-                }
-                _ => false,
-            })
-            .collect::<Result<Vec<_>, std::io::Error>>()?;
-        println!("--------------  {:#?}", &entries);
+        let mut widget_names: HashSet<String> = HashSet::new();
+        let mut widgets = HashMap::new();
+
+        for entry in glob("./src/**/*.jsx")?.filter_map(Result::ok) {
+            let widget_name: WidgetName = entry
+                .strip_prefix("src")?
+                .to_str()
+                .expect("Impossible to convert to_str()")
+                .split(".jsx")
+                .into_iter()
+                .next()
+                .and_then(|s| Some(s.to_string()))
+                .expect("Impossible to convert to_string()")
+                .replace('/', ".");
+            widget_names.insert(widget_name.clone());
+            let social_widget = SocialDbWidget {
+                code: std::fs::read_to_string(entry)?.trim().to_string(),
+                metadata: None,
+            };
+            widgets.insert(widget_name, social_widget);
+        }
+
+        for entry in glob("./src/**/*.json")?.filter_map(Result::ok) {
+            let widget_name: WidgetName = entry
+                .strip_prefix("src")?
+                .to_str()
+                .expect("Impossible to convert to_str()")
+                .split(".metadata.json")
+                .into_iter()
+                .next()
+                .and_then(|s| Some(s.to_string()))
+                .expect("Impossible to convert to_string()")
+                .replace('/', ".");
+
+            let metadata: SocialDbWidgetMetadata =
+                serde_json::from_str(&std::fs::read_to_string(entry.clone())?).map_err(|err| {
+                    color_eyre::Report::msg(format!("Error reading data: {}", err))
+                })?;
+            if widget_names.contains(&widget_name) {
+                let social_widget = SocialDbWidget {
+                    metadata: Some(metadata.clone()),
+                    ..widgets[&widget_name].clone()
+                };
+                widgets.insert(widget_name.clone(), social_widget);
+            } else {
+                let social_widget = SocialDbWidget {
+                    code: "".to_string(),
+                    metadata: Some(metadata),
+                };
+                widgets.insert(widget_name, social_widget);
+            };
+        }
+        let input_args_keys: Vec<String> = widget_names
+            .clone()
+            .into_iter()
+            .map(|name| format!("{}/widget/{}/**", self.signer_account_id, name))
+            .collect();
         let input_args = serde_json::to_string(&SocialDbQuery {
-            keys: vec!["volodymyr.testnet/widget/HelloWorld/**".to_string(), "volodymyr.testnet/widget/Test/**".to_string()],
+            keys: input_args_keys,
         })
-        .map_err(|err| color_eyre::Report::msg(format!("Data not in JSON format! Error: {}", err)))?
-        .into_bytes();
-        // let args =
-        //     serde_json::Value::from_str("{\"keys\": [\"volodymyr.testnet/widget/Test/**\"]}")
-        //         .map_err(|err| {
-        //             color_eyre::Report::msg(format!("Data not in JSON format! Error: {}", err))
-        //         })?
-        //         .to_string()
-        //         .into_bytes();
+        .map_err(|err| {
+            color_eyre::Report::msg(format!("Data not in JSON format! Error: {}", err))
+        })?;
         let query_view_method_response = network_config
             .json_rpc_client()
             .call(near_jsonrpc_client::methods::query::RpcQueryRequest {
@@ -100,7 +140,7 @@ impl SignerAccountId {
                 request: near_primitives::views::QueryRequest::CallFunction {
                     account_id: near_social_account_id.clone(),
                     method_name: "get".to_string(),
-                    args: near_primitives::types::FunctionArgs::from(input_args),
+                    args: near_primitives::types::FunctionArgs::from(input_args.into_bytes()),
                 },
             })
             .await
@@ -119,101 +159,61 @@ impl SignerAccountId {
                 return Err(color_eyre::Report::msg("Error call result".to_string()));
             };
         let old_social_db: SocialDb = {
-            std::fs::File::create("./src/input.json")
-                .map_err(|err| {
-                    color_eyre::Report::msg(format!("Failed to create file: {:?}", err))
-                })?
-                .write(&call_result.result)
-                .map_err(|err| {
-                    color_eyre::Report::msg(format!("Failed to write to file: {:?}", err))
-                })?;
-
             serde_json::from_slice(&call_result.result)
                 .map_err(|err| color_eyre::Report::msg(format!("serde json: {:?}", err)))?
         };
-        println!("serde_call_result: {:#?}", old_social_db);
+        let old_widgets = old_social_db.accounts
+            [&near_primitives::types::AccountId::from(self.signer_account_id.clone())]
+            .clone();
 
-        let new_code = std::fs::read_to_string("./src/Test.jsx")?;
-        let new_code = new_code.trim();
-        println!("***New Code: {:#?}", &new_code);
+        let output_widgets = widgets
+            .clone()
+            .into_iter()
+            .filter(|(widget_name, _)| {
+                if old_widgets.widgets.get(widget_name).is_none() {
+                    println!("Found new widget <{}> to deploy", widget_name);
+                    true
+                } else {
+                    let old_code = &old_widgets.widgets[widget_name].code;
+                    let new_code = &widgets[widget_name].code;
+                    let old_metadata = old_widgets.widgets[widget_name].metadata.clone();
+                    let new_metadata = widgets[widget_name].metadata.clone();
+                    if old_metadata != new_metadata {
+                        println!("Metadata for widget <{}> changed", widget_name);
+                        true
+                    } else {
+                        need_code_deploy(old_code, new_code, widget_name)
+                    }
+                }
+            })
+            .collect::<HashMap<String, SocialDbWidget>>();
 
-        let new_metadata: SocialDbWidgetMetadata =
-            serde_json::from_str(&std::fs::read_to_string("./src/Test.metadata.json")?)
-                .map_err(|err| color_eyre::Report::msg(format!("Error reading data: {}", err)))?;
-        println!("\n***New metadata: {:#?}", &new_metadata);
+        if output_widgets.is_empty() {
+            return Ok(());
+        }
 
-        let new_social_widget = SocialDbWidget {
-            code: new_code.to_string(),
-            metadata: Some(new_metadata.clone()),
+        let social_account_metadata = SocialDbAccountMetadata {
+            widgets: output_widgets,
         };
-        let mut widgets = std::collections::HashMap::new();
-        widgets.insert("HelloWorld".to_string(), new_social_widget);
-        let social_account_metadata = SocialDbAccountMetadata { widgets };
-        let mut accounts = std::collections::HashMap::new();
+        let mut accounts = HashMap::new();
         accounts.insert(
-            near_primitives::types::AccountId::from_str("volodymyr.testnet")?,
+            near_primitives::types::AccountId::from(self.signer_account_id.clone()),
             social_account_metadata,
         );
         let new_social_db = SocialDb { accounts };
 
-        let output_function_args = serde_json::json!({
-            "data": serde_json::from_str::<serde_json::Value>(&serde_json::to_string(&new_social_db)?)?
-        })
-        .to_string();
-        println!("output_function_args: {}", &output_function_args);
-
-        let old_social_widget = if let Some(widget) = old_social_db
-            .accounts
-            .get("volodymyr.testnet")
-            .and_then(|account_metadata| account_metadata.widgets.get("HelloWorld"))
-        {
-            widget
-        } else {
-            println!(
-                "Widget named <{}> does not exist. So need to deploy it.",
-                "HelloWorld"
-            );
-            return self
-                .deploy_widget_code(
-                    config,
-                    network_config,
-                    near_social_account_id,
-                    output_function_args,
-                )
-                .await;
+        let transaction_function_args = TransactionFunctionArgs {
+            data: new_social_db,
         };
+        let output_function_args = serde_json::to_string(&transaction_function_args)?;
 
-        let old_code = old_social_widget.code.as_str();
-        println!("***Old Code: {:#?}", &old_code);
-
-        if need_code_deploy(old_code, &new_code)? {
-            return self
-                .deploy_widget_code(
-                    config,
-                    network_config,
-                    near_social_account_id,
-                    output_function_args,
-                )
-                .await;
-        }
-        println!("Widget code has not changed");
-
-        let old_metadata = &old_social_widget.metadata;
-        println!("***metadata: {:#?}", &old_metadata);
-
-        if old_metadata != &Some(new_metadata) {
-            return self
-                .deploy_widget_code(
-                    config,
-                    network_config,
-                    near_social_account_id,
-                    output_function_args,
-                )
-                .await;
-        }
-        println!("Widget metadata has not changed");
-
-        Ok(())
+        self.deploy_widget_code(
+            config,
+            network_config,
+            near_social_account_id,
+            output_function_args,
+        )
+        .await
     }
 
     async fn deploy_widget_code(
@@ -257,9 +257,9 @@ impl SignerAccountId {
     }
 }
 
-fn need_code_deploy(old_code: &str, new_code: &str) -> color_eyre::eyre::Result<bool> {
+fn need_code_deploy(old_code: &str, new_code: &str, widget_name: &str) -> bool {
     println!();
-    let diff = TextDiff::from_lines(old_code, &new_code);
+    let diff = TextDiff::from_lines(old_code, new_code);
 
     for change in diff.iter_all_changes() {
         let sign = match change.tag() {
@@ -271,7 +271,9 @@ fn need_code_deploy(old_code: &str, new_code: &str) -> color_eyre::eyre::Result<
     }
 
     if old_code == new_code {
-        return Ok(false);
+        println!("Code for widget <{}> has not changed\n", widget_name);
+        return false;
     }
-    Ok(true)
+    println!("Code for widget <{}> changed\n", widget_name);
+    true
 }

@@ -161,21 +161,48 @@ impl SignerAccountId {
             serde_json::from_slice(&call_result.result)
                 .map_err(|err| color_eyre::Report::msg(format!("serde json: {:?}", err)))?
         };
-        let old_widgets = old_social_db.accounts
-            [&near_primitives::types::AccountId::from(self.signer_account_id.clone())]
-            .clone();
+        let old_social_account_metadata = match old_social_db
+            .accounts
+            .get(&near_primitives::types::AccountId::from(
+                self.signer_account_id.clone(),
+            ))
+            .clone()
+        {
+            Some(account_metadata) => account_metadata,
+            None => {
+                println!("\nThere are currently no widgets in the account <{}>. Therefore, all selected widgets will be deployed", self.signer_account_id);
+                let deposit = crate::common::NearBalance::from_str("1 NEAR") // need calculation!!!!!!!! for new account
+                    .unwrap()
+                    .to_yoctonear();
+                return self
+                    .deploy_widget_code(
+                        config,
+                        network_config,
+                        near_social_account_id,
+                        widgets,
+                        deposit,
+                    )
+                    .await;
+            }
+        };
 
         let output_widgets = widgets
             .clone()
             .into_iter()
             .filter(|(widget_name, _)| {
-                if old_widgets.widgets.get(widget_name).is_none() {
+                if old_social_account_metadata
+                    .widgets
+                    .get(widget_name)
+                    .is_none()
+                {
                     println!("Found new widget <{}> to deploy", widget_name);
                     true
                 } else {
-                    let old_code = &old_widgets.widgets[widget_name].code;
+                    let old_code = &old_social_account_metadata.widgets[widget_name].code;
                     let new_code = &widgets[widget_name].code;
-                    let old_metadata = old_widgets.widgets[widget_name].metadata.clone();
+                    let old_metadata = old_social_account_metadata.widgets[widget_name]
+                        .metadata
+                        .clone();
                     let new_metadata = widgets[widget_name].metadata.clone();
                     if old_metadata != new_metadata {
                         println!("Metadata for widget <{}> changed", widget_name);
@@ -191,9 +218,28 @@ impl SignerAccountId {
             return Ok(());
         }
 
-        let social_account_metadata = SocialDbAccountMetadata {
-            widgets: output_widgets,
-        };
+        let deposit = crate::common::NearBalance::from_str("0.01 NEAR") // need calculation!!!!!!!! for an existing account
+            .unwrap()
+            .to_yoctonear();
+        self.deploy_widget_code(
+            config,
+            network_config,
+            near_social_account_id,
+            output_widgets,
+            deposit,
+        )
+        .await
+    }
+
+    async fn deploy_widget_code(
+        &self,
+        config: crate::config::Config,
+        network_config: crate::config::NetworkConfig,
+        near_social_account_id: near_primitives::types::AccountId,
+        widgets: HashMap<String, SocialDbWidget>,
+        deposit: u128,
+    ) -> crate::CliResult {
+        let social_account_metadata = SocialDbAccountMetadata { widgets };
         let mut accounts = HashMap::new();
         accounts.insert(
             near_primitives::types::AccountId::from(self.signer_account_id.clone()),
@@ -204,24 +250,8 @@ impl SignerAccountId {
         let transaction_function_args = TransactionFunctionArgs {
             data: new_social_db,
         };
-        let output_function_args = serde_json::to_string(&transaction_function_args)?;
+        let function_args = serde_json::to_string(&transaction_function_args)?;
 
-        self.deploy_widget_code(
-            config,
-            network_config,
-            near_social_account_id,
-            output_function_args,
-        )
-        .await
-    }
-
-    async fn deploy_widget_code(
-        &self,
-        config: crate::config::Config,
-        network_config: crate::config::NetworkConfig,
-        near_social_account_id: near_primitives::types::AccountId,
-        function_args: String,
-    ) -> crate::CliResult {
         let prepopulated_unsigned_transaction = near_primitives::transaction::Transaction {
             signer_id: self.signer_account_id.clone().into(),
             public_key: near_crypto::PublicKey::empty(near_crypto::KeyType::ED25519),
@@ -235,9 +265,7 @@ impl SignerAccountId {
                     gas: crate::common::NearGas::from_str("100 TeraGas")
                         .unwrap()
                         .inner,
-                    deposit: crate::common::NearBalance::from_str("0.01 NEAR") // need calculation!!!!!!!!
-                        .unwrap()
-                        .to_yoctonear(),
+                    deposit,
                 },
             )],
         };

@@ -413,6 +413,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "console"
+version = "0.15.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3d79fbe8970a77e3e34151cc13d3b3e248aa0faaecb9f6091fa07ebefe5ad60"
+dependencies = [
+ "encode_unicode",
+ "lazy_static",
+ "libc",
+ "unicode-width",
+ "windows-sys 0.42.0",
+]
+
+[[package]]
 name = "convert_case"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -665,6 +678,12 @@ dependencies = [
  "sha2 0.9.9",
  "zeroize",
 ]
+
+[[package]]
+name = "encode_unicode"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a357d28ed41a50f9c765dbfe56cbc04a64e53e5fc58ba79fbc34c10ef3df831f"
 
 [[package]]
 name = "encoding_rs"
@@ -1356,7 +1375,6 @@ dependencies = [
 [[package]]
 name = "near-cli-rs"
 version = "0.2.1"
-source = "git+https://github.com/near/near-cli-rs?rev=80b12c5a92a2889cd333cd6abf904a312122ab4f#80b12c5a92a2889cd333cd6abf904a312122ab4f"
 dependencies = [
  "async-recursion",
  "base64 0.13.1",
@@ -1544,6 +1562,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "color-eyre",
+ "console",
  "glob",
  "inquire",
  "interactive-clap",

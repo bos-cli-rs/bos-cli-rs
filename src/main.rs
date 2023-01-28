@@ -1,11 +1,13 @@
 use interactive_clap::{FromCli, ToCliArgs};
-pub use near_cli_rs::{common, config, types, CliResult};
+pub use near_cli_rs::CliResult;
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
+pub mod common;
 mod sign_as;
+pub mod socialdb_types;
 
 /// near-cli is a toolbox for interacting with NEAR protocol
-pub type GlobalContext = (crate::config::Config,);
+pub type GlobalContext = (near_cli_rs::config::Config,);
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = crate::GlobalContext)]
@@ -15,7 +17,7 @@ struct Cmd {
 }
 
 impl Cmd {
-    async fn process(&self, config: crate::config::Config) -> CliResult {
+    async fn process(&self, config: near_cli_rs::config::Config) -> CliResult {
         self.command.process(config).await
     }
 }
@@ -24,15 +26,15 @@ impl Cmd {
 #[interactive_clap(context = crate::GlobalContext)]
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
 #[interactive_clap(disable_back)]
-/// Deploy command
+/// What are you up to? (select one of the options with the up-down arrows on your keyboard and press Enter)
 pub enum Command {
-    #[strum_discriminants(strum(message = "Deploy -   Deploy widget if code has changed"))]
+    #[strum_discriminants(strum(message = "deploy -   Deploy widget if code has changed"))]
     /// Deploy widget if code has changed
     Deploy(self::sign_as::SignerAccountId),
 }
 
 impl Command {
-    pub async fn process(&self, config: crate::config::Config) -> crate::CliResult {
+    pub async fn process(&self, config: near_cli_rs::config::Config) -> crate::CliResult {
         match self {
             Self::Deploy(sign_as) => sign_as.process(config).await,
         }
@@ -40,7 +42,7 @@ impl Command {
 }
 
 fn main() -> CliResult {
-    let config = crate::common::get_config_toml()?;
+    let config = near_cli_rs::common::get_config_toml()?;
 
     color_eyre::install()?;
 

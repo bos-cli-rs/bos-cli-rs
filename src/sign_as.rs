@@ -1,7 +1,6 @@
 use glob::glob;
 use similar::{ChangeTag, TextDiff};
 use std::collections::{HashMap, HashSet};
-// use std::io::Write;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]

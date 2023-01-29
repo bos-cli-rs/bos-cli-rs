@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use glob::glob;
+use inquire::{CustomType, Select, Text};
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = near_cli_rs::GlobalContext)]
@@ -10,6 +11,7 @@ pub struct SignerAccountId {
     /// XXX: There are 13 widgets in the current folder ready for deployment:
     /// XXX: * HelloWorld
     /// XXX: * Form1
+    #[interactive_clap(skip_default_input_arg)]
     /// Which account do you want to deploy the widgets to?
     deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
     #[interactive_clap(named_arg)]
@@ -23,6 +25,20 @@ pub struct TransactionFunctionArgs {
 }
 
 impl SignerAccountId {
+    pub fn input_deploy_to_account_id(
+        _context: &crate::GlobalContext,
+    ) -> color_eyre::eyre::Result<near_cli_rs::types::account_id::AccountId> {
+        let widgets = get_widgets()?;
+        println!(
+            "\nThere are <{}> widgets in the current folder ready for deployment:",
+            widgets.len()
+        );
+        for widget in widgets.keys() {
+            println!(" * {}", widget)
+        }
+        Ok(CustomType::new("What is the new account ID?").prompt()?)
+    }
+
     pub async fn process(&self, config: near_cli_rs::config::Config) -> crate::CliResult {
         let network_config = self.network_config.get_network_config(config.clone());
         let near_social_account_id = match &network_config.near_social_account_id {
@@ -34,45 +50,7 @@ impl SignerAccountId {
                 )))
             }
         };
-        let mut widgets = HashMap::new();
-
-        for widget_filepath in glob("./src/**/*.jsx")?.filter_map(Result::ok) {
-            let widget_name: crate::socialdb_types::WidgetName = widget_filepath
-                .strip_prefix("src")?
-                .with_extension("")
-                .to_str()
-                .wrap_err_with(|| {
-                    format!(
-                        "Widget name cannot be presented as UTF-8: {}",
-                        widget_filepath.display()
-                    )
-                })?
-                .replace('/', ".");
-
-            let code = std::fs::read_to_string(&widget_filepath).wrap_err_with(|| {
-                format!(
-                    "Failed to read widget source code from {}",
-                    widget_filepath.display()
-                )
-            })?;
-
-            let metadata_filepath = widget_filepath.with_extension("metadata.json");
-            let metadata = if let Ok(metadata_json) = std::fs::read_to_string(&metadata_filepath) {
-                Some(serde_json::from_str(&metadata_json).wrap_err_with(|| {
-                    format!(
-                        "Failed to parse widget metadata from {}",
-                        metadata_filepath.display()
-                    )
-                })?)
-            } else {
-                None
-            };
-
-            widgets.insert(
-                widget_name,
-                crate::socialdb_types::SocialDbWidget { code, metadata },
-            );
-        }
+        let widgets = get_widgets()?;
 
         if widgets.is_empty() {
             println!("There are no widgets in the current ./src folder. Goodbye.");
@@ -232,4 +210,49 @@ impl SignerAccountId {
             None => Ok(()),
         }
     }
+}
+
+fn get_widgets() -> color_eyre::eyre::Result<
+    std::collections::HashMap<String, crate::socialdb_types::SocialDbWidget>,
+> {
+    let mut widgets = HashMap::new();
+
+    for widget_filepath in glob("./src/**/*.jsx")?.filter_map(Result::ok) {
+        let widget_name: crate::socialdb_types::WidgetName = widget_filepath
+            .strip_prefix("src")?
+            .with_extension("")
+            .to_str()
+            .wrap_err_with(|| {
+                format!(
+                    "Widget name cannot be presented as UTF-8: {}",
+                    widget_filepath.display()
+                )
+            })?
+            .replace('/', ".");
+
+        let code = std::fs::read_to_string(&widget_filepath).wrap_err_with(|| {
+            format!(
+                "Failed to read widget source code from {}",
+                widget_filepath.display()
+            )
+        })?;
+
+        let metadata_filepath = widget_filepath.with_extension("metadata.json");
+        let metadata = if let Ok(metadata_json) = std::fs::read_to_string(&metadata_filepath) {
+            Some(serde_json::from_str(&metadata_json).wrap_err_with(|| {
+                format!(
+                    "Failed to parse widget metadata from {}",
+                    metadata_filepath.display()
+                )
+            })?)
+        } else {
+            None
+        };
+
+        widgets.insert(
+            widget_name,
+            crate::socialdb_types::SocialDbWidget { code, metadata },
+        );
+    }
+    Ok(widgets)
 }

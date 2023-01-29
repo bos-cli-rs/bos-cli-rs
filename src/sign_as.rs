@@ -1,16 +1,12 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use color_eyre::eyre::{ContextCompat, WrapErr};
-use glob::glob;
-use inquire::{CustomType, Select, Text};
+use color_eyre::eyre::WrapErr;
+use inquire::{CustomType, Select};
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = near_cli_rs::GlobalContext)]
 pub struct SignerAccountId {
-    /// XXX: There are 13 widgets in the current folder ready for deployment:
-    /// XXX: * HelloWorld
-    /// XXX: * Form1
     #[interactive_clap(skip_default_input_arg)]
     /// Which account do you want to deploy the widgets to?
     deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
@@ -25,18 +21,44 @@ pub struct TransactionFunctionArgs {
 }
 
 impl SignerAccountId {
-    pub fn input_deploy_to_account_id(
-        _context: &crate::GlobalContext,
+    fn input_deploy_to_account_id(
+        context: &near_cli_rs::GlobalContext,
     ) -> color_eyre::eyre::Result<near_cli_rs::types::account_id::AccountId> {
-        let widgets = get_widgets()?;
+        let widgets = crate::common::get_widgets()?;
         println!(
             "\nThere are <{}> widgets in the current folder ready for deployment:",
             widgets.len()
         );
         for widget in widgets.keys() {
-            println!(" * {}", widget)
+            println!(" * {widget}")
         }
-        Ok(CustomType::new("What is the new account ID?").prompt()?)
+        loop {
+            let deploy_to_account_id: near_cli_rs::types::account_id::AccountId =
+                CustomType::new("Which account do you want to deploy the widgets to?").prompt()?;
+            if !crate::common::is_account_exist(context, deploy_to_account_id.clone().into()) {
+                println!(
+                    "\nThe account <{}> does not yet exist.",
+                    &deploy_to_account_id
+                );
+                #[derive(strum_macros::Display)]
+                enum ConfirmOptions {
+                    #[strum(to_string = "Yes, I want to enter a new account name.")]
+                    Yes,
+                    #[strum(to_string = "No, I want to use this account name.")]
+                    No,
+                }
+                let select_choose_input = Select::new(
+                    "Do you want to enter a new widget deployment account name?",
+                    vec![ConfirmOptions::Yes, ConfirmOptions::No],
+                )
+                .prompt()?;
+                if let ConfirmOptions::No = select_choose_input {
+                    return Ok(deploy_to_account_id);
+                }
+            } else {
+                return Ok(deploy_to_account_id);
+            }
+        }
     }
 
     pub async fn process(&self, config: near_cli_rs::config::Config) -> crate::CliResult {
@@ -50,7 +72,7 @@ impl SignerAccountId {
                 )))
             }
         };
-        let widgets = get_widgets()?;
+        let widgets = crate::common::get_widgets()?;
 
         if widgets.is_empty() {
             println!("There are no widgets in the current ./src folder. Goodbye.");
@@ -126,19 +148,19 @@ impl SignerAccountId {
                         crate::common::diff_code(&old_widget.code, &new_widget.code).is_err();
                     let has_metadata_changed = old_widget.metadata != new_widget.metadata;
                     if has_code_changed {
-                        println!("Code for widget <{}> changed", widget_name);
+                        println!("Code for widget <{widget_name}> changed");
                     } else {
-                        println!("Code for widget <{}> has not changed", widget_name);
+                        println!("Code for widget <{widget_name}> has not changed");
                     }
                     if has_metadata_changed {
                         println!("{:?}\n{:?}", old_widget.metadata, new_widget.metadata);
-                        println!("Metadata for widget <{}> changed", widget_name);
+                        println!("Metadata for widget <{widget_name}> changed");
                     } else {
-                        println!("Metadata for widget <{}> has not changed", widget_name);
+                        println!("Metadata for widget <{widget_name}> has not changed");
                     }
                     has_code_changed || has_metadata_changed
                 } else {
-                    println!("Found new widget <{}> to deploy", widget_name);
+                    println!("Found new widget <{widget_name}> to deploy");
                     true
                 }
             })
@@ -173,7 +195,9 @@ impl SignerAccountId {
         let mut accounts = HashMap::new();
         accounts.insert(
             near_primitives::types::AccountId::from(self.deploy_to_account_id.clone()),
-            crate::socialdb_types::SocialDbAccountMetadata { widgets },
+            crate::socialdb_types::SocialDbAccountMetadata {
+                widgets: widgets.clone(),
+            },
         );
 
         let function_args = serde_json::to_string(&TransactionFunctionArgs {
@@ -204,55 +228,34 @@ impl SignerAccountId {
         )
         .await?
         {
-            Some(transaction_info) => {
-                near_cli_rs::common::print_transaction_status(transaction_info, network_config)
-            }
+            Some(transaction_info) => match transaction_info.status {
+                near_primitives::views::FinalExecutionStatus::SuccessValue(_) => {
+                    println!("-------------- Logs ----------------");
+                    for receipt in transaction_info.receipts_outcome.iter() {
+                        if receipt.outcome.logs.is_empty() {
+                            println!("Logs [{}]:   No logs", receipt.outcome.executor_id);
+                        } else {
+                            println!("Logs [{}]:", receipt.outcome.executor_id);
+                            println!("  {}", receipt.outcome.logs.join("\n  "));
+                        };
+                    }
+                    println!("------------------------------------");
+
+                    println!("<{}> widgets were successfully deployed:", widgets.len());
+                    for widget in widgets.keys() {
+                        println!(" * {widget}")
+                    }
+                    println!("Transaction ID: {id}\nTo see the transaction in the transaction explorer, please open this url in your browser:\n{path}{id}\n",
+                    id=transaction_info.transaction_outcome.id,
+                    path=network_config.explorer_transaction_url
+                    );
+                    Ok(())
+                }
+                _ => {
+                    near_cli_rs::common::print_transaction_status(transaction_info, network_config)
+                }
+            },
             None => Ok(()),
         }
     }
-}
-
-fn get_widgets() -> color_eyre::eyre::Result<
-    std::collections::HashMap<String, crate::socialdb_types::SocialDbWidget>,
-> {
-    let mut widgets = HashMap::new();
-
-    for widget_filepath in glob("./src/**/*.jsx")?.filter_map(Result::ok) {
-        let widget_name: crate::socialdb_types::WidgetName = widget_filepath
-            .strip_prefix("src")?
-            .with_extension("")
-            .to_str()
-            .wrap_err_with(|| {
-                format!(
-                    "Widget name cannot be presented as UTF-8: {}",
-                    widget_filepath.display()
-                )
-            })?
-            .replace('/', ".");
-
-        let code = std::fs::read_to_string(&widget_filepath).wrap_err_with(|| {
-            format!(
-                "Failed to read widget source code from {}",
-                widget_filepath.display()
-            )
-        })?;
-
-        let metadata_filepath = widget_filepath.with_extension("metadata.json");
-        let metadata = if let Ok(metadata_json) = std::fs::read_to_string(&metadata_filepath) {
-            Some(serde_json::from_str(&metadata_json).wrap_err_with(|| {
-                format!(
-                    "Failed to parse widget metadata from {}",
-                    metadata_filepath.display()
-                )
-            })?)
-        } else {
-            None
-        };
-
-        widgets.insert(
-            widget_name,
-            crate::socialdb_types::SocialDbWidget { code, metadata },
-        );
-    }
-    Ok(widgets)
 }

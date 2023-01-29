@@ -36,9 +36,9 @@ near-jsonrpc-primitives = "0.15"
 
 interactive-clap = "0.1.0"
 interactive-clap-derive = "0.1.0"
-near-cli-rs = { path = "../near-cli-rs" }
+# near-cli-rs = { path = "../near-cli-rs" }
 console = "0.15.5"
-#near-cli-rs = { git = "https://github.com/near/near-cli-rs", rev="80b12c5a92a2889cd333cd6abf904a312122ab4f" }
+near-cli-rs = { git = "https://github.com/near/near-cli-rs", rev="e6168136b3514d63d383107e893e767fb9a6b0b5" }
 [target.'cfg(target_os = "macos")'.dependencies]
 security-framework = "2.7.0"
 

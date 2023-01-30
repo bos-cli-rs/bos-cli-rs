@@ -133,7 +133,7 @@ impl SignerAccountId {
                 account_metadata
             } else {
                 println!("\nThere are currently no widgets in the account <{}>. Therefore, all widgets will be deployed as new", self.deploy_to_account_id);
-                let deposit = near_cli_rs::common::NearBalance::from_str("1 NEAR") // XXX: need calculation!!!!!!!! for new account
+                let deposit = near_cli_rs::common::NearBalance::from_str("0 NEAR") // XXX: need calculation!!!!!!!! for new account
                     .unwrap()
                     .to_yoctonear();
                 return self
@@ -179,7 +179,7 @@ impl SignerAccountId {
             return Ok(());
         }
 
-        let deposit = near_cli_rs::common::NearBalance::from_str("0.01 NEAR") // XXX: need calculation!!!!!!!! for an existing account
+        let deposit = near_cli_rs::common::NearBalance::from_str("0 NEAR") // XXX: need calculation!!!!!!!! for an existing account
             .unwrap()
             .to_yoctonear();
         self.deploy_widget_code(

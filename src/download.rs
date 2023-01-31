@@ -94,7 +94,6 @@ impl AccountId {
         let dir_name = format!("./src/downloaded_widgets_for_{}", self.account_id);
         std::fs::create_dir_all(&dir_name)?;
         for widget_name in widgets.keys() {
-            println!("======={}  {:#?}", widget_name, widgets[widget_name].code);
             std::fs::File::create(format!("{dir_name}/{widget_name}.jsx"))
                 .wrap_err(format!(
                     "Failed to create file: {dir_name}/{widget_name}.jsx"
@@ -117,6 +116,7 @@ impl AccountId {
                     ))?;
             }
         }
+        println!("Widgets for account <{}> were loaded in <{dir_name}> successfully", self.account_id);
         Ok(())
     }
 }

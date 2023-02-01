@@ -1,6 +1,4 @@
-use std::io::Write;
-
-use color_eyre::eyre::WrapErr;
+use color_eyre::eyre::{WrapErr, ContextCompat};
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = near_cli_rs::GlobalContext)]
@@ -53,22 +51,6 @@ impl AccountId {
                     "Received unexpected query kind on fetching widgets state from SocialDB",
                 ));
             };
-        println!("--------------");
-        if call_result.logs.is_empty() {
-            println!("No logs")
-        } else {
-            println!("Logs:");
-            println!("  {}", call_result.logs.join("\n  "));
-        }
-        println!("--------------");
-
-        if call_result.result.is_empty() {
-            println!(
-                "\nThere are currently no widgets in the account <{}>.",
-                self.account_id
-            );
-            return Ok(());
-        }
 
         let downloaded_social_db: crate::socialdb_types::SocialDb =
             serde_json::from_slice(&call_result.result)
@@ -90,33 +72,44 @@ impl AccountId {
                 );
                 return Ok(());
             };
+
         let widgets = &downloaded_social_account_metadata.widgets;
-        let dir_name = format!("./src/downloaded_widgets_for_{}", self.account_id);
-        std::fs::create_dir_all(&dir_name)?;
-        for widget_name in widgets.keys() {
-            std::fs::File::create(format!("{dir_name}/{widget_name}.jsx"))
-                .wrap_err(format!(
-                    "Failed to create file: {dir_name}/{widget_name}.jsx"
-                ))?
-                .write(widgets[widget_name].code.as_bytes())
-                .wrap_err(format!(
-                    "Failed to write file: {dir_name}/{widget_name}.jsx"
-                ))?;
-            if let Some(metadata) = &widgets[widget_name].metadata {
-                let metadata = serde_json::to_string(metadata).wrap_err_with(|| {
-                    format!("Failed to parse widget metadata from {widget_name}")
+        let widgets_src_folder = std::path::PathBuf::from("./src");
+        for (widget_name, widget) in widgets.iter() {
+            let mut widget_path = widgets_src_folder.clone();
+            widget_path.extend(widget_name.split('.'));
+            std::fs::create_dir_all(widget_path.parent().wrap_err_with(|| {
+                format!(
+                    "Failed to get the parent path for {widget_name} where the path is {}",
+                    widget_path.display()
+                )
+            })?)?;
+            let widget_code_path = widget_path.with_extension("jsx");
+            std::fs::write(&widget_code_path, widget.code.as_bytes()).wrap_err_with(|| {
+                format!(
+                    "Failed to save widget code into {}",
+                    widget_code_path.display()
+                )
+            })?;
+            if let Some(metadata) = &widget.metadata {
+                let metadata = serde_json::to_string_pretty(metadata).wrap_err_with(|| {
+                    format!("Failed to serialize widget metadata for {widget_name}")
                 })?;
-                std::fs::File::create(format!("{dir_name}/{widget_name}.metadata.json"))
-                    .wrap_err(format!(
-                        "Failed to create file: {dir_name}/{widget_name}.metadata.json"
-                    ))?
-                    .write(metadata.as_bytes())
-                    .wrap_err(format!(
-                        "Failed to write file: {dir_name}/{widget_name}.metadata.json"
-                    ))?;
+                let widget_metadata_path = widget_path.with_extension("metadata.json");
+                std::fs::write(&widget_metadata_path, metadata.as_bytes()).wrap_err_with(|| {
+                    format!(
+                        "Failed to save widget metadata into {}",
+                        widget_metadata_path.display()
+                    )
+                })?;
             }
         }
-        println!("Widgets for account <{}> were loaded in <{dir_name}> successfully", self.account_id);
+
+        println!(
+            "Widgets for account <{}> were downloaded into <{}> successfully",
+            self.account_id,
+            widgets_src_folder.display()
+        );
         Ok(())
     }
 }

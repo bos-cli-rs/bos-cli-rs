@@ -3,7 +3,8 @@ pub use near_cli_rs::CliResult;
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
 pub mod common;
-mod sign_as;
+mod deploy;
+mod download;
 pub mod socialdb_types;
 
 /// near-cli is a toolbox for interacting with NEAR protocol
@@ -28,14 +29,18 @@ impl Cmd {
 #[interactive_clap(disable_back)]
 /// What are you up to? (select one of the options with the up-down arrows on your keyboard and press Enter)
 pub enum Command {
-    #[strum_discriminants(strum(message = "deploy -   Deploy widget if code has changed"))]
+    #[strum_discriminants(strum(message = "download -   Download widgets from account"))]
+    /// Download widgets from account
+    Download(self::download::AccountId),
+    #[strum_discriminants(strum(message = "deploy   -   Deploy widget if code has changed"))]
     /// Deploy widget if code has changed
-    Deploy(self::sign_as::SignerAccountId),
+    Deploy(self::deploy::SignerAccountId),
 }
 
 impl Command {
     pub async fn process(&self, config: near_cli_rs::config::Config) -> crate::CliResult {
         match self {
+            Self::Download(account_id) => account_id.process(config).await,
             Self::Deploy(sign_as) => sign_as.process(config).await,
         }
     }

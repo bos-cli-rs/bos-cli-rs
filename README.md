@@ -1,6 +1,6 @@
 # near-social CLI
 
-This command line utility helps to develop widgets for [near.social](https://near.social) using standard tools like your best code editor, use standard tools for source code version control, etc.
+Command line utility helps to develop widgets for [near.social](https://near.social) by allowing developers to use standard developer tools like their best code editor and standard tools for source code version control, and then deploy their widgets to SocialDB in one command.
 
 There are currently only two commands implemented:
 * `deploy` allows you to upload/publish widgets from your local `./src` folder to near.social account.

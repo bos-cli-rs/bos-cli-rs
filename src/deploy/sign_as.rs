@@ -2,66 +2,28 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use color_eyre::eyre::WrapErr;
-use inquire::{CustomType, Select};
-
-#[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(context = near_cli_rs::GlobalContext)]
-pub struct SignerAccountId {
-    #[interactive_clap(skip_default_input_arg)]
-    /// Which account do you want to deploy the widgets to?
-    deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
-    #[interactive_clap(named_arg)]
-    /// Select network
-    network_config: near_cli_rs::network_for_transaction::NetworkForTransactionArgs,
-}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TransactionFunctionArgs {
     data: crate::socialdb_types::SocialDb,
 }
 
-impl SignerAccountId {
-    fn input_deploy_to_account_id(
-        context: &near_cli_rs::GlobalContext,
-    ) -> color_eyre::eyre::Result<near_cli_rs::types::account_id::AccountId> {
-        let widgets = crate::common::get_widgets()?;
-        println!(
-            "\nThere are <{}> widgets in the current folder ready for deployment:",
-            widgets.len()
-        );
-        for widget in widgets.keys() {
-            println!(" * {widget}")
-        }
-        loop {
-            let deploy_to_account_id: near_cli_rs::types::account_id::AccountId =
-                CustomType::new("Which account do you want to deploy the widgets to?").prompt()?;
-            if !crate::common::is_account_exist(context, deploy_to_account_id.clone().into()) {
-                println!(
-                    "\nThe account <{}> does not yet exist.",
-                    &deploy_to_account_id
-                );
-                #[derive(strum_macros::Display)]
-                enum ConfirmOptions {
-                    #[strum(to_string = "Yes, I want to enter a new account name.")]
-                    Yes,
-                    #[strum(to_string = "No, I want to use this account name.")]
-                    No,
-                }
-                let select_choose_input = Select::new(
-                    "Do you want to enter a new widget deployment account name?",
-                    vec![ConfirmOptions::Yes, ConfirmOptions::No],
-                )
-                .prompt()?;
-                if let ConfirmOptions::No = select_choose_input {
-                    return Ok(deploy_to_account_id);
-                }
-            } else {
-                return Ok(deploy_to_account_id);
-            }
-        }
-    }
+#[derive(Debug, Clone, interactive_clap::InteractiveClap)]
+#[interactive_clap(context = near_cli_rs::GlobalContext)]
+pub struct SignerAccountId {
+    /// What is the signer account ID?
+    signer_account_id: near_cli_rs::types::account_id::AccountId,
+    #[interactive_clap(named_arg)]
+    /// Select network
+    network_config: near_cli_rs::network_for_transaction::NetworkForTransactionArgs,
+}
 
-    pub async fn process(&self, config: near_cli_rs::config::Config) -> crate::CliResult {
+impl SignerAccountId {
+    pub async fn process(
+        &self,
+        config: near_cli_rs::config::Config,
+        deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
+    ) -> crate::CliResult {
         let network_config = self.network_config.get_network_config(config.clone());
         let near_social_account_id = match &network_config.near_social_account_id {
             Some(account_id) => account_id.clone(),
@@ -82,7 +44,7 @@ impl SignerAccountId {
         let input_args = serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
             keys: widgets
                 .keys()
-                .map(|name| format!("{}/widget/{}/**", self.deploy_to_account_id, name))
+                .map(|name| format!("{deploy_to_account_id}/widget/{name}/**"))
                 .collect(),
         })
         .wrap_err("Internal error: could not serialize SocialDB input args")?;
@@ -120,19 +82,20 @@ impl SignerAccountId {
                 old_social_db
                     .accounts
                     .get(&near_primitives::types::AccountId::from(
-                        self.deploy_to_account_id.clone(),
+                        deploy_to_account_id.clone(),
                     ))
             {
                 account_metadata
             } else {
-                println!("\nThere are currently no widgets in the account <{}>. Therefore, all widgets will be deployed as new", self.deploy_to_account_id);
-                let deposit = near_cli_rs::common::NearBalance::from_str("0 NEAR") // XXX: need calculation!!!!!!!! for new account
+                println!("\nThere are currently no widgets in the account <{deploy_to_account_id}>. Therefore, all widgets will be deployed as new");
+                let deposit = near_cli_rs::common::NearBalance::from_str("1 NEAR") // XXX: need calculation!!!!!!!! for new account
                     .unwrap()
                     .to_yoctonear();
                 return self
                     .deploy_widget_code(
                         config,
                         network_config,
+                        deploy_to_account_id,
                         near_social_account_id,
                         widgets,
                         deposit,
@@ -172,12 +135,13 @@ impl SignerAccountId {
             return Ok(());
         }
 
-        let deposit = near_cli_rs::common::NearBalance::from_str("0 NEAR") // XXX: need calculation!!!!!!!! for an existing account
+        let deposit = near_cli_rs::common::NearBalance::from_str("0.01 NEAR") // XXX: need calculation!!!!!!!! for an existing account
             .unwrap()
             .to_yoctonear();
         self.deploy_widget_code(
             config,
             network_config,
+            deploy_to_account_id,
             near_social_account_id,
             output_widgets,
             deposit,
@@ -189,13 +153,14 @@ impl SignerAccountId {
         &self,
         config: near_cli_rs::config::Config,
         network_config: near_cli_rs::config::NetworkConfig,
+        deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
         near_social_account_id: near_primitives::types::AccountId,
         widgets: HashMap<String, crate::socialdb_types::SocialDbWidget>,
         deposit: u128,
     ) -> crate::CliResult {
         let mut accounts = HashMap::new();
         accounts.insert(
-            near_primitives::types::AccountId::from(self.deploy_to_account_id.clone()),
+            near_primitives::types::AccountId::from(deploy_to_account_id.clone()),
             crate::socialdb_types::SocialDbAccountMetadata {
                 widgets: widgets.clone(),
             },
@@ -206,7 +171,7 @@ impl SignerAccountId {
         })?;
 
         let prepopulated_unsigned_transaction = near_primitives::transaction::Transaction {
-            signer_id: self.deploy_to_account_id.clone().into(),
+            signer_id: self.signer_account_id.clone().into(),
             public_key: near_crypto::PublicKey::empty(near_crypto::KeyType::ED25519),
             nonce: 0,
             receiver_id: near_social_account_id,

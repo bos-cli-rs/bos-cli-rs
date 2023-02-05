@@ -1,4 +1,4 @@
-use color_eyre::eyre::{WrapErr, ContextCompat};
+use color_eyre::eyre::{ContextCompat, WrapErr};
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = near_cli_rs::GlobalContext)]

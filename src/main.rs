@@ -35,7 +35,7 @@ pub enum Command {
     Download(self::download::AccountId),
     #[strum_discriminants(strum(message = "deploy   -   Deploy widget if code has changed"))]
     /// Deploy widget if code has changed
-    Deploy(self::deploy::SignerAccountId),
+    Deploy(self::deploy::DeployArgs),
 }
 
 impl Command {

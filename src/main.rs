@@ -5,6 +5,7 @@ use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 pub mod common;
 mod deploy;
 mod download;
+mod sign_as;
 pub mod socialdb_types;
 
 /// near-cli is a toolbox for interacting with NEAR protocol

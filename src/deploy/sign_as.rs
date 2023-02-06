@@ -95,9 +95,14 @@ impl SignerAccountId {
                 account_metadata
             } else {
                 println!("\nThere are currently no widgets in the account <{deploy_to_account_id}>. Therefore, all widgets will be deployed as new");
-                let deposit = near_cli_rs::common::NearBalance::from_str("1 NEAR") // XXX: need calculation!!!!!!!! for new account
-                    .unwrap()
-                    .to_yoctonear();
+                let deposit = self
+                    .get_deposit(
+                        config.clone(),
+                        deploy_to_account_id.clone(),
+                        near_social_account_id.clone(),
+                        near_cli_rs::common::NearBalance::from_str("1 NEAR").unwrap(), // XXX: need calculation!!!!!!!! for new account
+                    )
+                    .await?;
                 return self
                     .deploy_widget_code(
                         config,
@@ -142,9 +147,14 @@ impl SignerAccountId {
             return Ok(());
         }
 
-        let deposit = near_cli_rs::common::NearBalance::from_str("0.01 NEAR") // XXX: need calculation!!!!!!!! for an existing account
-            .unwrap()
-            .to_yoctonear();
+        let deposit = self
+            .get_deposit(
+                config.clone(),
+                deploy_to_account_id.clone(),
+                near_social_account_id.clone(),
+                near_cli_rs::common::NearBalance::from_str("0.01 NEAR").unwrap(), // XXX: need calculation!!!!!!!! for an existing account
+            )
+            .await?;
         self.deploy_widget_code(
             config,
             network_config,
@@ -234,5 +244,44 @@ impl SignerAccountId {
             },
             None => Ok(()),
         }
+    }
+
+    async fn get_deposit(
+        &self,
+        config: near_cli_rs::config::Config,
+        deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
+        near_social_account_id: near_primitives::types::AccountId,
+        calculated_deposit: near_cli_rs::common::NearBalance,
+    ) -> color_eyre::eyre::Result<u128> {
+        let can_have_zero_attached_deposit = if self.signer_account_id == deploy_to_account_id {
+            false
+        } else {
+            crate::common::is_write_permission_granted(
+                config.clone(),
+                self.network_config.clone(),
+                near_social_account_id.clone(),
+                Some(self.signer_account_id.clone().into()),
+                None,
+                format!("{deploy_to_account_id}/widget"),
+            )
+            .await?
+                || crate::common::is_write_permission_granted(
+                    config.clone(),
+                    self.network_config.clone(),
+                    near_social_account_id.clone(),
+                    None,
+                    Some(self.network_config.get_signer_public_key()),
+                    format!("{deploy_to_account_id}/widget"),
+                )
+                .await?
+        };
+        let deposit = if can_have_zero_attached_deposit {
+            near_cli_rs::common::NearBalance::from_str("0 NEAR")
+                .unwrap()
+                .to_yoctonear()
+        } else {
+            calculated_deposit.to_yoctonear()
+        };
+        Ok(deposit)
     }
 }

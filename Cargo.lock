@@ -1375,7 +1375,7 @@ dependencies = [
 [[package]]
 name = "near-cli-rs"
 version = "0.2.1"
-source = "git+https://github.com/near/near-cli-rs?rev=e6168136b3514d63d383107e893e767fb9a6b0b5#e6168136b3514d63d383107e893e767fb9a6b0b5"
+source = "git+https://github.com/near/near-cli-rs?rev=8d8f346dcf01eeaca2b660230be12584eb870047#8d8f346dcf01eeaca2b660230be12584eb870047"
 dependencies = [
  "async-recursion",
  "base64 0.13.1",

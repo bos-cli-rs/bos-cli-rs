@@ -124,3 +124,69 @@ pub fn get_widgets() -> color_eyre::eyre::Result<
     }
     Ok(widgets)
 }
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PredecessorIdFunctionArgs {
+    predecessor_id: near_primitives::types::AccountId,
+    key: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PublicKeyFunctionArgs {
+    public_key: near_crypto::PublicKey,
+    key: String,
+}
+
+pub async fn is_write_permission_granted(
+    config: near_cli_rs::config::Config,
+    network_config: near_cli_rs::network_for_transaction::NetworkForTransactionArgs,
+    near_social_account_id: near_primitives::types::AccountId,
+    predecessor_id: Option<near_primitives::types::AccountId>,
+    public_key: Option<near_crypto::PublicKey>,
+    key: String,
+) -> color_eyre::eyre::Result<bool> {
+    let function_args = if let Some(predecessor_id) = predecessor_id {
+        serde_json::to_string(&PredecessorIdFunctionArgs {
+            predecessor_id,
+            key,
+        })
+        .wrap_err("Internal error: could not serialize PredecessorIdFunctionArgs input args")?
+    } else if let Some(public_key) = public_key {
+        serde_json::to_string(&PublicKeyFunctionArgs { public_key, key })
+            .wrap_err("Internal error: could not serialize PublicKeyFunctionArgs input args")?
+    } else {
+        return Err(color_eyre::Report::msg(
+                "Function <is_write_permission_granted> must take parameters either <predecessor_id> or <public_key>",
+            ));
+    };
+    let query_view_method_response = network_config
+        .get_network_config(config)
+        .json_rpc_client()
+        .call(near_jsonrpc_client::methods::query::RpcQueryRequest {
+            block_reference: near_primitives::types::Finality::Final.into(),
+            request: near_primitives::views::QueryRequest::CallFunction {
+                account_id: near_social_account_id,
+                method_name: "is_write_permission_granted".to_string(),
+                args: near_primitives::types::FunctionArgs::from(function_args.into_bytes()),
+            },
+        })
+        .await
+        .wrap_err_with(|| "Failed to fetch query for view method: 'is_write_permission_granted'")?;
+    let call_result =
+        if let near_jsonrpc_primitives::types::query::QueryResponseKind::CallResult(result) =
+            query_view_method_response.kind
+        {
+            result.result
+        } else {
+            return Err(color_eyre::Report::msg("Error call result".to_string()));
+        };
+
+    let serde_call_result = if call_result.is_empty() {
+        serde_json::Value::Null
+    } else {
+        serde_json::from_slice(&call_result)
+            .map_err(|err| color_eyre::Report::msg(format!("serde json: {err:?}")))?
+    };
+    let result = serde_call_result.as_bool().expect("Unexpected response");
+    Ok(result)
+}

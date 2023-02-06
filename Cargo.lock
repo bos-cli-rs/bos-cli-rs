@@ -1559,7 +1559,7 @@ dependencies = [
 
 [[package]]
 name = "near-social"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "color-eyre",
@@ -1572,7 +1572,6 @@ dependencies = [
  "near-crypto",
  "near-jsonrpc-client",
  "near-jsonrpc-primitives",
- "near-ledger",
  "near-primitives",
  "security-framework",
  "serde",

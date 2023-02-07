@@ -126,6 +126,33 @@ pub fn get_widgets() -> color_eyre::eyre::Result<
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum PermissionKey {
+    #[serde(rename = "predecessor_id")]
+    PredecessorId(near_primitives::types::AccountId),
+    #[serde(rename = "public_key")]
+    PublicKey(near_crypto::PublicKey),
+}
+
+impl From<near_primitives::types::AccountId> for PermissionKey {
+    fn from(predecessor_id: near_primitives::types::AccountId) -> Self {
+        Self::PredecessorId(predecessor_id)
+    }
+}
+
+impl From<near_crypto::PublicKey> for PermissionKey {
+    fn from(public_key: near_crypto::PublicKey) -> Self {
+        Self::PublicKey(public_key)
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct IsWritePermissionGrantedInputArgs {
+    key: String,
+    #[serde(flatten)]
+    permission_key: PermissionKey,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PredecessorIdFunctionArgs {
     predecessor_id: near_primitives::types::AccountId,
     key: String,
@@ -137,27 +164,17 @@ pub struct PublicKeyFunctionArgs {
     key: String,
 }
 
-pub async fn is_write_permission_granted(
+pub async fn is_write_permission_granted<P: Into<PermissionKey>>(
     network_config: &near_cli_rs::config::NetworkConfig,
     near_social_account_id: near_primitives::types::AccountId,
-    predecessor_id: Option<near_primitives::types::AccountId>,
-    public_key: Option<near_crypto::PublicKey>,
+    permission_key: P,
     key: String,
 ) -> color_eyre::eyre::Result<bool> {
-    let function_args = if let Some(predecessor_id) = predecessor_id {
-        serde_json::to_string(&PredecessorIdFunctionArgs {
-            predecessor_id,
-            key,
-        })
-        .wrap_err("Internal error: could not serialize PredecessorIdFunctionArgs input args")?
-    } else if let Some(public_key) = public_key {
-        serde_json::to_string(&PublicKeyFunctionArgs { public_key, key })
-            .wrap_err("Internal error: could not serialize PublicKeyFunctionArgs input args")?
-    } else {
-        return Err(color_eyre::Report::msg(
-                "Function <is_write_permission_granted> must take parameters either <predecessor_id> or <public_key>",
-            ));
-    };
+    let function_args = serde_json::to_string(&IsWritePermissionGrantedInputArgs {
+        key,
+        permission_key: permission_key.into(),
+    })
+    .wrap_err("Internal error: could not serialize `is_write_permission_granted` input args")?;
     let query_view_method_response = network_config
         .json_rpc_client()
         .call(near_jsonrpc_client::methods::query::RpcQueryRequest {

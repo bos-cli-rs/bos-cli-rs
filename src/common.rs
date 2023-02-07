@@ -205,3 +205,41 @@ pub async fn is_write_permission_granted<P: Into<PermissionKey>>(
     let result = serde_call_result.as_bool().expect("Unexpected response");
     Ok(result)
 }
+
+pub async fn is_signer_access_key_full_access(
+    network_config: &near_cli_rs::config::NetworkConfig,
+    account_id: near_primitives::types::AccountId,
+    public_key: near_crypto::PublicKey,
+) -> color_eyre::eyre::Result<bool> {
+    let query_view_method_response = network_config
+        .json_rpc_client()
+        .call(near_jsonrpc_client::methods::query::RpcQueryRequest {
+            block_reference: near_primitives::types::Finality::Final.into(),
+            request: near_primitives::views::QueryRequest::ViewAccessKey {
+                account_id,
+                public_key: public_key.clone(),
+            },
+        })
+        .await
+        .wrap_err_with(|| {
+            format!(
+                "Failed to fetch query 'view access key' for <{:?}>",
+                public_key
+            )
+        })?;
+    let access_key_view =
+        if let near_jsonrpc_primitives::types::query::QueryResponseKind::AccessKey(result) =
+            query_view_method_response.kind
+        {
+            result
+        } else {
+            color_eyre::eyre::bail!(color_eyre::Report::msg("Error call result".to_string()));
+        };
+
+    if let near_primitives::views::AccessKeyPermissionView::FullAccess = access_key_view.permission
+    {
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}

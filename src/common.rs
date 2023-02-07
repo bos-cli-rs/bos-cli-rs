@@ -159,7 +159,6 @@ pub async fn is_write_permission_granted(
             ));
     };
     let query_view_method_response = network_config
-        .get_network_config(config)
         .json_rpc_client()
         .call(near_jsonrpc_client::methods::query::RpcQueryRequest {
             block_reference: near_primitives::types::Finality::Final.into(),

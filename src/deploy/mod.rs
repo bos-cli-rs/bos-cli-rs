@@ -131,7 +131,7 @@ impl DeployArgs {
                 println!("\nThere are currently no widgets in the account <{}>. Therefore, all widgets will be deployed as new", self.deploy_to_account_id);
                 let deposit = self
                     .get_deposit(
-                        config.clone(),
+                        &network_config,
                         self.deploy_to_account_id.clone(),
                         near_social_account_id.clone(),
                         near_cli_rs::common::NearBalance::from_str("1 NEAR").unwrap(), // XXX: need calculation!!!!!!!! for new account
@@ -183,7 +183,7 @@ impl DeployArgs {
 
         let deposit = self
             .get_deposit(
-                config.clone(),
+                &network_config,
                 self.deploy_to_account_id.clone(),
                 near_social_account_id.clone(),
                 near_cli_rs::common::NearBalance::from_str("0.01 NEAR").unwrap(), // XXX: need calculation!!!!!!!! for an existing account
@@ -282,7 +282,7 @@ impl DeployArgs {
 
     async fn get_deposit(
         &self,
-        config: near_cli_rs::config::Config,
+        network_config: &near_cli_rs::config::NetworkConfig,
         deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
         near_social_account_id: near_primitives::types::AccountId,
         calculated_deposit: near_cli_rs::common::NearBalance,
@@ -292,8 +292,7 @@ impl DeployArgs {
                 false
             } else {
                 crate::common::is_write_permission_granted(
-                    config.clone(),
-                    self.sign_as.get_network_config_for_transaction(),
+                    network_config,
                     near_social_account_id.clone(),
                     Some(self.sign_as.get_signer_account_id().into()),
                     None,
@@ -301,8 +300,7 @@ impl DeployArgs {
                 )
                 .await?
                     || crate::common::is_write_permission_granted(
-                        config.clone(),
-                        self.sign_as.get_network_config_for_transaction(),
+                        network_config,
                         near_social_account_id.clone(),
                         None,
                         Some(

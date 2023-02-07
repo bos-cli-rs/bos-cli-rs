@@ -287,6 +287,12 @@ impl DeployArgs {
         near_social_account_id: near_primitives::types::AccountId,
         calculated_deposit: near_cli_rs::common::NearBalance,
     ) -> color_eyre::eyre::Result<u128> {
+        let signer_account_id: near_primitives::types::AccountId =
+            self.sign_as.get_signer_account_id().into();
+        let signer_public_key = self
+            .sign_as
+            .get_network_config_for_transaction()
+            .get_signer_public_key();
         let can_have_zero_attached_deposit =
             if self.sign_as.get_signer_account_id() == deploy_to_account_id {
                 false
@@ -294,20 +300,14 @@ impl DeployArgs {
                 crate::common::is_write_permission_granted(
                     network_config,
                     near_social_account_id.clone(),
-                    Some(self.sign_as.get_signer_account_id().into()),
-                    None,
+                    signer_account_id,
                     format!("{deploy_to_account_id}/widget"),
                 )
                 .await?
                     || crate::common::is_write_permission_granted(
                         network_config,
                         near_social_account_id.clone(),
-                        None,
-                        Some(
-                            self.sign_as
-                                .get_network_config_for_transaction()
-                                .get_signer_public_key(),
-                        ),
+                        signer_public_key,
                         format!("{deploy_to_account_id}/widget"),
                     )
                     .await?

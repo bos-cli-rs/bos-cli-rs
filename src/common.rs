@@ -138,8 +138,7 @@ pub struct PublicKeyFunctionArgs {
 }
 
 pub async fn is_write_permission_granted(
-    config: near_cli_rs::config::Config,
-    network_config: near_cli_rs::network_for_transaction::NetworkForTransactionArgs,
+    network_config: &near_cli_rs::config::NetworkConfig,
     near_social_account_id: near_primitives::types::AccountId,
     predecessor_id: Option<near_primitives::types::AccountId>,
     public_key: Option<near_crypto::PublicKey>,

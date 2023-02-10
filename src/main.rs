@@ -3,9 +3,8 @@ pub use near_cli_rs::CliResult;
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
 pub mod common;
-mod deploy;
+pub mod deploy;
 mod download;
-mod sign_as;
 pub mod socialdb_types;
 
 /// near-cli is a toolbox for interacting with NEAR protocol
@@ -35,7 +34,7 @@ pub enum Command {
     Download(self::download::AccountId),
     #[strum_discriminants(strum(message = "deploy   -   Deploy widget if code has changed"))]
     /// Deploy widget if code has changed
-    Deploy(self::deploy::DeployArgs),
+    Deploy(self::deploy::DeployToAccount),
 }
 
 impl Command {

@@ -4,23 +4,44 @@ use std::str::FromStr;
 use color_eyre::eyre::WrapErr;
 use inquire::{CustomType, Select};
 
+mod deploy_args;
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TransactionFunctionArgs {
-    data: crate::socialdb_types::SocialDb,
+    pub data: crate::socialdb_types::SocialDb,
 }
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(context = near_cli_rs::GlobalContext)]
-pub struct DeployArgs {
+#[interactive_clap(input_context = near_cli_rs::GlobalContext)]
+#[interactive_clap(output_context = DeployToAccountContext)]
+pub struct DeployToAccount {
     #[interactive_clap(skip_default_input_arg)]
     /// Which account do you want to deploy the widgets to?
     deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
     #[interactive_clap(named_arg)]
     /// Specify signer account ID
-    sign_as: crate::sign_as::SignerAccountId,
+    sign_as: self::deploy_args::DeployArgs,
 }
 
-impl DeployArgs {
+#[derive(Debug, Clone)]
+pub struct DeployToAccountContext {
+    pub config: near_cli_rs::config::Config,
+    pub deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
+}
+
+impl DeployToAccountContext {
+    pub fn from_previous_context(
+        previous_context: near_cli_rs::GlobalContext,
+        scope: &<DeployToAccount as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
+    ) -> Self {
+        Self {
+            config: previous_context.0,
+            deploy_to_account_id: scope.deploy_to_account_id.clone(),
+        }
+    }
+}
+
+impl DeployToAccount {
     fn input_deploy_to_account_id(
         context: &near_cli_rs::GlobalContext,
     ) -> color_eyre::eyre::Result<near_cli_rs::types::account_id::AccountId> {
@@ -60,6 +81,7 @@ impl DeployArgs {
             }
         }
     }
+
 
     pub async fn process(&self, config: near_cli_rs::config::Config) -> crate::CliResult {
         let network_config = self
@@ -361,3 +383,4 @@ impl DeployArgs {
         Ok(deposit)
     }
 }
+

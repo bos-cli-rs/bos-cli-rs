@@ -80,6 +80,10 @@ impl From<DeployArgsContext> for near_cli_rs::commands::ActionContext {
                     Ok(())
             }),
             on_after_signing_callback: std::sync::Arc::new(|singed_transaction| {
+                if let near_primitives::transaction::SignedTransaction{transaction, ..} = singed_transaction {
+                    println!("= = = = = = = = = = signed transaction: {}", transaction.public_key)
+                }
+
                 Ok(())
             }),
         }

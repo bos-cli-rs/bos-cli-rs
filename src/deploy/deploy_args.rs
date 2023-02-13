@@ -21,14 +21,16 @@ pub struct DeployArgs {
     network_for_transaction: near_cli_rs::network_for_transaction::NetworkForTransactionArgs,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct DeployArgsContext {
     config: near_cli_rs::config::Config,
     deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
     signer_account_id: near_cli_rs::types::account_id::AccountId,
+    network_config: near_cli_rs::config::NetworkConfig,
     near_social_account_id: near_cli_rs::types::account_id::AccountId,
     function_args: String,
     deposit: near_cli_rs::common::NearBalance,
+    on_after_getting_network_connection_callback: std::sync::Arc<dyn Fn(&mut near_cli_rs::config::NetworkConfig) -> near_cli_rs::config::NetworkConfig>,
 }
 
 impl DeployArgsContext {
@@ -36,13 +38,18 @@ impl DeployArgsContext {
         previous_context: super::DeployToAccountContext,
         scope: &<DeployArgs as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
+        let mut deposit = near_cli_rs::common::NearBalance::from_str("0 NeEAR");
+
         Ok(Self {
             config: previous_context.config,
+            network_config: previous_context.network_config,
             deploy_to_account_id: previous_context.deploy_to_account_id,
             signer_account_id: scope.signer_account_id.clone(),
             near_social_account_id: scope.near_social_account_id.clone(),
             function_args: scope.function_args.clone(),
             deposit: scope.deposit.clone(),
+            on_after_getting_network_connection_callback: previous_context.on_after_getting_network_connection_callback
+
         })
     }
 }
@@ -50,6 +57,21 @@ impl DeployArgsContext {
 impl From<DeployArgsContext> for near_cli_rs::commands::ActionContext {
     fn from(item: DeployArgsContext) -> Self {
         let deploy_to_account_id = item.deploy_to_account_id.clone();
+        let mut network_config = near_cli_rs::config::NetworkConfig{network_name: "mainnet".to_string(),
+            rpc_url: "https://archival-rpc.mainnet.near.org".parse().unwrap(),
+            wallet_url: "https://wallet.mainnet.near.org".parse().unwrap(),
+            explorer_transaction_url: "https://explorer.mainnet.near.org/transactions/"
+                .parse()
+                .unwrap(),
+            rpc_api_key: None,
+            linkdrop_account_id: Some("near".parse().unwrap()),
+            faucet_url: None,
+            near_social_account_id: Some("social.near".parse().unwrap()),};
+        
+        // if let std::sync::Arc::new(near_cli_rs::config::NetworkConfig{network_name, rpc_url, rpc_api_key, wallet_url, explorer_transaction_url, linkdrop_account_id, faucet_url, near_social_account_id}) = item.on_after_getting_network_connection_callback {
+        //     network_config = near_cli_rs::config::NetworkConfig{network_name, rpc_url, rpc_api_key, wallet_url, explorer_transaction_url, linkdrop_account_id, faucet_url, near_social_account_id};
+        //     Ok(())
+        // }; 
         Self {
             config: item.config,
             signer_account_id: item.signer_account_id.clone().into(),
@@ -64,7 +86,8 @@ impl From<DeployArgsContext> for near_cli_rs::commands::ActionContext {
                     deposit: item.deposit.to_yoctonear(),
                 },
             )],
-            on_before_signing_callback: std::sync::Arc::new(move |prepolulated_unsinged_transaction| {
+            on_before_signing_callback: std::sync::Arc::new(
+                move |prepolulated_unsinged_transaction| {
                     // let near_social_account_id = todo!("social_config[network_name].account_id");
                     // tokio::runtime::Runtime::new().unwrap().block_on(get_deposit(
                     //     todo!("context.network_config"),
@@ -74,18 +97,27 @@ impl From<DeployArgsContext> for near_cli_rs::commands::ActionContext {
                     //     near_social_account_id,
                     //     near_cli_rs::common::NearBalance::from_str("1 NEAR").unwrap(), // XXX   1 NEAR: need calculation!!!!!!!! for new account
                     // ))?;
-                    if let near_primitives::transaction::Action::FunctionCall(action) = &mut prepolulated_unsinged_transaction.actions[0] {
+                    if let near_primitives::transaction::Action::FunctionCall(action) =
+                        &mut prepolulated_unsinged_transaction.actions[0]
+                    {
                         action.deposit = 10;
                     }
                     Ok(())
-            }),
+                },
+            ),
             on_after_signing_callback: std::sync::Arc::new(|singed_transaction| {
-                if let near_primitives::transaction::SignedTransaction{transaction, ..} = singed_transaction {
-                    println!("= = = = = = = = = = signed transaction: {}", transaction.public_key)
+                if let near_primitives::transaction::SignedTransaction { transaction, .. } =
+                    singed_transaction
+                {
+                    println!(
+                        "= = = = = = = = = = signed transaction: {}",
+                        transaction.public_key
+                    )
                 }
 
                 Ok(())
             }),
+            on_after_getting_network_connection_callback: item.on_after_getting_network_connection_callback
         }
     }
 }
@@ -114,9 +146,9 @@ impl interactive_clap::FromCli for DeployArgs {
             function_args: "".to_string(),
             deposit: near_cli_rs::common::NearBalance::from_str("0 NEAR").unwrap(),
         };
-        let signer_context =
+        let deploy_args_context =
             DeployArgsContext::from_previous_context(context.clone(), &new_context_scope)?;
-        let new_context = near_cli_rs::commands::ActionContext::from(signer_context);
+        let new_context = near_cli_rs::commands::ActionContext::from(deploy_args_context);
 
         let optional_network_for_transaction =
             near_cli_rs::network_for_transaction::NetworkForTransactionArgs::from_cli(

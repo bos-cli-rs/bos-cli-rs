@@ -20,13 +20,15 @@ pub struct DeployToAccount {
     deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
     #[interactive_clap(named_arg)]
     /// Specify signer account ID
-    sign_as: self::deploy_args::DeployArgs,
+    deploy_args: self::deploy_args::DeployArgs,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct DeployToAccountContext {
     pub config: near_cli_rs::config::Config,
     pub deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
+    on_after_getting_network_connection_callback: std::sync::Arc<dyn Fn(&mut near_cli_rs::config::NetworkConfig) -> near_cli_rs::config::NetworkConfig>,
+    pub network_config: near_cli_rs::config::NetworkConfig,
 }
 
 impl DeployToAccountContext {
@@ -34,9 +36,55 @@ impl DeployToAccountContext {
         previous_context: near_cli_rs::GlobalContext,
         scope: &<DeployToAccount as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> Self {
+        let mut network_config = near_cli_rs::config::NetworkConfig{network_name: "mainnet".to_string(),
+        rpc_url: "https://archival-rpc.mainnet.near.org".parse().unwrap(),
+        wallet_url: "https://wallet.mainnet.near.org".parse().unwrap(),
+        explorer_transaction_url: "https://explorer.mainnet.near.org/transactions/"
+            .parse()
+            .unwrap(),
+        rpc_api_key: None,
+        linkdrop_account_id: Some("near".parse().unwrap()),
+        faucet_url: None,
+        near_social_account_id: Some("social.near".parse().unwrap()),};
+        let network_config_clon = network_config.clone();
+
+
+
+        let five = std::sync::Arc::new(|x| 5);
+        let new_five = *five;
+        println!("=-=-=-=-=-=-=-=-=-=-    {:?}", five(3));
+
+
+        let qwe = *std::sync::Arc::new( move|net_config| {
+            if let near_cli_rs::config::NetworkConfig { network_name, .. } = &net_config {
+                println!(
+                    "= = = = = = = = = = net name: {}",
+                    net_config.network_name,
+                );
+                // network_conf = net_config.clone();
+            };
+
+            net_config.clone()
+        });
+
+
+
         Self {
             config: previous_context.0,
             deploy_to_account_id: scope.deploy_to_account_id.clone(),
+            on_after_getting_network_connection_callback: std::sync::Arc::new(move |net_config| {
+                if let near_cli_rs::config::NetworkConfig { network_name, .. } = net_config {
+                    println!(
+                        "= = = = = = = = = = net name: {}\n= = = = = = = = network name: {}",
+                        net_config.network_name,
+                        &network_config_clon.network_name
+                    );
+                    // network_conf = net_config.clone();
+                };
+
+                net_config.clone()
+            }),
+            network_config
         }
     }
 }
@@ -85,7 +133,7 @@ impl DeployToAccount {
 
     pub async fn process(&self, config: near_cli_rs::config::Config) -> crate::CliResult {
         let network_config = self
-            .sign_as
+            .deploy_args
             .get_network_config_for_transaction()
             .get_network_config(config.clone());
         let near_social_account_id = match &network_config.near_social_account_id {
@@ -244,7 +292,7 @@ impl DeployToAccount {
         })?;
 
         let prepopulated_unsigned_transaction = near_primitives::transaction::Transaction {
-            signer_id: self.sign_as.get_signer_account_id().into(),
+            signer_id: self.deploy_args.get_signer_account_id().into(),
             public_key: near_crypto::PublicKey::empty(near_crypto::KeyType::ED25519),
             nonce: 0,
             receiver_id: near_social_account_id,
@@ -261,7 +309,7 @@ impl DeployToAccount {
             )],
         };
         match near_cli_rs::transaction_signature_options::sign_with(
-            self.sign_as.get_network_config_for_transaction(),
+            self.deploy_args.get_network_config_for_transaction(),
             prepopulated_unsigned_transaction,
             config,
         )
@@ -310,9 +358,9 @@ impl DeployToAccount {
         required_deposit: near_cli_rs::common::NearBalance,
     ) -> color_eyre::eyre::Result<near_cli_rs::common::NearBalance> {
         let signer_account_id: near_primitives::types::AccountId =
-            self.sign_as.get_signer_account_id().into();
+            self.deploy_args.get_signer_account_id().into();
         let signer_public_key = self
-            .sign_as
+            .deploy_args
             .get_network_config_for_transaction()
             .get_signer_public_key();
 

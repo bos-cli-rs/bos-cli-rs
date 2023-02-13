@@ -87,20 +87,32 @@ impl From<DeployArgsContext> for near_cli_rs::commands::ActionContext {
                 },
             )],
             on_before_signing_callback: std::sync::Arc::new(
-                move |prepolulated_unsinged_transaction| {
-                    // let near_social_account_id = todo!("social_config[network_name].account_id");
-                    // tokio::runtime::Runtime::new().unwrap().block_on(get_deposit(
-                    //     todo!("context.network_config"),
-                    //     prepolulated_unsinged_transaction.signer_id.clone(),
-                    //     prepolulated_unsinged_transaction.public_key.clone(),
-                    //     deploy_to_account_id,
-                    //     near_social_account_id,
-                    //     near_cli_rs::common::NearBalance::from_str("1 NEAR").unwrap(), // XXX   1 NEAR: need calculation!!!!!!!! for new account
-                    // ))?;
+                move |prepolulated_unsinged_transaction, network_config| {
+                    let near_social_account_id = match &network_config.near_social_account_id {
+                        Some(account_id) => account_id.clone(),
+                        None => {
+                            return Err(color_eyre::Report::msg(format!(
+                                "The <{}> network does not have a near-social contract.",
+                                network_config.network_name
+                            )))
+                        }
+                    };
+                    let deposit = tokio::runtime::Runtime::new().unwrap().block_on(get_deposit(
+                        network_config,
+                        prepolulated_unsinged_transaction.signer_id.clone(),
+                        prepolulated_unsinged_transaction.public_key.clone(),
+                        deploy_to_account_id.clone(),
+                        near_social_account_id,
+                        near_cli_rs::common::NearBalance::from_str("1 NEAR").unwrap(), // XXX   1 NEAR: need calculation!!!!!!!! for new account
+                    ))?;
                     if let near_primitives::transaction::Action::FunctionCall(action) =
                         &mut prepolulated_unsinged_transaction.actions[0]
                     {
-                        action.deposit = 10;
+                        action.deposit = deposit.to_yoctonear();
+                    } else {
+                        return Err(color_eyre::Report::msg(
+                            "Unexpected action to change widgets",
+                        ));
                     }
                     Ok(())
                 },

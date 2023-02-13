@@ -397,7 +397,7 @@ impl DeployToAccount {
                 near_social_account_id.clone(),
                 signer_access_key_permission
             )
-            .await?
+            ?
         {
             if is_write_permission_granted_to_public_key || is_write_permission_granted_to_signer {
                 if required_deposit == near_cli_rs::common::NearBalance::from_str("0 NEAR").unwrap()

@@ -194,7 +194,7 @@ pub async fn is_write_permission_granted<P: Into<PermissionKey>>(
     Ok(result)
 }
 
-pub async fn is_signer_access_key_function_call_access_can_call_set_on_social_db_account(
+pub fn is_signer_access_key_function_call_access_can_call_set_on_social_db_account(
     near_social_account_id: near_primitives::types::AccountId,
     access_key_permission: near_primitives::views::AccessKeyPermissionView,
 ) -> color_eyre::eyre::Result<bool> {

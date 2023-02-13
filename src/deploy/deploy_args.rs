@@ -26,11 +26,9 @@ pub struct DeployArgsContext {
     config: near_cli_rs::config::Config,
     deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
     signer_account_id: near_cli_rs::types::account_id::AccountId,
-    network_config: near_cli_rs::config::NetworkConfig,
     near_social_account_id: near_cli_rs::types::account_id::AccountId,
     function_args: String,
     deposit: near_cli_rs::common::NearBalance,
-    on_after_getting_network_connection_callback: std::sync::Arc<dyn Fn(&mut near_cli_rs::config::NetworkConfig) -> near_cli_rs::config::NetworkConfig>,
 }
 
 impl DeployArgsContext {
@@ -42,14 +40,11 @@ impl DeployArgsContext {
 
         Ok(Self {
             config: previous_context.config,
-            network_config: previous_context.network_config,
             deploy_to_account_id: previous_context.deploy_to_account_id,
             signer_account_id: scope.signer_account_id.clone(),
             near_social_account_id: scope.near_social_account_id.clone(),
             function_args: scope.function_args.clone(),
             deposit: scope.deposit.clone(),
-            on_after_getting_network_connection_callback: previous_context.on_after_getting_network_connection_callback
-
         })
     }
 }
@@ -57,21 +52,7 @@ impl DeployArgsContext {
 impl From<DeployArgsContext> for near_cli_rs::commands::ActionContext {
     fn from(item: DeployArgsContext) -> Self {
         let deploy_to_account_id = item.deploy_to_account_id.clone();
-        let mut network_config = near_cli_rs::config::NetworkConfig{network_name: "mainnet".to_string(),
-            rpc_url: "https://archival-rpc.mainnet.near.org".parse().unwrap(),
-            wallet_url: "https://wallet.mainnet.near.org".parse().unwrap(),
-            explorer_transaction_url: "https://explorer.mainnet.near.org/transactions/"
-                .parse()
-                .unwrap(),
-            rpc_api_key: None,
-            linkdrop_account_id: Some("near".parse().unwrap()),
-            faucet_url: None,
-            near_social_account_id: Some("social.near".parse().unwrap()),};
-        
-        // if let std::sync::Arc::new(near_cli_rs::config::NetworkConfig{network_name, rpc_url, rpc_api_key, wallet_url, explorer_transaction_url, linkdrop_account_id, faucet_url, near_social_account_id}) = item.on_after_getting_network_connection_callback {
-        //     network_config = near_cli_rs::config::NetworkConfig{network_name, rpc_url, rpc_api_key, wallet_url, explorer_transaction_url, linkdrop_account_id, faucet_url, near_social_account_id};
-        //     Ok(())
-        // }; 
+        let args = item.function_args.clone().into_bytes();
         Self {
             config: item.config,
             signer_account_id: item.signer_account_id.clone().into(),
@@ -97,18 +78,22 @@ impl From<DeployArgsContext> for near_cli_rs::commands::ActionContext {
                             )))
                         }
                     };
-                    let deposit = tokio::runtime::Runtime::new().unwrap().block_on(get_deposit(
-                        network_config,
-                        prepolulated_unsinged_transaction.signer_id.clone(),
-                        prepolulated_unsinged_transaction.public_key.clone(),
-                        deploy_to_account_id.clone(),
-                        near_social_account_id,
-                        near_cli_rs::common::NearBalance::from_str("1 NEAR").unwrap(), // XXX   1 NEAR: need calculation!!!!!!!! for new account
-                    ))?;
+                    prepolulated_unsinged_transaction.receiver_id = near_social_account_id.clone();
+                    let deposit = tokio::runtime::Runtime::new()
+                        .unwrap()
+                        .block_on(get_deposit(
+                            network_config,
+                            prepolulated_unsinged_transaction.signer_id.clone(),
+                            prepolulated_unsinged_transaction.public_key.clone(),
+                            deploy_to_account_id.clone(),
+                            near_social_account_id,
+                            near_cli_rs::common::NearBalance::from_str("1 NEAR").unwrap(), // XXX   1 NEAR: need calculation!!!!!!!! for new account
+                        ))?;
                     if let near_primitives::transaction::Action::FunctionCall(action) =
                         &mut prepolulated_unsinged_transaction.actions[0]
                     {
                         action.deposit = deposit.to_yoctonear();
+                        action.args = args.clone();
                     } else {
                         return Err(color_eyre::Report::msg(
                             "Unexpected action to change widgets",
@@ -129,7 +114,6 @@ impl From<DeployArgsContext> for near_cli_rs::commands::ActionContext {
 
                 Ok(())
             }),
-            on_after_getting_network_connection_callback: item.on_after_getting_network_connection_callback
         }
     }
 }
@@ -180,6 +164,9 @@ impl interactive_clap::FromCli for DeployArgs {
             return Ok(None);
         };
 
+
+        
+
         let network_config = &network_for_transaction.get_network_config(context.config);
 
         let signer_public_key = &network_for_transaction.get_signer_public_key();
@@ -194,6 +181,9 @@ impl interactive_clap::FromCli for DeployArgs {
                 )))
             }
         };
+
+
+
 
         let widgets = crate::common::get_widgets()?;
 
@@ -374,8 +364,7 @@ async fn get_deposit(
         || crate::common::is_signer_access_key_function_call_access_can_call_set_on_social_db_account(
             near_social_account_id.clone(),
             signer_access_key_permission
-        )
-        .await?
+        )?
     {
         if is_write_permission_granted_to_public_key || is_write_permission_granted_to_signer {
             if required_deposit == near_cli_rs::common::NearBalance::from_str("0 NEAR").unwrap()

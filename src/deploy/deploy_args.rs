@@ -48,10 +48,17 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     let near_social_account_id = match &network_config.near_social_account_id {
                         Some(account_id) => account_id.clone(),
                         None => {
-                            return Err(color_eyre::Report::msg(format!(
-                                "The <{}> network does not have a near-social contract.",
-                                network_config.network_name
-                            )))
+                            match crate::consts::NEAR_SOCIAL_ACCOUNT_ID
+                                .get(&network_config.network_name.as_str())
+                            {
+                                Some(account_id) => account_id.clone(),
+                                None => {
+                                    return Err(color_eyre::Report::msg(format!(
+                                        "The <{}> network does not have a near-social contract.",
+                                        network_config.network_name
+                                    )))
+                                }
+                            }
                         }
                     };
                     prepopulated_unsigned_transaction.receiver_id = near_social_account_id.clone();

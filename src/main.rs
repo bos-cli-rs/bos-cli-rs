@@ -3,6 +3,7 @@ pub use near_cli_rs::CliResult;
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
 pub mod common;
+pub mod consts;
 pub mod deploy;
 mod download;
 pub mod socialdb_types;

@@ -1688,6 +1688,7 @@ dependencies = [
  "inquire",
  "interactive-clap",
  "interactive-clap-derive",
+ "lazy_static",
  "near-cli-rs",
  "near-crypto",
  "near-jsonrpc-client",

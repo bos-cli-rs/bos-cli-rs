@@ -7,7 +7,7 @@ use color_eyre::eyre::WrapErr;
 #[interactive_clap(input_context = super::DeployToAccountContext)]
 #[interactive_clap(output_context = near_cli_rs::commands::ActionContext)]
 #[interactive_clap(skip_default_from_cli)]
-pub struct DeployArgs {
+pub struct Signer {
     /// What is the signer account ID?
     signer_account_id: near_cli_rs::types::account_id::AccountId,
     #[interactive_clap(named_arg)]
@@ -16,16 +16,16 @@ pub struct DeployArgs {
 }
 
 #[derive(Clone)]
-pub struct DeployArgsContext {
+pub struct SignerContext {
     config: near_cli_rs::config::Config,
     deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
     signer_account_id: near_cli_rs::types::account_id::AccountId,
 }
 
-impl DeployArgsContext {
+impl SignerContext {
     pub fn from_previous_context(
         previous_context: super::DeployToAccountContext,
-        scope: &<DeployArgs as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
+        scope: &<Signer as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
             config: previous_context.config,
@@ -35,8 +35,8 @@ impl DeployArgsContext {
     }
 }
 
-impl From<DeployArgsContext> for near_cli_rs::commands::ActionContext {
-    fn from(item: DeployArgsContext) -> Self {
+impl From<SignerContext> for near_cli_rs::commands::ActionContext {
+    fn from(item: SignerContext) -> Self {
         let deploy_to_account_id = item.deploy_to_account_id.clone();
         Self {
             config: item.config,
@@ -52,8 +52,8 @@ impl From<DeployArgsContext> for near_cli_rs::commands::ActionContext {
                     deposit: 0,
                 },
             )],
-            on_before_signing_callback: std::sync::Arc::new(
-                move |prepolulated_unsinged_transaction, network_config| {
+            on_after_getting_network_callback: std::sync::Arc::new(
+                move |prepopulated_unsigned_transaction, network_config| {
                     let near_social_account_id = match &network_config.near_social_account_id {
                         Some(account_id) => account_id.clone(),
                         None => {
@@ -63,16 +63,52 @@ impl From<DeployArgsContext> for near_cli_rs::commands::ActionContext {
                             )))
                         }
                     };
-                    prepolulated_unsinged_transaction.receiver_id = near_social_account_id.clone();
+                    if let near_primitives::transaction::Action::FunctionCall(action) =
+                        &mut prepopulated_unsigned_transaction.actions[0]
+                    {
+                        println!("= = = = = = = network: {}", network_config.network_name);
+                        println!(
+                            "= = = = = = = receiver_id: {}",
+                            prepopulated_unsigned_transaction.receiver_id
+                        );
+                        println!("= = = = = = = method_name: {}", action.method_name);
+                        action.method_name = "qwe".to_string();
+                        prepopulated_unsigned_transaction.receiver_id = near_social_account_id;
+                        println!("=+=+=+=+=+=+= method_name: {}", action.method_name);
+                    } else {
+                        return Err(color_eyre::Report::msg(
+                            "Unexpected action to change widgets",
+                        ));
+                    }
+                    println!(
+                        "=+=+=+=+=+=+= receiver_id: {}",
+                        prepopulated_unsigned_transaction.receiver_id
+                    );
+
+                    Ok(())
+                },
+            ),
+            on_before_signing_callback: std::sync::Arc::new(
+                move |prepopulated_unsigned_transaction, network_config| {
+                    let near_social_account_id = match &network_config.near_social_account_id {
+                        Some(account_id) => account_id.clone(),
+                        None => {
+                            return Err(color_eyre::Report::msg(format!(
+                                "The <{}> network does not have a near-social contract.",
+                                network_config.network_name
+                            )))
+                        }
+                    };
+                    prepopulated_unsigned_transaction.receiver_id = near_social_account_id.clone();
 
                     if let near_primitives::transaction::Action::FunctionCall(action) =
-                        &mut prepolulated_unsinged_transaction.actions[0]
+                        &mut prepopulated_unsigned_transaction.actions[0]
                     {
                         let widgets = crate::common::get_widgets()?;
 
                         if widgets.is_empty() {
-                            // XXX ??????????????????
                             println!("There are no widgets in the current ./src folder. Goodbye.");
+                            return Ok(()); // XXX ??????????????????
                         }
 
                         let input_args =
@@ -131,12 +167,13 @@ impl From<DeployArgsContext> for near_cli_rs::commands::ActionContext {
                                     .block_on(get_deposit(
                                         network_config,
                                         item.signer_account_id.clone().into(),
-                                        prepolulated_unsinged_transaction.public_key.clone(),
+                                        prepopulated_unsigned_transaction.public_key.clone(),
                                         deploy_to_account_id.clone(),
                                         near_social_account_id.clone(),
                                         near_cli_rs::common::NearBalance::from_str("1 NEAR").unwrap(), // XXX   1 NEAR: need calculation!!!!!!!! for new account
                                     ))?.to_yoctonear();
                                 action.args = get_function_args(deploy_to_account_id.clone(), widgets)?.into_bytes();
+                                action.method_name = "qwe".to_string(); //XXX
                                 return Ok(());
                             };
 
@@ -179,8 +216,8 @@ impl From<DeployArgsContext> for near_cli_rs::commands::ActionContext {
                             .collect::<HashMap<String, crate::socialdb_types::SocialDbWidget>>();
 
                         if output_widgets.is_empty() {
-                            // XXX ??????????????????
                             println!("There are no new or modified widgets in the current ./src folder. Goodbye.");
+                            return Ok(()); // XXX ??????????????????
                         }
 
                         action.deposit = tokio::runtime::Runtime::new()
@@ -188,7 +225,7 @@ impl From<DeployArgsContext> for near_cli_rs::commands::ActionContext {
                             .block_on(get_deposit(
                                 network_config,
                                 item.signer_account_id.clone().into(),
-                                prepolulated_unsinged_transaction.public_key.clone(),
+                                prepopulated_unsigned_transaction.public_key.clone(),
                                 deploy_to_account_id.clone(),
                                 near_social_account_id,
                                 near_cli_rs::common::NearBalance::from_str("0 NEAR").unwrap(), // XXX: need calculation!!!!!!!! for an existing account
@@ -197,6 +234,7 @@ impl From<DeployArgsContext> for near_cli_rs::commands::ActionContext {
                         action.args =
                             get_function_args(deploy_to_account_id.clone(), output_widgets)?
                                 .into_bytes();
+                        action.method_name = "qwe".to_string(); //XXX
                     } else {
                         return Err(color_eyre::Report::msg(
                             "Unexpected action to change widgets",
@@ -205,28 +243,17 @@ impl From<DeployArgsContext> for near_cli_rs::commands::ActionContext {
                     Ok(())
                 },
             ),
-            on_after_signing_callback: std::sync::Arc::new(|_singed_transaction| {
-                // if let near_primitives::transaction::SignedTransaction { transaction, .. } =
-                //     singed_transaction
-                // {
-                //     println!(
-                //         "= = = = = = = = = = signed transaction: {}",
-                //         transaction.public_key
-                //     )
-                // }
-
-                Ok(())
-            }),
+            on_after_signing_callback: std::sync::Arc::new(|_singed_transaction| Ok(())),
         }
     }
 }
 
-impl interactive_clap::FromCli for DeployArgs {
+impl interactive_clap::FromCli for Signer {
     type FromCliContext = super::DeployToAccountContext;
     type FromCliError = color_eyre::eyre::Error;
 
     fn from_cli(
-        optional_clap_variant: Option<<DeployArgs as interactive_clap::ToCli>::CliVariant>,
+        optional_clap_variant: Option<<Signer as interactive_clap::ToCli>::CliVariant>,
         context: Self::FromCliContext,
     ) -> Result<Option<Self>, Self::FromCliError>
     where
@@ -238,11 +265,11 @@ impl interactive_clap::FromCli for DeployArgs {
                 .and_then(|clap_variant| clap_variant.signer_account_id),
             &context,
         )?;
-        let new_context_scope = InteractiveClapContextScopeForDeployArgs {
+        let new_context_scope = InteractiveClapContextScopeForSigner {
             signer_account_id: signer_account_id.clone(),
         };
         let deploy_args_context =
-            DeployArgsContext::from_previous_context(context, &new_context_scope)?;
+            SignerContext::from_previous_context(context, &new_context_scope)?;
         let new_context = near_cli_rs::commands::ActionContext::from(deploy_args_context);
 
         let optional_network_for_transaction =
@@ -250,7 +277,9 @@ impl interactive_clap::FromCli for DeployArgs {
                 optional_clap_variant.and_then(|clap_variant| {
                     match clap_variant.network_for_transaction {
                         Some(
-                            ClapNamedArgNetworkForTransactionArgsForDeployArgs::NetworkForTransaction(cli_arg)
+                            ClapNamedArgNetworkForTransactionArgsForSigner::NetworkForTransaction(
+                                cli_arg,
+                            ),
                         ) => Some(cli_arg),
                         None => None,
                     }
@@ -270,7 +299,7 @@ impl interactive_clap::FromCli for DeployArgs {
     }
 }
 
-impl DeployArgs {
+impl Signer {
     pub fn get_signer_account_id(&self) -> near_cli_rs::types::account_id::AccountId {
         self.signer_account_id.clone()
     }

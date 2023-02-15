@@ -41,7 +41,7 @@ impl Command {
     pub async fn process(&self, config: near_cli_rs::config::Config) -> crate::CliResult {
         match self {
             Self::Download(account_id) => account_id.process(config).await,
-            Self::Deploy(sign_as) => sign_as.process(config).await,
+            Self::Deploy(_) => Ok(()),
         }
     }
 }

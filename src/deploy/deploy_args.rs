@@ -42,16 +42,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
             config: item.config,
             signer_account_id: item.signer_account_id.clone().into(),
             receiver_account_id: "v1.social08.testnet".parse().unwrap(),
-            actions: vec![near_primitives::transaction::Action::FunctionCall(
-                near_primitives::transaction::FunctionCallAction {
-                    method_name: "set".to_string(),
-                    args: vec![],
-                    gas: near_cli_rs::common::NearGas::from_str("100 TeraGas")
-                        .unwrap()
-                        .inner,
-                    deposit: 0,
-                },
-            )],
+            actions: vec![],
             on_after_getting_network_callback: std::sync::Arc::new(
                 move |prepopulated_unsigned_transaction, network_config| {
                     let near_social_account_id = match &network_config.near_social_account_id {
@@ -63,80 +54,39 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                             )))
                         }
                     };
-                    if let near_primitives::transaction::Action::FunctionCall(action) =
-                        &mut prepopulated_unsigned_transaction.actions[0]
-                    {
-                        println!("= = = = = = = network: {}", network_config.network_name);
-                        println!(
-                            "= = = = = = = receiver_id: {}",
-                            prepopulated_unsigned_transaction.receiver_id
-                        );
-                        println!("= = = = = = = method_name: {}", action.method_name);
-                        action.method_name = "qwe".to_string();
-                        prepopulated_unsigned_transaction.receiver_id = near_social_account_id;
-                        println!("=+=+=+=+=+=+= method_name: {}", action.method_name);
-                    } else {
-                        return Err(color_eyre::Report::msg(
-                            "Unexpected action to change widgets",
-                        ));
-                    }
-                    println!(
-                        "=+=+=+=+=+=+= receiver_id: {}",
-                        prepopulated_unsigned_transaction.receiver_id
-                    );
-
-                    Ok(())
-                },
-            ),
-            on_before_signing_callback: std::sync::Arc::new(
-                move |prepopulated_unsigned_transaction, network_config| {
-                    let near_social_account_id = match &network_config.near_social_account_id {
-                        Some(account_id) => account_id.clone(),
-                        None => {
-                            return Err(color_eyre::Report::msg(format!(
-                                "The <{}> network does not have a near-social contract.",
-                                network_config.network_name
-                            )))
-                        }
-                    };
                     prepopulated_unsigned_transaction.receiver_id = near_social_account_id.clone();
+                    let widgets = crate::common::get_widgets()?;
 
-                    if let near_primitives::transaction::Action::FunctionCall(action) =
-                        &mut prepopulated_unsigned_transaction.actions[0]
-                    {
-                        let widgets = crate::common::get_widgets()?;
+                    if widgets.is_empty() {
+                        println!("There are no widgets in the current ./src folder. Goodbye.");
+                        return Ok(());
+                    }
 
-                        if widgets.is_empty() {
-                            println!("There are no widgets in the current ./src folder. Goodbye.");
-                            return Ok(()); // XXX ??????????????????
-                        }
+                    let input_args = serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
+                        keys: widgets
+                            .keys()
+                            .map(|name| format!("{deploy_to_account_id}/widget/{name}/**"))
+                            .collect(),
+                    })
+                    .wrap_err("Internal error: could not serialize SocialDB input args")?;
 
-                        let input_args =
-                            serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
-                                keys: widgets
-                                    .keys()
-                                    .map(|name| format!("{deploy_to_account_id}/widget/{name}/**"))
-                                    .collect(),
-                            })
-                            .wrap_err("Internal error: could not serialize SocialDB input args")?;
-
-                        let query_view_method_response = tokio::runtime::Runtime::new()
-                            .unwrap()
-                            .block_on(network_config.json_rpc_client().call(
-                                near_jsonrpc_client::methods::query::RpcQueryRequest {
-                                    block_reference: near_primitives::types::Finality::Final.into(),
-                                    request: near_primitives::views::QueryRequest::CallFunction {
-                                        account_id: near_social_account_id.clone(),
-                                        method_name: "get".to_string(),
-                                        args: near_primitives::types::FunctionArgs::from(
-                                            input_args.into_bytes(),
-                                        ),
-                                    },
+                    let query_view_method_response = tokio::runtime::Runtime::new()
+                        .unwrap()
+                        .block_on(network_config.json_rpc_client().call(
+                            near_jsonrpc_client::methods::query::RpcQueryRequest {
+                                block_reference: near_primitives::types::Finality::Final.into(),
+                                request: near_primitives::views::QueryRequest::CallFunction {
+                                    account_id: near_social_account_id,
+                                    method_name: "get".to_string(),
+                                    args: near_primitives::types::FunctionArgs::from(
+                                        input_args.into_bytes(),
+                                    ),
                                 },
-                            ))
-                            .wrap_err("Failed to fetch the widgets state from SocialDB")?;
+                            },
+                        ))
+                        .wrap_err("Failed to fetch the widgets state from SocialDB")?;
 
-                        let call_result =
+                    let call_result =
                             if let near_jsonrpc_primitives::types::query::QueryResponseKind::CallResult(result) =
                                 query_view_method_response.kind
                             {
@@ -147,11 +97,11 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                                 ));
                             };
 
-                        let old_social_db: crate::socialdb_types::SocialDb =
-                            serde_json::from_slice(&call_result.result)
-                                .wrap_err("Failed to parse the widgets state from SocialDB")?;
+                    let old_social_db: crate::socialdb_types::SocialDb =
+                        serde_json::from_slice(&call_result.result)
+                            .wrap_err("Failed to parse the widgets state from SocialDB")?;
 
-                        let old_social_account_metadata: &crate::socialdb_types::SocialDbAccountMetadata =
+                    let old_social_account_metadata: &crate::socialdb_types::SocialDbAccountMetadata =
                             if let Some(account_metadata) =
                                 old_social_db
                                     .accounts
@@ -161,80 +111,94 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                             {
                                 account_metadata
                             } else {
-                                println!("\nThere are currently no widgets in the account <{}>. Therefore, all widgets will be deployed as new", deploy_to_account_id);
-                                action.deposit = tokio::runtime::Runtime::new()
-                                    .unwrap()
-                                    .block_on(get_deposit(
-                                        network_config,
-                                        item.signer_account_id.clone().into(),
-                                        prepopulated_unsigned_transaction.public_key.clone(),
-                                        deploy_to_account_id.clone(),
-                                        near_social_account_id.clone(),
-                                        near_cli_rs::common::NearBalance::from_str("1 NEAR").unwrap(), // XXX   1 NEAR: need calculation!!!!!!!! for new account
-                                    ))?.to_yoctonear();
-                                action.args = get_function_args(deploy_to_account_id.clone(), widgets)?.into_bytes();
-                                action.method_name = "qwe".to_string(); //XXX
-                                return Ok(());
+                                println!("\nThere are currently no widgets in the account <{deploy_to_account_id}>. Therefore, all widgets will be deployed as new");
+                                let args = get_function_args(deploy_to_account_id.clone(), widgets)?.into_bytes();
+                                prepopulated_unsigned_transaction.actions = vec![near_primitives::transaction::Action::FunctionCall(
+                                    near_primitives::transaction::FunctionCallAction {
+                                        method_name: "set".to_string(),
+                                        args,
+                                        gas: near_cli_rs::common::NearGas::from_str("100 TeraGas")
+                                            .unwrap()
+                                            .inner,
+                                        deposit: near_cli_rs::common::NearBalance::from_str("1 NEAR").unwrap().to_yoctonear(), // XXX   1 NEAR: need calculation!!!!!!!! for new account
+                                    },
+                                )];
+                                        return Ok(());
                             };
 
-                        let output_widgets = widgets
-                            .into_iter()
-                            .filter(|(widget_name, new_widget)| {
-                                if let Some(old_widget) =
-                                    old_social_account_metadata.widgets.get(widget_name)
-                                {
-                                    let has_code_changed = crate::common::diff_code(
-                                        &old_widget.code,
-                                        &new_widget.code,
-                                    )
-                                    .is_err();
-                                    let has_metadata_changed = old_widget.metadata
-                                        != new_widget.metadata
-                                        && new_widget.metadata.is_some();
-                                    if has_code_changed {
-                                        println!("Code for widget <{widget_name}> changed");
-                                    } else {
-                                        println!("Code for widget <{widget_name}> has not changed");
-                                    }
-                                    if has_metadata_changed {
-                                        println!(
-                                            "{:?}\n{:?}",
-                                            old_widget.metadata, new_widget.metadata
-                                        );
-                                        println!("Metadata for widget <{widget_name}> changed");
-                                    } else {
-                                        println!(
-                                            "Metadata for widget <{widget_name}> has not changed"
-                                        );
-                                    }
-                                    has_code_changed || has_metadata_changed
+                    let output_widgets = widgets
+                        .into_iter()
+                        .filter(|(widget_name, new_widget)| {
+                            if let Some(old_widget) =
+                                old_social_account_metadata.widgets.get(widget_name)
+                            {
+                                let has_code_changed =
+                                    crate::common::diff_code(&old_widget.code, &new_widget.code)
+                                        .is_err();
+                                let has_metadata_changed = old_widget.metadata
+                                    != new_widget.metadata
+                                    && new_widget.metadata.is_some();
+                                if has_code_changed {
+                                    println!("Code for widget <{widget_name}> changed");
                                 } else {
-                                    println!("Found new widget <{widget_name}> to deploy");
-                                    true
+                                    println!("Code for widget <{widget_name}> has not changed");
                                 }
-                            })
-                            .collect::<HashMap<String, crate::socialdb_types::SocialDbWidget>>();
+                                if has_metadata_changed {
+                                    println!(
+                                        "{:?}\n{:?}",
+                                        old_widget.metadata, new_widget.metadata
+                                    );
+                                    println!("Metadata for widget <{widget_name}> changed");
+                                } else {
+                                    println!("Metadata for widget <{widget_name}> has not changed");
+                                }
+                                has_code_changed || has_metadata_changed
+                            } else {
+                                println!("Found new widget <{widget_name}> to deploy");
+                                true
+                            }
+                        })
+                        .collect::<HashMap<String, crate::socialdb_types::SocialDbWidget>>();
 
-                        if output_widgets.is_empty() {
-                            println!("There are no new or modified widgets in the current ./src folder. Goodbye.");
-                            return Ok(()); // XXX ??????????????????
-                        }
+                    if output_widgets.is_empty() {
+                        println!("There are no new or modified widgets in the current ./src folder. Goodbye.");
+                        return Ok(());
+                    }
 
+                    let args = get_function_args(deploy_to_account_id.clone(), output_widgets)?
+                        .into_bytes();
+
+                    prepopulated_unsigned_transaction.actions =
+                        vec![near_primitives::transaction::Action::FunctionCall(
+                            near_primitives::transaction::FunctionCallAction {
+                                method_name: "set".to_string(),
+                                args,
+                                gas: near_cli_rs::common::NearGas::from_str("100 TeraGas")
+                                    .unwrap()
+                                    .inner,
+                                deposit: 0,
+                            },
+                        )];
+
+                    Ok(())
+                },
+            ),
+            on_before_signing_callback: std::sync::Arc::new(
+                move |prepopulated_unsigned_transaction, network_config| {
+                    if let near_primitives::transaction::Action::FunctionCall(action) =
+                        &mut prepopulated_unsigned_transaction.actions[0]
+                    {
                         action.deposit = tokio::runtime::Runtime::new()
                             .unwrap()
                             .block_on(get_deposit(
                                 network_config,
                                 item.signer_account_id.clone().into(),
                                 prepopulated_unsigned_transaction.public_key.clone(),
-                                deploy_to_account_id.clone(),
-                                near_social_account_id,
-                                near_cli_rs::common::NearBalance::from_str("0 NEAR").unwrap(), // XXX: need calculation!!!!!!!! for an existing account
+                                item.deploy_to_account_id.clone(),
+                                prepopulated_unsigned_transaction.receiver_id.clone(),
+                                near_cli_rs::common::NearBalance::from_yoctonear(action.deposit),
                             ))?
                             .to_yoctonear();
-                        action.args =
-                            get_function_args(deploy_to_account_id.clone(), output_widgets)?
-                                .into_bytes();
-                        action.method_name = "qwe".to_string(); //XXX
                     } else {
                         return Err(color_eyre::Report::msg(
                             "Unexpected action to change widgets",
@@ -275,16 +239,13 @@ impl interactive_clap::FromCli for Signer {
         let optional_network_for_transaction =
             near_cli_rs::network_for_transaction::NetworkForTransactionArgs::from_cli(
                 optional_clap_variant.and_then(|clap_variant| {
-                    match clap_variant.network_for_transaction {
-                        Some(
-                            ClapNamedArgNetworkForTransactionArgsForSigner::NetworkForTransaction(
-                                cli_arg,
-                            ),
-                        ) => Some(cli_arg),
-                        None => None,
-                    }
+                    clap_variant.network_for_transaction.map(
+                        |ClapNamedArgNetworkForTransactionArgsForSigner::NetworkForTransaction(
+                            cli_arg,
+                        )| cli_arg,
+                    )
                 }),
-                new_context.into(),
+                new_context,
             )?;
         let network_for_transaction = if let Some(network) = optional_network_for_transaction {
             network

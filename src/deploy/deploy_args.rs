@@ -267,18 +267,6 @@ impl interactive_clap::FromCli for Signer {
     }
 }
 
-impl Signer {
-    pub fn get_signer_account_id(&self) -> near_cli_rs::types::account_id::AccountId {
-        self.signer_account_id.clone()
-    }
-
-    pub fn get_network_config_for_transaction(
-        &self,
-    ) -> near_cli_rs::network_for_transaction::NetworkForTransactionArgs {
-        self.network_for_transaction.clone()
-    }
-}
-
 async fn get_deposit(
     network_config: &near_cli_rs::config::NetworkConfig,
     signer_account_id: near_primitives::types::AccountId,

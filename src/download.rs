@@ -1,4 +1,4 @@
-use color_eyre::eyre::{WrapErr, ContextCompat};
+use color_eyre::eyre::{ContextCompat, WrapErr};
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = near_cli_rs::GlobalContext)]
@@ -16,10 +16,17 @@ impl AccountId {
         let near_social_account_id = match &network_config.near_social_account_id {
             Some(account_id) => account_id.clone(),
             None => {
-                return Err(color_eyre::Report::msg(format!(
-                    "The <{}> network does not have a near-social contract.",
-                    network_config.network_name
-                )))
+                match crate::consts::NEAR_SOCIAL_ACCOUNT_ID
+                    .get(&network_config.network_name.as_str())
+                {
+                    Some(account_id) => account_id.clone(),
+                    None => {
+                        return Err(color_eyre::Report::msg(format!(
+                            "The <{}> network does not have a near-social contract.",
+                            network_config.network_name
+                        )))
+                    }
+                }
             }
         };
 

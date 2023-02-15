@@ -30,6 +30,7 @@ color-eyre = "0.6"
 
 similar = { version = "2.2.1", features = ["inline"] }
 glob = "0.3.1"
+lazy_static = "1.4.0"
 
 near-crypto = "0.15"
 near-primitives = "0.15"

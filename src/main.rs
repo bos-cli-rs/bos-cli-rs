@@ -63,17 +63,26 @@ fn main() -> CliResult {
                 break cmd;
             }
             Ok(None) => {}
-            Err(err) => match err.downcast_ref() {
-                Some(
-                    inquire::InquireError::OperationCanceled
-                    | inquire::InquireError::OperationInterrupted,
-                ) => {
-                    println!("<Operation was interrupted. Goodbye>");
-                    return Ok(());
+            Err(err) => {
+                match err.downcast_ref() {
+                    Some(
+                        near_cli_rs::common::CliError::ExitOk
+                    ) => {
+                        return Ok(());
+                    }
+                    None =>  match err.downcast_ref() {
+                        Some(
+                            inquire::InquireError::OperationCanceled
+                            | inquire::InquireError::OperationInterrupted,
+                        ) => {
+                            println!("<Operation was interrupted. Goodbye>");
+                            return Ok(());
+                        }
+                        Some(_) | None => return Err(err),
+                    },
                 }
-                Some(_) | None => return Err(err),
-            },
-        }
+            }
+            }
     };
 
     let completed_cli = CliCmd::from(cmd.clone());
@@ -93,15 +102,24 @@ fn main() -> CliResult {
 
     match process_result {
         Ok(()) => Ok(()),
-        Err(err) => match err.downcast_ref() {
-            Some(
-                inquire::InquireError::OperationCanceled
-                | inquire::InquireError::OperationInterrupted,
-            ) => {
-                println!("<Operation was interrupted. Goodbye>");
-                Ok(())
+        Err(err) => {
+            match err.downcast_ref() {
+                Some(
+                    near_cli_rs::common::CliError::ExitOk
+                ) => {
+                    Ok(())
+                }
+                None =>  match err.downcast_ref() {
+                    Some(
+                        inquire::InquireError::OperationCanceled
+                        | inquire::InquireError::OperationInterrupted,
+                    ) => {
+                        println!("<Operation was interrupted. Goodbye>");
+                        Ok(())
+                    }
+                    Some(_) | None => Err(err),
+                },
             }
-            Some(_) | None => Err(err),
-        },
+        }
     }
 }

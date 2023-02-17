@@ -61,10 +61,10 @@ pub fn diff_code(old_code: &str, new_code: &str) -> Result<(), DiffCodeError> {
 }
 
 pub fn is_account_exist(
-    context: &near_cli_rs::GlobalContext,
+    networks: &linked_hash_map::LinkedHashMap<String, near_cli_rs::config::NetworkConfig>,
     account_id: near_primitives::types::AccountId,
 ) -> bool {
-    for network in context.0.networks.iter() {
+    for network in networks {
         if tokio::runtime::Runtime::new()
             .unwrap()
             .block_on(near_cli_rs::common::get_account_state(
@@ -80,7 +80,7 @@ pub fn is_account_exist(
     false
 }
 
-pub fn get_widgets() -> color_eyre::eyre::Result<
+pub fn get_local_widgets() -> color_eyre::eyre::Result<
     std::collections::HashMap<String, crate::socialdb_types::SocialDbWidget>,
 > {
     let mut widgets = HashMap::new();

@@ -1691,6 +1691,7 @@ dependencies = [
  "interactive-clap",
  "interactive-clap-derive",
  "lazy_static",
+ "linked-hash-map",
  "near-cli-rs",
  "near-crypto",
  "near-jsonrpc-client",

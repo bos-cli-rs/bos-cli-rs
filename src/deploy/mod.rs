@@ -41,7 +41,7 @@ impl DeployToAccount {
     fn input_deploy_to_account_id(
         context: &near_cli_rs::GlobalContext,
     ) -> color_eyre::eyre::Result<near_cli_rs::types::account_id::AccountId> {
-        let widgets = crate::common::get_widgets()?;
+        let widgets = crate::common::get_local_widgets()?;
         println!(
             "\nThere are <{}> widgets in the current folder ready for deployment:",
             widgets.len()
@@ -51,8 +51,8 @@ impl DeployToAccount {
         }
         loop {
             let deploy_to_account_id: near_cli_rs::types::account_id::AccountId =
-                CustomType::new("Which account do you want to deploy the widgets to?").prompt()?;
-            if !crate::common::is_account_exist(context, deploy_to_account_id.clone().into()) {
+                CustomType::new(" Which account do you want to deploy the widgets to?").prompt()?;
+            if !crate::common::is_account_exist(&context.0.networks, deploy_to_account_id.clone().into()) {
                 println!(
                     "\nThe account <{}> does not yet exist.",
                     &deploy_to_account_id

@@ -4,7 +4,7 @@ use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
 pub mod common;
 pub mod consts;
-pub mod deploy;
+mod deploy;
 mod download;
 pub mod socialdb_types;
 

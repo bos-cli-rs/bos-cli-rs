@@ -35,14 +35,14 @@ pub enum Command {
     Download(self::download::AccountId),
     #[strum_discriminants(strum(message = "deploy   -   Deploy widget if code has changed"))]
     /// Deploy widget if code has changed
-    Deploy(self::deploy::SignerAccountId),
+    Deploy(self::deploy::DeployToAccount),
 }
 
 impl Command {
     pub async fn process(&self, config: near_cli_rs::config::Config) -> crate::CliResult {
         match self {
             Self::Download(account_id) => account_id.process(config).await,
-            Self::Deploy(sign_as) => sign_as.process(config).await,
+            Self::Deploy(_) => Ok(()),
         }
     }
 }
@@ -64,14 +64,19 @@ fn main() -> CliResult {
             }
             Ok(None) => {}
             Err(err) => match err.downcast_ref() {
-                Some(
-                    inquire::InquireError::OperationCanceled
-                    | inquire::InquireError::OperationInterrupted,
-                ) => {
-                    println!("<Operation was interrupted. Goodbye>");
+                Some(near_cli_rs::common::CliError::ExitOk) => {
                     return Ok(());
                 }
-                Some(_) | None => return Err(err),
+                None => match err.downcast_ref() {
+                    Some(
+                        inquire::InquireError::OperationCanceled
+                        | inquire::InquireError::OperationInterrupted,
+                    ) => {
+                        println!("<Operation was interrupted. Goodbye>");
+                        return Ok(());
+                    }
+                    Some(_) | None => return Err(err),
+                },
             },
         }
     };
@@ -94,14 +99,17 @@ fn main() -> CliResult {
     match process_result {
         Ok(()) => Ok(()),
         Err(err) => match err.downcast_ref() {
-            Some(
-                inquire::InquireError::OperationCanceled
-                | inquire::InquireError::OperationInterrupted,
-            ) => {
-                println!("<Operation was interrupted. Goodbye>");
-                Ok(())
-            }
-            Some(_) | None => Err(err),
+            Some(near_cli_rs::common::CliError::ExitOk) => Ok(()),
+            None => match err.downcast_ref() {
+                Some(
+                    inquire::InquireError::OperationCanceled
+                    | inquire::InquireError::OperationInterrupted,
+                ) => {
+                    println!("<Operation was interrupted. Goodbye>");
+                    Ok(())
+                }
+                Some(_) | None => Err(err),
+            },
         },
     }
 }

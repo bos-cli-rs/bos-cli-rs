@@ -20,6 +20,7 @@ strum = { version = "0.24", features = ["derive"] }
 strum_macros = "0.24"
 
 tokio = { version = "1.0", features = [ "rt-multi-thread" ] }
+futures = "0.3"
 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.57"
@@ -31,6 +32,7 @@ color-eyre = "0.6"
 similar = { version = "2.2.1", features = ["inline"] }
 glob = "0.3.1"
 lazy_static = "1.4.0"
+linked-hash-map = "0.5.6"
 
 near-crypto = "0.15"
 near-primitives = "0.15"
@@ -40,7 +42,8 @@ near-jsonrpc-primitives = "0.15"
 interactive-clap = "0.1.0"
 interactive-clap-derive = "0.1.0"
 console = "0.15.5"
-near-cli-rs = { git = "https://github.com/near/near-cli-rs", rev="e6168136b3514d63d383107e893e767fb9a6b0b5" }
+
+near-cli-rs = { git = "https://github.com/near/near-cli-rs", rev="e156eae64b9044d5f40e34880e863a4539e6291d" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 security-framework = "2.7.0"

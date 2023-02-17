@@ -1,0 +1,80 @@
+use inquire::{CustomType, Select};
+
+mod deploy_args;
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct TransactionFunctionArgs {
+    pub data: crate::socialdb_types::SocialDb,
+}
+
+#[derive(Debug, Clone, interactive_clap::InteractiveClap)]
+#[interactive_clap(input_context = near_cli_rs::GlobalContext)]
+#[interactive_clap(output_context = DeployToAccountContext)]
+pub struct DeployToAccount {
+    #[interactive_clap(skip_default_input_arg)]
+    /// Which account do you want to deploy the widgets to?
+    deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
+    #[interactive_clap(named_arg)]
+    /// Specify signer account ID
+    sign_as: self::deploy_args::Signer,
+}
+
+#[derive(Clone)]
+pub struct DeployToAccountContext {
+    pub config: near_cli_rs::config::Config,
+    pub deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
+}
+
+impl DeployToAccountContext {
+    pub fn from_previous_context(
+        previous_context: near_cli_rs::GlobalContext,
+        scope: &<DeployToAccount as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
+    ) -> Self {
+        Self {
+            config: previous_context.0,
+            deploy_to_account_id: scope.deploy_to_account_id.clone(),
+        }
+    }
+}
+
+impl DeployToAccount {
+    fn input_deploy_to_account_id(
+        context: &near_cli_rs::GlobalContext,
+    ) -> color_eyre::eyre::Result<near_cli_rs::types::account_id::AccountId> {
+        let widgets = crate::common::get_local_widgets()?;
+        println!(
+            "\nThere are <{}> widgets in the current folder ready for deployment:",
+            widgets.len()
+        );
+        for widget in widgets.keys() {
+            println!(" * {widget}")
+        }
+        loop {
+            let deploy_to_account_id: near_cli_rs::types::account_id::AccountId =
+                CustomType::new(" Which account do you want to deploy the widgets to?").prompt()?;
+            if !crate::common::is_account_exist(&context.0.networks, deploy_to_account_id.clone().into()) {
+                println!(
+                    "\nThe account <{}> does not yet exist.",
+                    &deploy_to_account_id
+                );
+                #[derive(strum_macros::Display)]
+                enum ConfirmOptions {
+                    #[strum(to_string = "Yes, I want to enter a new account name.")]
+                    Yes,
+                    #[strum(to_string = "No, I want to use this account name.")]
+                    No,
+                }
+                let select_choose_input = Select::new(
+                    "Do you want to enter a new widget deployment account name?",
+                    vec![ConfirmOptions::Yes, ConfirmOptions::No],
+                )
+                .prompt()?;
+                if let ConfirmOptions::No = select_choose_input {
+                    return Ok(deploy_to_account_id);
+                }
+            } else {
+                return Ok(deploy_to_account_id);
+            }
+        }
+    }
+}

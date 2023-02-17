@@ -61,10 +61,10 @@ pub fn diff_code(old_code: &str, new_code: &str) -> Result<(), DiffCodeError> {
 }
 
 pub fn is_account_exist(
-    context: &near_cli_rs::GlobalContext,
+    networks: &linked_hash_map::LinkedHashMap<String, near_cli_rs::config::NetworkConfig>,
     account_id: near_primitives::types::AccountId,
 ) -> bool {
-    for network in context.0.networks.iter() {
+    for network in networks {
         if tokio::runtime::Runtime::new()
             .unwrap()
             .block_on(near_cli_rs::common::get_account_state(
@@ -80,7 +80,7 @@ pub fn is_account_exist(
     false
 }
 
-pub fn get_widgets() -> color_eyre::eyre::Result<
+pub fn get_local_widgets() -> color_eyre::eyre::Result<
     std::collections::HashMap<String, crate::socialdb_types::SocialDbWidget>,
 > {
     let mut widgets = HashMap::new();
@@ -123,4 +123,117 @@ pub fn get_widgets() -> color_eyre::eyre::Result<
         );
     }
     Ok(widgets)
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum PermissionKey {
+    #[serde(rename = "predecessor_id")]
+    PredecessorId(near_primitives::types::AccountId),
+    #[serde(rename = "public_key")]
+    PublicKey(near_crypto::PublicKey),
+}
+
+impl From<near_primitives::types::AccountId> for PermissionKey {
+    fn from(predecessor_id: near_primitives::types::AccountId) -> Self {
+        Self::PredecessorId(predecessor_id)
+    }
+}
+
+impl From<near_crypto::PublicKey> for PermissionKey {
+    fn from(public_key: near_crypto::PublicKey) -> Self {
+        Self::PublicKey(public_key)
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct IsWritePermissionGrantedInputArgs {
+    key: String,
+    #[serde(flatten)]
+    permission_key: PermissionKey,
+}
+
+pub async fn is_write_permission_granted<P: Into<PermissionKey>>(
+    network_config: &near_cli_rs::config::NetworkConfig,
+    near_social_account_id: near_primitives::types::AccountId,
+    permission_key: P,
+    key: String,
+) -> color_eyre::eyre::Result<bool> {
+    let function_args = serde_json::to_string(&IsWritePermissionGrantedInputArgs {
+        key,
+        permission_key: permission_key.into(),
+    })
+    .wrap_err("Internal error: could not serialize `is_write_permission_granted` input args")?;
+    let query_view_method_response = network_config
+        .json_rpc_client()
+        .call(near_jsonrpc_client::methods::query::RpcQueryRequest {
+            block_reference: near_primitives::types::Finality::Final.into(),
+            request: near_primitives::views::QueryRequest::CallFunction {
+                account_id: near_social_account_id,
+                method_name: "is_write_permission_granted".to_string(),
+                args: near_primitives::types::FunctionArgs::from(function_args.into_bytes()),
+            },
+        })
+        .await
+        .wrap_err_with(|| "Failed to fetch query for view method: 'is_write_permission_granted'")?;
+    let call_result =
+        if let near_jsonrpc_primitives::types::query::QueryResponseKind::CallResult(result) =
+            query_view_method_response.kind
+        {
+            result.result
+        } else {
+            return Err(color_eyre::Report::msg("Error call result".to_string()));
+        };
+
+    let serde_call_result = if call_result.is_empty() {
+        serde_json::Value::Null
+    } else {
+        serde_json::from_slice(&call_result)
+            .map_err(|err| color_eyre::Report::msg(format!("serde json: {err:?}")))?
+    };
+    let result = serde_call_result.as_bool().expect("Unexpected response");
+    Ok(result)
+}
+
+pub fn is_signer_access_key_function_call_access_can_call_set_on_social_db_account(
+    near_social_account_id: near_primitives::types::AccountId,
+    access_key_permission: near_primitives::views::AccessKeyPermissionView,
+) -> color_eyre::eyre::Result<bool> {
+    if let near_primitives::views::AccessKeyPermissionView::FunctionCall {
+        allowance: _,
+        receiver_id,
+        method_names,
+    } = access_key_permission
+    {
+        Ok(receiver_id == near_social_account_id.to_string()
+            && method_names.contains(&"set".to_string()))
+    } else {
+        Ok(false)
+    }
+}
+
+pub async fn get_access_key_permission(
+    network_config: &near_cli_rs::config::NetworkConfig,
+    account_id: near_primitives::types::AccountId,
+    public_key: near_crypto::PublicKey,
+) -> color_eyre::eyre::Result<near_primitives::views::AccessKeyPermissionView> {
+    let query_view_method_response = network_config
+        .json_rpc_client()
+        .call(near_jsonrpc_client::methods::query::RpcQueryRequest {
+            block_reference: near_primitives::types::Finality::Final.into(),
+            request: near_primitives::views::QueryRequest::ViewAccessKey {
+                account_id,
+                public_key: public_key.clone(),
+            },
+        })
+        .await
+        .wrap_err_with(|| format!("Failed to fetch query 'view access key' for <{public_key}>",))?;
+    let access_key_view =
+        if let near_jsonrpc_primitives::types::query::QueryResponseKind::AccessKey(result) =
+            query_view_method_response.kind
+        {
+            result
+        } else {
+            color_eyre::eyre::bail!(color_eyre::Report::msg("Error call result".to_string()));
+        };
+    Ok(access_key_view.permission)
 }

@@ -38,12 +38,11 @@ impl SignerContext {
 impl From<SignerContext> for near_cli_rs::commands::ActionContext {
     fn from(item: SignerContext) -> Self {
         let deploy_to_account_id = item.deploy_to_account_id.clone();
-        Self {
-            config: item.config,
-            signer_account_id: item.signer_account_id.clone().into(),
-            receiver_account_id: "v1.social08.testnet".parse().unwrap(),
-            actions: vec![],
-            on_after_getting_network_callback: std::sync::Arc::new(
+        let deploy_to_account_id_copy = item.deploy_to_account_id.clone();
+        let signer_account_id = item.signer_account_id.clone();
+
+        let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = {
+            std::sync::Arc::new(
                 move |prepopulated_unsigned_transaction, network_config| {
                     let near_social_account_id = match &network_config.near_social_account_id {
                         Some(account_id) => account_id.clone(),
@@ -189,33 +188,97 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
                     Ok(())
                 },
-            ),
-            on_before_signing_callback: std::sync::Arc::new(
-                move |prepopulated_unsigned_transaction, network_config| {
-                    if let near_primitives::transaction::Action::FunctionCall(action) =
-                        &mut prepopulated_unsigned_transaction.actions[0]
-                    {
-                        action.deposit = tokio::runtime::Runtime::new()
-                            .unwrap()
-                            .block_on(get_deposit(
-                                network_config,
-                                item.signer_account_id.clone().into(),
-                                prepopulated_unsigned_transaction.public_key.clone(),
-                                item.deploy_to_account_id.clone(),
-                                prepopulated_unsigned_transaction.receiver_id.clone(),
-                                near_cli_rs::common::NearBalance::from_yoctonear(action.deposit),
-                            ))?
-                            .to_yoctonear();
-                    } else {
-                        return Err(color_eyre::Report::msg(
-                            "Unexpected action to change widgets",
-                        ));
+            )
+        };
+
+        let on_before_signing_callback: near_cli_rs::commands::OnBeforeSigningCallback = {
+            std::sync::Arc::new(move |prepopulated_unsigned_transaction, network_config| {
+                if let near_primitives::transaction::Action::FunctionCall(action) =
+                    &mut prepopulated_unsigned_transaction.actions[0]
+                {
+                    action.deposit = tokio::runtime::Runtime::new()
+                        .unwrap()
+                        .block_on(get_deposit(
+                            network_config,
+                            item.signer_account_id.clone().into(),
+                            prepopulated_unsigned_transaction.public_key.clone(),
+                            item.deploy_to_account_id.clone(),
+                            prepopulated_unsigned_transaction.receiver_id.clone(),
+                            near_cli_rs::common::NearBalance::from_yoctonear(action.deposit),
+                        ))?
+                        .to_yoctonear();
+                } else {
+                    return Err(color_eyre::Report::msg(
+                        "Unexpected action to change widgets",
+                    ));
+                }
+                Ok(())
+            })
+        };
+
+        let on_after_sending_transaction_callback: near_cli_rs::transaction_signature_options::OnAfterSendingTransactionCallback = {
+            std::sync::Arc::new(
+                move |transaction_info, network_config| match transaction_info.status {
+                    near_primitives::views::FinalExecutionStatus::SuccessValue(_) => {
+                        let args = if let near_primitives::views::ActionView::FunctionCall {
+                            args,
+                            ..
+                        } = &transaction_info.transaction.actions[0]
+                        {
+                            args
+                        } else {
+                            return Err(color_eyre::Report::msg(
+                                "Internal error: Unexpected function call arguments",
+                            ));
+                        };
+
+                        let transaction_function_args: super::TransactionFunctionArgs =
+                            serde_json::from_slice(args).map_err(|err| {
+                                color_eyre::Report::msg(format!("Error reading data: {}", err))
+                            })?;
+
+                        let social_account_metadata = if let Some(account_metadata) =
+                            transaction_function_args.data.accounts.get(
+                                &near_primitives::types::AccountId::from(
+                                    deploy_to_account_id_copy.clone(),
+                                ),
+                            ) {
+                            account_metadata
+                        } else {
+                            return Err(color_eyre::Report::msg(format!(
+                                "Internal error: Unexpected metadata for account <{}>",
+                                &deploy_to_account_id_copy
+                            )));
+                        };
+                        let widgets = &social_account_metadata.widgets;
+
+                        println!("\n<{}> widgets were successfully deployed:", widgets.len());
+                        for widget in widgets.keys() {
+                            println!(" * {widget}")
+                        }
+                        println!();
+                        Ok(())
                     }
-                    Ok(())
+                    _ => {
+                        near_cli_rs::common::print_transaction_status(
+                            transaction_info.clone(),
+                            network_config.clone(),
+                        )?;
+                        color_eyre::eyre::bail!("Widgets deployment failed!");
+                    }
                 },
-            ),
-            on_after_signing_callback: std::sync::Arc::new(|_singed_transaction| Ok(())),
-            on_after_sending_transaction_callback: std::sync::Arc::new(move |_singed_transaction, network| Ok(())),
+            )
+
+        };
+
+        Self {
+            config: item.config,
+            signer_account_id: signer_account_id.into(),
+            receiver_account_id: "v1.social08.testnet".parse().unwrap(),
+            actions: vec![],
+            on_after_getting_network_callback,
+            on_before_signing_callback,
+            on_after_sending_transaction_callback,
         }
     }
 }

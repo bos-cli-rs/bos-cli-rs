@@ -42,8 +42,7 @@ interactive-clap = "0.1.0"
 interactive-clap-derive = "0.1.0"
 console = "0.15.5"
 
-near-cli-rs = { path = "../near-cli-rs-15/near-cli-rs" }
-# near-cli-rs = { git = "https://github.com/near/near-cli-rs", rev="8d8f346dcf01eeaca2b660230be12584eb870047" }
+near-cli-rs = { git = "https://github.com/near/near-cli-rs", rev="e156eae64b9044d5f40e34880e863a4539e6291d" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 security-framework = "2.7.0"

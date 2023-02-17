@@ -215,6 +215,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 },
             ),
             on_after_signing_callback: std::sync::Arc::new(|_singed_transaction| Ok(())),
+            on_after_sending_transaction_callback: std::sync::Arc::new(move |_singed_transaction, network| Ok(())),
         }
     }
 }

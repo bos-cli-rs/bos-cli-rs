@@ -1528,6 +1528,7 @@ dependencies = [
  "smart-default",
  "strum",
  "strum_macros",
+ "thiserror",
  "tokio",
  "toml",
  "url",

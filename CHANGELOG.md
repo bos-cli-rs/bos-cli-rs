@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2023-02-18
+
+* Reverted an accidental breaking change of renaming `network-config` to `network-for-transaction` subcommand
+
 ## [0.2.0] - 2023-02-17
 
 * **BREAKING CHANGE:** Improved access keys handling in `deploy` command (allow using zero deposit for write-granted access), so now you can have a signer account ID that is different from the account ID where you want to deploy the widgets

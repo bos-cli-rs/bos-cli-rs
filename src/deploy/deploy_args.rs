@@ -15,7 +15,7 @@ pub struct Signer {
     signer_account_id: near_cli_rs::types::account_id::AccountId,
     #[interactive_clap(named_arg)]
     /// Select network
-    network_for_transaction: near_cli_rs::network_for_transaction::NetworkForTransactionArgs,
+    network_config: near_cli_rs::network_for_transaction::NetworkForTransactionArgs,
 }
 
 #[derive(Clone)]
@@ -272,10 +272,10 @@ impl interactive_clap::FromCli for Signer {
         let optional_network_for_transaction =
             near_cli_rs::network_for_transaction::NetworkForTransactionArgs::from_cli(
                 optional_clap_variant.and_then(|clap_variant| {
-                    clap_variant.network_for_transaction.map(
-                        |ClapNamedArgNetworkForTransactionArgsForSigner::NetworkForTransaction(
-                            cli_arg,
-                        )| cli_arg,
+                    clap_variant.network_config.map(
+                        |ClapNamedArgNetworkForTransactionArgsForSigner::NetworkConfig(cli_arg)| {
+                            cli_arg
+                        },
                     )
                 }),
                 new_context.into(),
@@ -288,7 +288,7 @@ impl interactive_clap::FromCli for Signer {
 
         Ok(Some(Self {
             signer_account_id,
-            network_for_transaction,
+            network_config: network_for_transaction,
         }))
     }
 }
@@ -299,12 +299,14 @@ impl Signer {
     ) -> color_eyre::eyre::Result<near_cli_rs::types::account_id::AccountId> {
         loop {
             let signer_account_id: near_cli_rs::types::account_id::AccountId =
-                CustomType::new(" What is the signer account ID?").with_default(context.deploy_to_account_id.clone()).prompt()?;
-            if !crate::common::is_account_exist(&context.config.networks, signer_account_id.clone().into()) {
-                println!(
-                    "\nThe account <{}> does not yet exist.",
-                    signer_account_id
-                );
+                CustomType::new(" What is the signer account ID?")
+                    .with_default(context.deploy_to_account_id.clone())
+                    .prompt()?;
+            if !crate::common::is_account_exist(
+                &context.config.networks,
+                signer_account_id.clone().into(),
+            ) {
+                println!("\nThe account <{}> does not yet exist.", signer_account_id);
                 #[derive(strum_macros::Display)]
                 enum ConfirmOptions {
                     #[strum(to_string = "Yes, I want to enter a new account name.")]

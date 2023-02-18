@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2023-02-18
+
+* Added Apple M1/M2 binary release support (ARM64 Darwin target)
+
 ## [0.2.1] - 2023-02-18
 
 * Reverted an accidental breaking change of renaming `network-config` to `network-for-transaction` subcommand

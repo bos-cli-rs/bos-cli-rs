@@ -36,8 +36,8 @@ on:
       - v[0-9]+.*
 
 env:
-  ALL_CARGO_DIST_TARGET_ARGS: --target=x86_64-unknown-linux-gnu --target=x86_64-apple-darwin --target=x86_64-pc-windows-msvc 
-  ALL_CARGO_DIST_INSTALLER_ARGS: --installer=github-shell --installer=github-powershell 
+  ALL_CARGO_DIST_TARGET_ARGS: --target=x86_64-unknown-linux-gnu --target=x86_64-apple-darwin --target=aarch64-apple-darwin --target=x86_64-pc-windows-msvc
+  ALL_CARGO_DIST_INSTALLER_ARGS: --installer=github-shell --installer=github-powershell
 
 jobs:
   # Create the Github Release™️ so the packages have something to be uploaded to
@@ -68,6 +68,9 @@ jobs:
         - target: x86_64-apple-darwin
           os: macos-11
           install-dist: curl --proto '=https' --tlsv1.2 -L -sSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.2/installer.sh | sh
+        - target: aarch64-apple-darwin
+          os: macos-11
+          install-dist: curl --proto '=https' --tlsv1.2 -L -sSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.2/installer.sh | sh
         - target: x86_64-pc-windows-msvc
           os: windows-2019
           install-dist: irm 'https://github.com/axodotdev/cargo-dist/releases/download/v0.0.2/installer.ps1' | iex
@@ -77,7 +80,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install Rust
-        run: rustup update stable && rustup default stable
+        run: rustup update stable && rustup default stable && rustup target add ${{ matrix.target }}
       - name: Install cargo-dist
         run: ${{ matrix.install-dist }}
       - name: Install packages (Linux)

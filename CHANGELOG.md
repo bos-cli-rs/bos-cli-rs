@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2023-02-27
+
+* Allow `null`-able tags in the widgets metadata to be able remove the tags on deployment
+
 ## [0.2.2] - 2023-02-18
 
 * Added Apple M1/M2 binary release support (ARM64 Darwin target)

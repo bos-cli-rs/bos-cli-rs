@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2023-03-02
+
+* Upgraded cargo-dist to 0.0.4-prelease.2 to reduce the Linux release binary size
+
 ## [0.2.3] - 2023-02-27
 
 * Allow `null`-able tags in the widgets metadata to be able remove the tags on deployment

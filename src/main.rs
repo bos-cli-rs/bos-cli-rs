@@ -4,7 +4,7 @@ use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
 pub mod common;
 pub mod consts;
-// mod deploy;
+mod deploy;
 mod download;
 pub mod socialdb_types;
 
@@ -27,9 +27,9 @@ pub enum Command {
     #[strum_discriminants(strum(message = "download -   Download widgets from account"))]
     /// Download widgets from account
     Download(self::download::AccountId),
-    // #[strum_discriminants(strum(message = "deploy   -   Deploy widget if code has changed"))]
-    // /// Deploy widget if code has changed
-    // Deploy(self::deploy::DeployToAccount),
+    #[strum_discriminants(strum(message = "deploy   -   Deploy widget if code has changed"))]
+    /// Deploy widget if code has changed
+    Deploy(self::deploy::DeployToAccount),
 }
 
 fn main() -> CliResult {
@@ -49,7 +49,7 @@ fn main() -> CliResult {
                 println!(
                     "Your console command:\n{} {}",
                     std::env::args().next().as_deref().unwrap_or("./near_cli"),
-                    shell_words::join(&cli_cmd.to_cli_args())
+                    shell_words::join(cli_cmd.to_cli_args())
                 );
                 return Ok(());
             }
@@ -63,7 +63,7 @@ fn main() -> CliResult {
                     println!(
                         "Your console command:\n{} {}",
                         std::env::args().next().as_deref().unwrap_or("./near_cli"),
-                        shell_words::join(&cli_cmd.to_cli_args())
+                        shell_words::join(cli_cmd.to_cli_args())
                     );
                 }
                 return Err(err);

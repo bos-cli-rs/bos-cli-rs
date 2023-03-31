@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use inquire::{CustomType, Select};
+use near_cli_rs::common::{CallResultExt, JsonRpcClientExt};
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = super::DeployToAccountContext)]
@@ -20,8 +21,8 @@ pub struct Signer {
 #[derive(Clone)]
 pub struct SignerContext {
     config: near_cli_rs::config::Config,
-    deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
-    signer_account_id: near_cli_rs::types::account_id::AccountId,
+    deploy_to_account_id: near_primitives::types::AccountId,
+    signer_account_id: near_primitives::types::AccountId,
 }
 
 impl SignerContext {
@@ -31,8 +32,8 @@ impl SignerContext {
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
             config: previous_context.config,
-            deploy_to_account_id: previous_context.deploy_to_account_id,
-            signer_account_id: scope.signer_account_id.clone(),
+            deploy_to_account_id: previous_context.deploy_to_account_id.into(),
+            signer_account_id: scope.signer_account_id.clone().into(),
         })
     }
 }
@@ -57,40 +58,34 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     return Ok(());
                 }
 
-                let query_view_method_response = tokio::runtime::Runtime::new()
-                    .unwrap()
-                    .block_on(network_config.json_rpc_client().call(
-                        near_jsonrpc_client::methods::query::RpcQueryRequest {
-                            block_reference: near_primitives::types::Finality::Final.into(),
-                            request: near_primitives::views::QueryRequest::CallFunction {
-                                account_id: near_social_account_id.clone(),
-                                method_name: "get".to_string(),
-                                args: near_primitives::types::FunctionArgs::from(
-                                    serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
-                                        keys: local_widgets
-                                            .keys()
-                                            .map(|name| format!("{deploy_to_account_id}/widget/{name}/**"))
-                                            .collect(),
-                                    })
-                                    .wrap_err("Internal error: could not serialize SocialDB input args")?
-                                    .into_bytes()
-                                ),
-                            },
-                        },
-                    ))
+                let call_result = network_config
+                    .json_rpc_client()
+                    .blocking_call_view_function(
+                        &near_social_account_id,
+                        "get",
+                        serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
+                            keys: local_widgets
+                            .keys()
+                            .map(|name| format!("{deploy_to_account_id}/widget/{name}/**"))
+                            .collect(),
+                        })
+                        .wrap_err("Internal error: could not serialize SocialDB input args")?
+                        .into_bytes(),
+                        near_primitives::types::Finality::Final.into(),
+                    )
                     .wrap_err("Failed to fetch the widgets state from SocialDB")?;
 
-                let old_social_db: crate::socialdb_types::SocialDb =
-                    if let near_jsonrpc_primitives::types::query::QueryResponseKind::CallResult(result) =
-                        query_view_method_response.kind
-                    {
-                        serde_json::from_slice(&result.result)
-                            .wrap_err("Failed to parse the widgets state from SocialDB")?
-                    } else {
-                        return Err(color_eyre::Report::msg(
-                            "Received unexpected query kind on fetching widgets state from SocialDB",
-                        ));
-                    };
+                let old_social_db: crate::socialdb_types::SocialDb = call_result.parse_result_from_json()?;
+                    // if let near_jsonrpc_primitives::types::query::QueryResponseKind::CallResult(result) =
+                    //     query_view_method_response.kind
+                    // {
+                    //     serde_json::from_slice(&result.result)
+                    //         .wrap_err("Failed to parse the widgets state from SocialDB")?
+                    // } else {
+                    //     return Err(color_eyre::Report::msg(
+                    //         "Received unexpected query kind on fetching widgets state from SocialDB",
+                    //     ));
+                    // };
 
                 prepopulated_unsigned_transaction.receiver_id = near_social_account_id.clone();
                 let (widgets_to_deploy, deposit) =
@@ -140,7 +135,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 let args = {
                     let mut accounts = HashMap::new();
                     accounts.insert(
-                        deploy_to_account_id.clone().into(),
+                        deploy_to_account_id.clone(),
                         crate::socialdb_types::SocialDbAccountMetadata {
                             widgets: widgets_to_deploy
                         },
@@ -170,24 +165,23 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
         let on_before_signing_callback: near_cli_rs::commands::OnBeforeSigningCallback =
             Arc::new({
-                let signer_account_id = item.signer_account_id.clone();
+                let signer_account_id: near_primitives::types::AccountId =
+                    item.signer_account_id.clone();
                 let deploy_to_account_id = item.deploy_to_account_id.clone();
 
                 move |prepopulated_unsigned_transaction, network_config| {
                     if let near_primitives::transaction::Action::FunctionCall(action) =
                         &mut prepopulated_unsigned_transaction.actions[0]
                     {
-                        action.deposit = tokio::runtime::Runtime::new()
-                            .unwrap()
-                            .block_on(get_deposit(
-                                network_config,
-                                signer_account_id.clone().into(),
-                                prepopulated_unsigned_transaction.public_key.clone(),
-                                deploy_to_account_id.clone(),
-                                prepopulated_unsigned_transaction.receiver_id.clone(),
-                                near_cli_rs::common::NearBalance::from_yoctonear(action.deposit),
-                            ))?
-                            .to_yoctonear();
+                        action.deposit = get_deposit(
+                            network_config,
+                            &signer_account_id,
+                            &prepopulated_unsigned_transaction.public_key,
+                            &deploy_to_account_id,
+                            &prepopulated_unsigned_transaction.receiver_id,
+                            near_cli_rs::common::NearBalance::from_yoctonear(action.deposit),
+                        )?
+                        .to_yoctonear();
                         Ok(())
                     } else {
                         color_eyre::eyre::bail!("Unexpected action to change widgets",);
@@ -196,7 +190,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
             });
 
         let on_after_sending_transaction_callback: near_cli_rs::transaction_signature_options::OnAfterSendingTransactionCallback = Arc::new({
-            let deploy_to_account_id = item.deploy_to_account_id.clone();
+            let deploy_to_account_id = item.deploy_to_account_id;
 
             move |transaction_info, network_config| {
                 let args = if let near_primitives::views::FinalExecutionStatus::SuccessValue(_) = transaction_info.status {
@@ -284,20 +278,19 @@ impl Signer {
     }
 }
 
-async fn get_deposit(
+fn get_deposit(
     network_config: &near_cli_rs::config::NetworkConfig,
-    signer_account_id: near_primitives::types::AccountId,
-    signer_public_key: near_crypto::PublicKey,
-    deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
-    near_social_account_id: near_primitives::types::AccountId,
+    signer_account_id: &near_primitives::types::AccountId,
+    signer_public_key: &near_crypto::PublicKey,
+    deploy_to_account_id: &near_primitives::types::AccountId,
+    near_social_account_id: &near_primitives::types::AccountId,
     required_deposit: near_cli_rs::common::NearBalance,
 ) -> color_eyre::eyre::Result<near_cli_rs::common::NearBalance> {
     let signer_access_key_permission = crate::common::get_access_key_permission(
         network_config,
-        signer_account_id.clone(),
-        signer_public_key.clone(),
-    )
-    .await?;
+        signer_account_id,
+        signer_public_key,
+    )?;
 
     let is_signer_access_key_full_access = matches!(
         signer_access_key_permission,
@@ -306,24 +299,22 @@ async fn get_deposit(
 
     let is_write_permission_granted_to_public_key = crate::common::is_write_permission_granted(
         network_config,
-        near_social_account_id.clone(),
-        signer_public_key,
+        near_social_account_id,
+        signer_public_key.clone(),
         format!("{deploy_to_account_id}/widget"),
-    )
-    .await?;
+    )?;
 
     let is_write_permission_granted_to_signer = crate::common::is_write_permission_granted(
         network_config,
-        near_social_account_id.clone(),
+        near_social_account_id,
         signer_account_id.clone(),
         format!("{deploy_to_account_id}/widget"),
-    )
-    .await?;
+    )?;
 
     let deposit = if is_signer_access_key_full_access
         || crate::common::is_signer_access_key_function_call_access_can_call_set_on_social_db_account(
             near_social_account_id,
-            signer_access_key_permission
+            &signer_access_key_permission
         )?
     {
         if is_write_permission_granted_to_public_key || is_write_permission_granted_to_signer {
@@ -335,7 +326,7 @@ async fn get_deposit(
             } else {
                 color_eyre::eyre::bail!("ERROR: Social DB requires more storage deposit, but we cannot cover it when signing transaction with a Function Call only access key")
             }
-        } else if signer_account_id == deploy_to_account_id.into() {
+        } else if signer_account_id == deploy_to_account_id {
             if is_signer_access_key_full_access {
                 if required_deposit
                     == near_cli_rs::common::NearBalance::from_str("0 NEAR").unwrap()

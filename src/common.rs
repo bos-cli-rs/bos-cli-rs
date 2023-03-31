@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use console::{style, Style};
 use glob::glob;
+use near_cli_rs::common::{CallResultExt, JsonRpcClientExt, RpcQueryResponseExt};
 use similar::{ChangeTag, TextDiff};
 
 struct Line(Option<usize>);
@@ -150,9 +151,9 @@ struct IsWritePermissionGrantedInputArgs {
     permission_key: PermissionKey,
 }
 
-pub async fn is_write_permission_granted<P: Into<PermissionKey>>(
+pub fn is_write_permission_granted<P: Into<PermissionKey>>(
     network_config: &near_cli_rs::config::NetworkConfig,
-    near_social_account_id: near_primitives::types::AccountId,
+    near_social_account_id: &near_primitives::types::AccountId,
     permission_key: P,
     key: String,
 ) -> color_eyre::eyre::Result<bool> {
@@ -161,40 +162,24 @@ pub async fn is_write_permission_granted<P: Into<PermissionKey>>(
         permission_key: permission_key.into(),
     })
     .wrap_err("Internal error: could not serialize `is_write_permission_granted` input args")?;
-    let query_view_method_response = network_config
+    let call_result = network_config
         .json_rpc_client()
-        .call(near_jsonrpc_client::methods::query::RpcQueryRequest {
-            block_reference: near_primitives::types::Finality::Final.into(),
-            request: near_primitives::views::QueryRequest::CallFunction {
-                account_id: near_social_account_id,
-                method_name: "is_write_permission_granted".to_string(),
-                args: near_primitives::types::FunctionArgs::from(function_args.into_bytes()),
-            },
-        })
-        .await
+        .blocking_call_view_function(
+            near_social_account_id,
+            "is_write_permission_granted",
+            function_args.into_bytes(),
+            near_primitives::types::Finality::Final.into(),
+        )
         .wrap_err_with(|| "Failed to fetch query for view method: 'is_write_permission_granted'")?;
-    let call_result =
-        if let near_jsonrpc_primitives::types::query::QueryResponseKind::CallResult(result) =
-            query_view_method_response.kind
-        {
-            result.result
-        } else {
-            return Err(color_eyre::Report::msg("Error call result".to_string()));
-        };
 
-    let serde_call_result = if call_result.is_empty() {
-        serde_json::Value::Null
-    } else {
-        serde_json::from_slice(&call_result)
-            .map_err(|err| color_eyre::Report::msg(format!("serde json: {err:?}")))?
-    };
+    let serde_call_result: serde_json::Value = call_result.parse_result_from_json()?;
     let result = serde_call_result.as_bool().expect("Unexpected response");
     Ok(result)
 }
 
 pub fn is_signer_access_key_function_call_access_can_call_set_on_social_db_account(
-    near_social_account_id: near_primitives::types::AccountId,
-    access_key_permission: near_primitives::views::AccessKeyPermissionView,
+    near_social_account_id: &near_primitives::types::AccountId,
+    access_key_permission: &near_primitives::views::AccessKeyPermissionView,
 ) -> color_eyre::eyre::Result<bool> {
     if let near_primitives::views::AccessKeyPermissionView::FunctionCall {
         allowance: _,
@@ -202,36 +187,27 @@ pub fn is_signer_access_key_function_call_access_can_call_set_on_social_db_accou
         method_names,
     } = access_key_permission
     {
-        Ok(receiver_id == near_social_account_id.to_string()
+        Ok(receiver_id == &near_social_account_id.to_string()
             && method_names.contains(&"set".to_string()))
     } else {
         Ok(false)
     }
 }
 
-pub async fn get_access_key_permission(
+pub fn get_access_key_permission(
     network_config: &near_cli_rs::config::NetworkConfig,
-    account_id: near_primitives::types::AccountId,
-    public_key: near_crypto::PublicKey,
+    account_id: &near_primitives::types::AccountId,
+    public_key: &near_crypto::PublicKey,
 ) -> color_eyre::eyre::Result<near_primitives::views::AccessKeyPermissionView> {
-    let query_view_method_response = network_config
+    let permission = network_config
         .json_rpc_client()
-        .call(near_jsonrpc_client::methods::query::RpcQueryRequest {
-            block_reference: near_primitives::types::Finality::Final.into(),
-            request: near_primitives::views::QueryRequest::ViewAccessKey {
-                account_id,
-                public_key: public_key.clone(),
-            },
-        })
-        .await
-        .wrap_err_with(|| format!("Failed to fetch query 'view access key' for <{public_key}>",))?;
-    let access_key_view =
-        if let near_jsonrpc_primitives::types::query::QueryResponseKind::AccessKey(result) =
-            query_view_method_response.kind
-        {
-            result
-        } else {
-            color_eyre::eyre::bail!(color_eyre::Report::msg("Error call result".to_string()));
-        };
-    Ok(access_key_view.permission)
+        .blocking_call_view_access_key(
+            account_id,
+            public_key,
+            near_primitives::types::Finality::Final.into(),
+        )
+        .wrap_err_with(|| format!("Failed to fetch query 'view access key' for <{public_key}>",))?
+        .access_key_view()?
+        .permission;
+    Ok(permission)
 }

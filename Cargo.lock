@@ -712,6 +712,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "53aff6fdc1b181225acdcb5b14c47106726fd8e486707315b1b138baed68ee31"
 
 [[package]]
+name = "easy-ext"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "49457524c7e65648794c98283282a0b7c73b10018e7091f1cdcfff314fd7ae59"
+
+[[package]]
 name = "ed25519"
 version = "1.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1218,8 +1224,7 @@ dependencies = [
 [[package]]
 name = "interactive-clap"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86f113dd4febd41580cf229238b5b9e84509a2cab8cfd452d5286a256a7d2f12"
+source = "git+https://github.com/FroVolod/interactive-clap?rev=ae415d6e606eb2c4c847f2a13e5239b284a2d918#ae415d6e606eb2c4c847f2a13e5239b284a2d918"
 dependencies = [
  "interactive-clap-derive",
  "strum",
@@ -1229,8 +1234,7 @@ dependencies = [
 [[package]]
 name = "interactive-clap-derive"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbb3bb0473745901b7618401cd941e3b5e8eb88ffc589ae6fbe941c5d1497a53"
+source = "git+https://github.com/FroVolod/interactive-clap?rev=ae415d6e606eb2c4c847f2a13e5239b284a2d918#ae415d6e606eb2c4c847f2a13e5239b284a2d918"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -1491,8 +1495,8 @@ dependencies = [
 
 [[package]]
 name = "near-cli-rs"
-version = "0.2.1"
-source = "git+https://github.com/near/near-cli-rs?rev=e156eae64b9044d5f40e34880e863a4539e6291d#e156eae64b9044d5f40e34880e863a4539e6291d"
+version = "0.2.3"
+source = "git+https://github.com/near/near-cli-rs?rev=182935d580c393b26cd28c4746a5cc208f285d6b#182935d580c393b26cd28c4746a5cc208f285d6b"
 dependencies = [
  "async-recursion",
  "base64 0.13.1",
@@ -1504,6 +1508,7 @@ dependencies = [
  "color-eyre",
  "derive_more",
  "dirs",
+ "easy-ext 1.0.1",
  "ed25519-dalek",
  "futures",
  "hex 0.4.3",
@@ -1620,7 +1625,7 @@ dependencies = [
  "cfg-if",
  "chrono",
  "derive_more",
- "easy-ext",
+ "easy-ext 0.2.9",
  "hex 0.4.3",
  "near-crypto",
  "near-primitives-core",

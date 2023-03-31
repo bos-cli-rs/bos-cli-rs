@@ -61,7 +61,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 let call_result = network_config
                     .json_rpc_client()
                     .blocking_call_view_function(
-                        &near_social_account_id,
+                        near_social_account_id,
                         "get",
                         serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
                             keys: local_widgets
@@ -229,7 +229,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
         Self {
             config: item.config,
-            signer_account_id: item.signer_account_id.into(),
+            signer_account_id: item.signer_account_id,
             receiver_account_id: "v1.social08.testnet".parse().unwrap(),
             actions: vec![],
             on_after_getting_network_callback,
@@ -255,7 +255,7 @@ impl Signer {
                 &context.config.network_connection,
                 signer_account_id.clone().into(),
             ) {
-                println!("\nThe account <{}> does not yet exist.", signer_account_id);
+                println!("\nThe account <{signer_account_id}> does not yet exist.");
                 #[derive(strum_macros::Display)]
                 enum ConfirmOptions {
                     #[strum(to_string = "Yes, I want to enter a new account name.")]

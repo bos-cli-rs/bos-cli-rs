@@ -38,7 +38,7 @@ impl AccountIdContext {
                     };
 
                     let input_args = serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
-                        keys: vec![format!("{}/widget/**", account_id)],
+                        keys: vec![format!("{account_id}/widget/**")],
                     })
                     .wrap_err("Internal error: could not serialize SocialDB input args")?;
 
@@ -65,8 +65,7 @@ impl AccountIdContext {
                             account_metadata
                         } else {
                             println!(
-                                "\nThere are currently no widgets in the account <{}>.",
-                                account_id
+                                "\nThere are currently no widgets in the account <{account_id}>.",
                             );
                             return Ok(());
                         };

@@ -1,10 +1,10 @@
-use interactive_clap::{FromCli, ToCliArgs};
+use interactive_clap::ToCliArgs;
 pub use near_cli_rs::CliResult;
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
 pub mod common;
 pub mod consts;
-mod deploy;
+// mod deploy;
 mod download;
 pub mod socialdb_types;
 
@@ -27,9 +27,9 @@ pub enum Command {
     #[strum_discriminants(strum(message = "download -   Download widgets from account"))]
     /// Download widgets from account
     Download(self::download::AccountId),
-    #[strum_discriminants(strum(message = "deploy   -   Deploy widget if code has changed"))]
-    /// Deploy widget if code has changed
-    Deploy(self::deploy::DeployToAccount),
+    // #[strum_discriminants(strum(message = "deploy   -   Deploy widget if code has changed"))]
+    // /// Deploy widget if code has changed
+    // Deploy(self::deploy::DeployToAccount),
 }
 
 fn main() -> CliResult {

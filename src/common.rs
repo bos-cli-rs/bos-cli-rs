@@ -65,14 +65,12 @@ pub fn is_account_exist(
     account_id: near_primitives::types::AccountId,
 ) -> bool {
     for network in networks {
-        if tokio::runtime::Runtime::new()
-            .unwrap()
-            .block_on(near_cli_rs::common::get_account_state(
-                network.1.clone(),
-                account_id.clone(),
-                near_primitives::types::Finality::Final.into(),
-            ))
-            .is_ok()
+        if near_cli_rs::common::get_account_state(
+            network.1.clone(),
+            account_id.clone(),
+            near_primitives::types::Finality::Final.into(),
+        )
+        .is_ok()
         {
             return true;
         }

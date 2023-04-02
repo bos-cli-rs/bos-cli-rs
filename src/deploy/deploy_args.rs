@@ -76,16 +76,6 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     .wrap_err("Failed to fetch the widgets state from SocialDB")?;
 
                 let old_social_db: crate::socialdb_types::SocialDb = call_result.parse_result_from_json()?;
-                    // if let near_jsonrpc_primitives::types::query::QueryResponseKind::CallResult(result) =
-                    //     query_view_method_response.kind
-                    // {
-                    //     serde_json::from_slice(&result.result)
-                    //         .wrap_err("Failed to parse the widgets state from SocialDB")?
-                    // } else {
-                    //     return Err(color_eyre::Report::msg(
-                    //         "Received unexpected query kind on fetching widgets state from SocialDB",
-                    //     ));
-                    // };
 
                 prepopulated_unsigned_transaction.receiver_id = near_social_account_id.clone();
                 let (widgets_to_deploy, deposit) =

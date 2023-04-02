@@ -1,4 +1,4 @@
-use interactive_clap::{FromCli, ToCliArgs};
+use interactive_clap::ToCliArgs;
 pub use near_cli_rs::CliResult;
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
@@ -18,12 +18,6 @@ struct Cmd {
     command: self::Command,
 }
 
-impl Cmd {
-    async fn process(&self, config: near_cli_rs::config::Config) -> CliResult {
-        self.command.process(config).await
-    }
-}
-
 #[derive(Debug, EnumDiscriminants, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = crate::GlobalContext)]
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
@@ -38,15 +32,6 @@ pub enum Command {
     Deploy(self::deploy::DeployToAccount),
 }
 
-impl Command {
-    pub async fn process(&self, config: near_cli_rs::config::Config) -> crate::CliResult {
-        match self {
-            Self::Download(account_id) => account_id.process(config).await,
-            Self::Deploy(_) => Ok(()),
-        }
-    }
-}
-
 fn main() -> CliResult {
     let config = near_cli_rs::common::get_config_toml()?;
 
@@ -57,59 +42,32 @@ fn main() -> CliResult {
         Err(error) => error.exit(),
     };
 
-    let cmd = loop {
-        match Cmd::from_cli(Some(cli.clone()), (config.clone(),)) {
-            Ok(Some(cmd)) => {
-                break cmd;
+    loop {
+        match <Cmd as interactive_clap::FromCli>::from_cli(Some(cli.clone()), (config.clone(),)) {
+            interactive_clap::ResultFromCli::Ok(cli_cmd)
+            | interactive_clap::ResultFromCli::Cancel(Some(cli_cmd)) => {
+                println!(
+                    "Your console command:\n{} {}",
+                    std::env::args().next().as_deref().unwrap_or("./near_cli"),
+                    shell_words::join(cli_cmd.to_cli_args())
+                );
+                return Ok(());
             }
-            Ok(None) => {}
-            Err(err) => match err.downcast_ref() {
-                Some(near_cli_rs::common::CliError::ExitOk) => {
-                    return Ok(());
+            interactive_clap::ResultFromCli::Cancel(None) => {
+                println!("Goodbye!");
+                return Ok(());
+            }
+            interactive_clap::ResultFromCli::Back => {}
+            interactive_clap::ResultFromCli::Err(optional_cli_cmd, err) => {
+                if let Some(cli_cmd) = optional_cli_cmd {
+                    println!(
+                        "Your console command:\n{} {}",
+                        std::env::args().next().as_deref().unwrap_or("./near_cli"),
+                        shell_words::join(cli_cmd.to_cli_args())
+                    );
                 }
-                None => match err.downcast_ref() {
-                    Some(
-                        inquire::InquireError::OperationCanceled
-                        | inquire::InquireError::OperationInterrupted,
-                    ) => {
-                        println!("<Operation was interrupted. Goodbye>");
-                        return Ok(());
-                    }
-                    Some(_) | None => return Err(err),
-                },
-            },
+                return Err(err);
+            }
         }
-    };
-
-    let completed_cli = CliCmd::from(cmd.clone());
-
-    let process_result = tokio::runtime::Runtime::new()
-        .unwrap()
-        .block_on(cmd.process(config));
-
-    println!(
-        "Your console command:\n{} {}",
-        std::env::args()
-            .next()
-            .as_deref()
-            .unwrap_or("./near-social"),
-        shell_words::join(completed_cli.to_cli_args())
-    );
-
-    match process_result {
-        Ok(()) => Ok(()),
-        Err(err) => match err.downcast_ref() {
-            Some(near_cli_rs::common::CliError::ExitOk) => Ok(()),
-            None => match err.downcast_ref() {
-                Some(
-                    inquire::InquireError::OperationCanceled
-                    | inquire::InquireError::OperationInterrupted,
-                ) => {
-                    println!("<Operation was interrupted. Goodbye>");
-                    Ok(())
-                }
-                Some(_) | None => Err(err),
-            },
-        },
     }
 }

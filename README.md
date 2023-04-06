@@ -25,3 +25,34 @@ With Rust's package manager cargo, you can install near-social via:
 ```
 cargo install --git https://github.com/FroVolod/near-social
 ```
+
+### GitHub Actions
+
+You can automate widgets deployment being done on every commit to `main` branch (or chose your own condition) with the following script (put it into `.github/workflows/release.yml` of your project):
+
+```yml
+name: Release
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy-widgets:
+    runs-on: ubuntu-latest
+    name: Deploy widgets to near.social (mainnet)
+    env:
+      NEAR_SOCIAL_ACCOUNT_ID: ${{ vars.NEAR_SOCIAL_ACCOUNT_ID }}
+      NEAR_SOCIAL_ACCOUNT_PUBLIC_KEY: ${{ vars.NEAR_SOCIAL_ACCOUNT_PUBLIC_KEY }}
+      NEAR_SOCIAL_ACCOUNT_PRIVATE_KEY: ${{ secrets.NEAR_SOCIAL_ACCOUNT_PRIVATE_KEY }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install near-social CLI
+      run: |
+        curl --proto '=https' --tlsv1.2 -L -sSf https://github.com/FroVolod/near-social/releases/download/v0.2.3/installer.sh | sh
+
+    - name: Deploy widgets
+      run: |
+        near-social deploy "$NEAR_SOCIAL_ACCOUNT_ID" sign-as "$NEAR_SOCIAL_ACCOUNT_ID" network-config mainnet sign-with-plaintext-private-key --signer-public-key "$NEAR_SOCIAL_ACCOUNT_PUBLIC_KEY" --signer-private-key "$NEAR_SOCIAL_ACCOUNT_PRIVATE_KEY" send
+```

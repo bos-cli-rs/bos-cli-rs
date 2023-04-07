@@ -78,7 +78,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 let old_social_db: crate::socialdb_types::SocialDb = call_result.parse_result_from_json()?;
 
                 prepopulated_unsigned_transaction.receiver_id = near_social_account_id.clone();
-                let (widgets_to_deploy, deposit) =
+                let widgets_to_deploy =
                     if let Some(account_metadata) = old_social_db.accounts.get(deploy_to_account_id.as_ref()) {
                         let updated_widgets: HashMap<String, crate::socialdb_types::SocialDbWidget> = local_widgets
                             .into_iter()
@@ -109,38 +109,41 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                             println!("There are no new or modified widgets in the current ./src folder. Goodbye.");
                             return Ok(());
                         }
-
-                        (
-                            updated_widgets,
-                            near_cli_rs::common::NearBalance::from_str("0 NEAR").unwrap(), // TODO: storage cost should be properly calculated
-                        )
+                        updated_widgets
                     } else {
                         println!("\nAll local widgets will be deployed to <{deploy_to_account_id}> as new.");
-                        (
-                            local_widgets,
-                            near_cli_rs::common::NearBalance::from_str("1 NEAR").unwrap(), // TODO: storage cost should be properly calculated
-                        )
+                        local_widgets
                     };
 
-                let args = {
-                    let mut accounts = HashMap::new();
-                    accounts.insert(
-                        deploy_to_account_id.clone(),
-                        crate::socialdb_types::SocialDbAccountMetadata {
-                            widgets: widgets_to_deploy
-                        },
-                    );
+                let mut accounts = HashMap::new();
+                accounts.insert(
+                    deploy_to_account_id.clone(),
+                    crate::socialdb_types::SocialDbAccountMetadata {
+                        widgets: widgets_to_deploy
+                    },
+                );
 
-                    serde_json::to_string(&super::TransactionFunctionArgs {
-                        data: crate::socialdb_types::SocialDb { accounts },
-                    })?
-                };
+                let args = serde_json::to_string(&super::TransactionFunctionArgs {
+                    data: crate::socialdb_types::SocialDb { accounts: accounts.clone() },
+                })?
+                .into_bytes();
+
+                let data_social_db = serde_json::json!(&crate::socialdb_types::SocialDb { accounts });
+                let prev_data_social_db = serde_json::json!(&old_social_db);
+
+                let deposit = crate::common::required_deposit(
+                    network_config,
+                    near_social_account_id,
+                    &deploy_to_account_id,
+                    &data_social_db,
+                    Some(&prev_data_social_db),
+                )?;
 
                 prepopulated_unsigned_transaction.actions = vec![
                     near_primitives::transaction::Action::FunctionCall(
                         near_primitives::transaction::FunctionCallAction {
                             method_name: "set".to_string(),
-                            args: args.into_bytes(),
+                            args,
                             gas: near_cli_rs::common::NearGas::from_str("100 TeraGas")
                                 .unwrap()
                                 .inner,

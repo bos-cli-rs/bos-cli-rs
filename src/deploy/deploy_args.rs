@@ -91,7 +91,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                                     }
                                     if has_metadata_changed {
                                         println!(
-                                            "Metadata for widget <{widget_name}> changed\n{:?}\n{:?}",
+                                            "Metadata for widget <{widget_name}> changed:\n - old metadata: {:?}\n - new metadata: {:?}",
                                             old_widget.metadata, new_widget.metadata
                                         );
                                     } else {

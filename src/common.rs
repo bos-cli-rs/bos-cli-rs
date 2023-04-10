@@ -4,6 +4,7 @@ use color_eyre::eyre::{ContextCompat, WrapErr};
 use console::{style, Style};
 use glob::glob;
 use near_cli_rs::common::{CallResultExt, JsonRpcClientExt, RpcQueryResponseExt};
+use serde::de::{Deserialize, Deserializer};
 use similar::{ChangeTag, TextDiff};
 
 struct Line(Option<usize>);
@@ -220,6 +221,7 @@ pub fn required_deposit(
     prev_data: Option<&serde_json::Value>,
 ) -> color_eyre::eyre::Result<near_cli_rs::common::NearBalance> {
     const STORAGE_COST_PER_BYTE: i128 = 10i128.pow(19);
+    const MIN_STORAGE_BALANCE: u128 = STORAGE_COST_PER_BYTE as u128 * 2000;
     const INITIAL_ACCOUNT_STORAGE_BALANCE: i128 = STORAGE_COST_PER_BYTE * 500;
     const EXTRA_STORAGE_BALANCE: i128 = STORAGE_COST_PER_BYTE * 500;
 
@@ -236,34 +238,48 @@ pub fn required_deposit(
             near_primitives::types::Finality::Final.into(),
         );
 
-    let storage_balance: color_eyre::eyre::Result<StorageBalance> = call_result_storage_balance
-        .wrap_err_with(|| "Failed to fetch query for view method: 'storage_balance_of'")?
-        .parse_result_from_json()
-        .wrap_err_with(|| "Failed to parse return value of view function call for StorageBalance.");
+    let storage_balance_result: color_eyre::eyre::Result<StorageBalance> =
+        call_result_storage_balance
+            .wrap_err_with(|| "Failed to fetch query for view method: 'storage_balance_of'")?
+            .parse_result_from_json()
+            .wrap_err_with(|| {
+                "Failed to parse return value of view function call for StorageBalance."
+            });
 
-    let (available_storage, initial_account_storage_balance) =
-        if let Ok(storage_balance) = storage_balance {
-            (storage_balance.available.parse().unwrap_or(0), 0)
+    let (available_storage, initial_account_storage_balance, min_storage_balance) =
+        if let Ok(storage_balance) = storage_balance_result {
+            (storage_balance.available, 0, 0)
         } else {
-            (0, INITIAL_ACCOUNT_STORAGE_BALANCE)
+            (0, INITIAL_ACCOUNT_STORAGE_BALANCE, MIN_STORAGE_BALANCE)
         };
 
+    let estimated_storage_balance = u128::try_from(
+        STORAGE_COST_PER_BYTE * estimate_data_size(data, prev_data) as i128
+            + initial_account_storage_balance
+            + EXTRA_STORAGE_BALANCE,
+    )
+    .unwrap_or(0)
+    .saturating_sub(available_storage);
     Ok(near_cli_rs::common::NearBalance::from_yoctonear(
-        u128::try_from(
-            STORAGE_COST_PER_BYTE * estimate_data_size(data, prev_data) as i128
-                + initial_account_storage_balance
-                + EXTRA_STORAGE_BALANCE,
-        )
-        .unwrap_or(0)
-        .saturating_sub(available_storage),
+        std::cmp::max(estimated_storage_balance, min_storage_balance),
     ))
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
-#[allow(dead_code)]
 pub struct StorageBalance {
-    available: String,
-    total: String,
+    #[serde(deserialize_with = "parse_u128_string")]
+    pub available: u128,
+    #[serde(deserialize_with = "parse_u128_string")]
+    pub total: u128,
+}
+
+fn parse_u128_string<'de, D>(deserializer: D) -> color_eyre::eyre::Result<u128, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    String::deserialize(deserializer)?
+        .parse::<u128>()
+        .map_err(serde::de::Error::custom)
 }
 
 /// https://github.com/NearSocial/VM/blob/24055641b53e7eeadf6efdb9c073f85f02463798/src/lib/data/utils.js#L182-L198

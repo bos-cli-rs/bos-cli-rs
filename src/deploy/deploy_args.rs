@@ -185,7 +185,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
         let on_after_sending_transaction_callback: near_cli_rs::transaction_signature_options::OnAfterSendingTransactionCallback = Arc::new({
             let deploy_to_account_id = item.deploy_to_account_id;
 
-            move |transaction_info, network_config| {
+            move |transaction_info, _network_config| {
                 let args = if let near_primitives::views::FinalExecutionStatus::SuccessValue(_) = transaction_info.status {
                     if let near_primitives::views::ActionView::FunctionCall { args, .. } =
                         &transaction_info.transaction.actions[0]
@@ -197,10 +197,6 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         );
                     }
                 } else {
-                    near_cli_rs::common::print_transaction_status(
-                        transaction_info,
-                        network_config,
-                    )?;
                     color_eyre::eyre::bail!("Widgets deployment failed!");
                 };
 

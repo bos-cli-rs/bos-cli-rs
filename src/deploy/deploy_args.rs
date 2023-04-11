@@ -75,11 +75,11 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     )
                     .wrap_err("Failed to fetch the widgets state from SocialDB")?;
 
-                let old_social_db: crate::socialdb_types::SocialDb = call_result.parse_result_from_json()?;
+                let remote_social_db_state: crate::socialdb_types::SocialDb = call_result.parse_result_from_json()?;
 
                 prepopulated_unsigned_transaction.receiver_id = near_social_account_id.clone();
                 let widgets_to_deploy =
-                    if let Some(account_metadata) = old_social_db.accounts.get(deploy_to_account_id.as_ref()) {
+                    if let Some(account_metadata) = remote_social_db_state.accounts.get(deploy_to_account_id.as_ref()) {
                         let updated_widgets: HashMap<String, crate::socialdb_types::SocialDbWidget> = local_widgets
                             .into_iter()
                             .filter(|(widget_name, new_widget)| {
@@ -123,20 +123,21 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     },
                 );
 
+                let new_social_db_state = crate::socialdb_types::SocialDb { accounts: accounts.clone() };
+                let new_social_db_state_json = serde_json::json!(&new_social_db_state);
+                let remote_social_db_state_json = serde_json::json!(&remote_social_db_state);
+
                 let args = serde_json::to_string(&super::TransactionFunctionArgs {
-                    data: crate::socialdb_types::SocialDb { accounts: accounts.clone() },
+                    data: new_social_db_state,
                 })?
                 .into_bytes();
-
-                let data_social_db = serde_json::json!(&crate::socialdb_types::SocialDb { accounts });
-                let prev_data_social_db = serde_json::json!(&old_social_db);
 
                 let deposit = crate::common::required_deposit(
                     network_config,
                     near_social_account_id,
                     &deploy_to_account_id,
-                    &data_social_db,
-                    Some(&prev_data_social_db),
+                    &new_social_db_state_json,
+                    Some(&remote_social_db_state_json),
                 )?;
 
                 prepopulated_unsigned_transaction.actions = vec![

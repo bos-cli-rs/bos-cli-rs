@@ -1,4 +1,4 @@
-use std::{collections::HashMap, u128};
+use std::collections::HashMap;
 
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use console::{style, Style};

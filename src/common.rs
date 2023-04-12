@@ -223,7 +223,7 @@ pub fn required_deposit(
     const STORAGE_COST_PER_BYTE: i128 = 10i128.pow(19);
     const MIN_STORAGE_BALANCE: u128 = STORAGE_COST_PER_BYTE as u128 * 2000;
     const INITIAL_ACCOUNT_STORAGE_BALANCE: i128 = STORAGE_COST_PER_BYTE * 500;
-    const EXTRA_STORAGE_BALANCE: i128 = STORAGE_COST_PER_BYTE * 500;
+    const EXTRA_STORAGE_BALANCE: i128 = STORAGE_COST_PER_BYTE * 5000;
 
     let call_result_storage_balance = network_config
         .json_rpc_client()

@@ -145,7 +145,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         near_primitives::transaction::FunctionCallAction {
                             method_name: "set".to_string(),
                             args,
-                            gas: near_cli_rs::common::NearGas::from_str("100 TeraGas")
+                            gas: near_cli_rs::common::NearGas::from_str("300 TeraGas")
                                 .unwrap()
                                 .inner,
                             deposit: deposit.to_yoctonear(),

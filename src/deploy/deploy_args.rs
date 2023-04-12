@@ -75,11 +75,11 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     )
                     .wrap_err("Failed to fetch the widgets state from SocialDB")?;
 
-                let old_social_db: crate::socialdb_types::SocialDb = call_result.parse_result_from_json()?;
+                let remote_social_db_state: crate::socialdb_types::SocialDb = call_result.parse_result_from_json()?;
 
                 prepopulated_unsigned_transaction.receiver_id = near_social_account_id.clone();
-                let (widgets_to_deploy, deposit) =
-                    if let Some(account_metadata) = old_social_db.accounts.get(deploy_to_account_id.as_ref()) {
+                let widgets_to_deploy =
+                    if let Some(account_metadata) = remote_social_db_state.accounts.get(deploy_to_account_id.as_ref()) {
                         let updated_widgets: HashMap<String, crate::socialdb_types::SocialDbWidget> = local_widgets
                             .into_iter()
                             .filter(|(widget_name, new_widget)| {
@@ -91,7 +91,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                                     }
                                     if has_metadata_changed {
                                         println!(
-                                            "Metadata for widget <{widget_name}> changed\n{:?}\n{:?}",
+                                            "Metadata for widget <{widget_name}> changed:\n - old metadata: {:?}\n - new metadata: {:?}",
                                             old_widget.metadata, new_widget.metadata
                                         );
                                     } else {
@@ -109,39 +109,43 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                             println!("There are no new or modified widgets in the current ./src folder. Goodbye.");
                             return Ok(());
                         }
-
-                        (
-                            updated_widgets,
-                            near_cli_rs::common::NearBalance::from_str("0 NEAR").unwrap(), // TODO: storage cost should be properly calculated
-                        )
+                        updated_widgets
                     } else {
                         println!("\nAll local widgets will be deployed to <{deploy_to_account_id}> as new.");
-                        (
-                            local_widgets,
-                            near_cli_rs::common::NearBalance::from_str("1 NEAR").unwrap(), // TODO: storage cost should be properly calculated
-                        )
+                        local_widgets
                     };
 
-                let args = {
-                    let mut accounts = HashMap::new();
-                    accounts.insert(
-                        deploy_to_account_id.clone(),
-                        crate::socialdb_types::SocialDbAccountMetadata {
-                            widgets: widgets_to_deploy
-                        },
-                    );
+                let mut accounts = HashMap::new();
+                accounts.insert(
+                    deploy_to_account_id.clone(),
+                    crate::socialdb_types::SocialDbAccountMetadata {
+                        widgets: widgets_to_deploy
+                    },
+                );
 
-                    serde_json::to_string(&super::TransactionFunctionArgs {
-                        data: crate::socialdb_types::SocialDb { accounts },
-                    })?
-                };
+                let new_social_db_state = crate::socialdb_types::SocialDb { accounts: accounts.clone() };
+                let new_social_db_state_json = serde_json::json!(&new_social_db_state);
+                let remote_social_db_state_json = serde_json::json!(&remote_social_db_state);
+
+                let args = serde_json::to_string(&super::TransactionFunctionArgs {
+                    data: new_social_db_state,
+                })?
+                .into_bytes();
+
+                let deposit = crate::common::required_deposit(
+                    network_config,
+                    near_social_account_id,
+                    &deploy_to_account_id,
+                    &new_social_db_state_json,
+                    Some(&remote_social_db_state_json),
+                )?;
 
                 prepopulated_unsigned_transaction.actions = vec![
                     near_primitives::transaction::Action::FunctionCall(
                         near_primitives::transaction::FunctionCallAction {
                             method_name: "set".to_string(),
-                            args: args.into_bytes(),
-                            gas: near_cli_rs::common::NearGas::from_str("100 TeraGas")
+                            args,
+                            gas: near_cli_rs::common::NearGas::from_str("300 TeraGas")
                                 .unwrap()
                                 .inner,
                             deposit: deposit.to_yoctonear(),
@@ -182,7 +186,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
         let on_after_sending_transaction_callback: near_cli_rs::transaction_signature_options::OnAfterSendingTransactionCallback = Arc::new({
             let deploy_to_account_id = item.deploy_to_account_id;
 
-            move |transaction_info, network_config| {
+            move |transaction_info, _network_config| {
                 let args = if let near_primitives::views::FinalExecutionStatus::SuccessValue(_) = transaction_info.status {
                     if let near_primitives::views::ActionView::FunctionCall { args, .. } =
                         &transaction_info.transaction.actions[0]
@@ -194,10 +198,6 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         );
                     }
                 } else {
-                    near_cli_rs::common::print_transaction_status(
-                        transaction_info,
-                        network_config,
-                    )?;
                     color_eyre::eyre::bail!("Widgets deployment failed!");
                 };
 
@@ -308,7 +308,7 @@ fn get_deposit(
         )?
     {
         if is_write_permission_granted_to_public_key || is_write_permission_granted_to_signer {
-            if required_deposit == near_cli_rs::common::NearBalance::from_str("0 NEAR").unwrap()
+            if required_deposit.is_zero()
             {
                 near_cli_rs::common::NearBalance::from_str("0 NEAR").unwrap()
             } else if is_signer_access_key_full_access {
@@ -318,8 +318,7 @@ fn get_deposit(
             }
         } else if signer_account_id == deploy_to_account_id {
             if is_signer_access_key_full_access {
-                if required_deposit
-                    == near_cli_rs::common::NearBalance::from_str("0 NEAR").unwrap()
+                if required_deposit.is_zero()
                 {
                     near_cli_rs::common::NearBalance::from_str("1 yoctoNEAR").unwrap()
                 } else {

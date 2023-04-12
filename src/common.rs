@@ -4,6 +4,7 @@ use color_eyre::eyre::{ContextCompat, WrapErr};
 use console::{style, Style};
 use glob::glob;
 use near_cli_rs::common::{CallResultExt, JsonRpcClientExt, RpcQueryResponseExt};
+use serde::de::{Deserialize, Deserializer};
 use similar::{ChangeTag, TextDiff};
 
 struct Line(Option<usize>);
@@ -210,4 +211,116 @@ pub fn get_access_key_permission(
         .access_key_view()?
         .permission;
     Ok(permission)
+}
+
+pub fn required_deposit(
+    network_config: &near_cli_rs::config::NetworkConfig,
+    near_social_account_id: &near_primitives::types::AccountId,
+    account_id: &near_primitives::types::AccountId,
+    data: &serde_json::Value,
+    prev_data: Option<&serde_json::Value>,
+) -> color_eyre::eyre::Result<near_cli_rs::common::NearBalance> {
+    const STORAGE_COST_PER_BYTE: i128 = 10i128.pow(19);
+    const MIN_STORAGE_BALANCE: u128 = STORAGE_COST_PER_BYTE as u128 * 2000;
+    const INITIAL_ACCOUNT_STORAGE_BALANCE: i128 = STORAGE_COST_PER_BYTE * 500;
+    const EXTRA_STORAGE_BALANCE: i128 = STORAGE_COST_PER_BYTE * 5000;
+
+    let call_result_storage_balance = network_config
+        .json_rpc_client()
+        .blocking_call_view_function(
+            near_social_account_id,
+            "storage_balance_of",
+            serde_json::json!({
+                "account_id": account_id,
+            })
+            .to_string()
+            .into_bytes(),
+            near_primitives::types::Finality::Final.into(),
+        );
+
+    let storage_balance_result: color_eyre::eyre::Result<StorageBalance> =
+        call_result_storage_balance
+            .wrap_err_with(|| "Failed to fetch query for view method: 'storage_balance_of'")?
+            .parse_result_from_json()
+            .wrap_err_with(|| {
+                "Failed to parse return value of view function call for StorageBalance."
+            });
+
+    let (available_storage, initial_account_storage_balance, min_storage_balance) =
+        if let Ok(storage_balance) = storage_balance_result {
+            (storage_balance.available, 0, 0)
+        } else {
+            (0, INITIAL_ACCOUNT_STORAGE_BALANCE, MIN_STORAGE_BALANCE)
+        };
+
+    let estimated_storage_balance = u128::try_from(
+        STORAGE_COST_PER_BYTE * estimate_data_size(data, prev_data) as i128
+            + initial_account_storage_balance
+            + EXTRA_STORAGE_BALANCE,
+    )
+    .unwrap_or(0)
+    .saturating_sub(available_storage);
+    Ok(near_cli_rs::common::NearBalance::from_yoctonear(
+        std::cmp::max(estimated_storage_balance, min_storage_balance),
+    ))
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct StorageBalance {
+    #[serde(deserialize_with = "parse_u128_string")]
+    pub available: u128,
+    #[serde(deserialize_with = "parse_u128_string")]
+    pub total: u128,
+}
+
+fn parse_u128_string<'de, D>(deserializer: D) -> color_eyre::eyre::Result<u128, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    String::deserialize(deserializer)?
+        .parse::<u128>()
+        .map_err(serde::de::Error::custom)
+}
+
+/// https://github.com/NearSocial/VM/blob/24055641b53e7eeadf6efdb9c073f85f02463798/src/lib/data/utils.js#L182-L198
+fn estimate_data_size(data: &serde_json::Value, prev_data: Option<&serde_json::Value>) -> isize {
+    const ESTIMATED_KEY_VALUE_SIZE: isize = 40 * 3 + 8 + 12;
+    const ESTIMATED_NODE_SIZE: isize = 40 * 2 + 8 + 10;
+
+    match data {
+        serde_json::Value::Object(data) => {
+            let inner_data_size = data
+                .iter()
+                .map(|(key, value)| {
+                    let prev_value = if let Some(serde_json::Value::Object(prev_data)) = prev_data {
+                        prev_data.get(key)
+                    } else {
+                        None
+                    };
+                    if prev_value.is_some() {
+                        estimate_data_size(value, prev_value)
+                    } else {
+                        key.len() as isize * 2
+                            + estimate_data_size(value, None)
+                            + ESTIMATED_KEY_VALUE_SIZE
+                    }
+                })
+                .sum();
+            if prev_data.map(serde_json::Value::is_object).unwrap_or(false) {
+                inner_data_size
+            } else {
+                ESTIMATED_NODE_SIZE + inner_data_size
+            }
+        }
+        serde_json::Value::String(data) => {
+            data.len().max(8) as isize
+                - prev_data
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::len)
+                    .unwrap_or(0) as isize
+        }
+        _ => {
+            unreachable!("estimate_data_size expects only Object or String values");
+        }
+    }
 }

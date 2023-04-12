@@ -308,7 +308,7 @@ fn get_deposit(
         )?
     {
         if is_write_permission_granted_to_public_key || is_write_permission_granted_to_signer {
-            if required_deposit == near_cli_rs::common::NearBalance::from_str("0 NEAR").unwrap()
+            if required_deposit.is_zero()
             {
                 near_cli_rs::common::NearBalance::from_str("0 NEAR").unwrap()
             } else if is_signer_access_key_full_access {
@@ -318,8 +318,7 @@ fn get_deposit(
             }
         } else if signer_account_id == deploy_to_account_id {
             if is_signer_access_key_full_access {
-                if required_deposit
-                    == near_cli_rs::common::NearBalance::from_str("0 NEAR").unwrap()
+                if required_deposit.is_zero()
                 {
                     near_cli_rs::common::NearBalance::from_str("1 yoctoNEAR").unwrap()
                 } else {

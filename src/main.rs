@@ -7,6 +7,7 @@ pub mod consts;
 mod deploy;
 mod download;
 pub mod socialdb_types;
+mod  storage_management;
 
 /// near-cli is a toolbox for interacting with NEAR protocol
 pub type GlobalContext = (near_cli_rs::config::Config,);
@@ -24,12 +25,15 @@ struct Cmd {
 #[interactive_clap(disable_back)]
 /// What are you up to? (select one of the options with the up-down arrows on your keyboard and press Enter)
 pub enum Command {
-    #[strum_discriminants(strum(message = "download -   Download widgets from account"))]
+    #[strum_discriminants(strum(message = "download             -   Download widgets from account"))]
     /// Download widgets from account
     Download(self::download::AccountId),
-    #[strum_discriminants(strum(message = "deploy   -   Deploy widget if code has changed"))]
+    #[strum_discriminants(strum(message = "deploy               -   Deploy widget if code has changed"))]
     /// Deploy widget if code has changed
     Deploy(self::deploy::DeployToAccount),
+    #[strum_discriminants(strum(message = "storage-management   -   Storage management: deposit, withdrawal, balance review"))]
+    /// Storage management: deposit, withdrawal, balance review
+    StorageManagement(self::storage_management::StorageManagement),
 }
 
 fn main() -> CliResult {

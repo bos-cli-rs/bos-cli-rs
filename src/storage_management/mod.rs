@@ -1,3 +1,7 @@
+use strum::{EnumDiscriminants, EnumIter, EnumMessage};
+
+mod view_storage_balance;
+
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = crate::GlobalContext)]
 pub struct StorageManagement {
@@ -14,14 +18,14 @@ pub enum StorageActions {
         message = "view-storage-balance    - View storage balance for an account"
     ))]
     /// View storage balance for an account
-    ViewStorageBalance,
+    ViewStorageBalance(self::view_storage_balance::AccountId),
     #[strum_discriminants(strum(
         message = "storage-deposit         - Make a storage deposit for the account"
     ))]
     /// Make a storage deposit for the account
     StorageDeposit,
     #[strum_discriminants(strum(
-        message = "create-account          - Withdraw storage for the account"
+        message = "storage-withdraw        - Withdraw storage for the account"
     ))]
     /// Withdraw storage for the account
     StorageWithdraw,

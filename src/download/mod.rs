@@ -82,7 +82,7 @@ impl AccountIdContext {
                             )
                         })?)?;
                         let widget_code_path = widget_path.with_extension("jsx");
-                        std::fs::write(&widget_code_path, widget.code.as_bytes()).wrap_err_with(
+                        std::fs::write(&widget_code_path, widget.code().as_bytes()).wrap_err_with(
                             || {
                                 format!(
                                     "Failed to save widget code into {}",
@@ -90,7 +90,7 @@ impl AccountIdContext {
                                 )
                             },
                         )?;
-                        if let Some(metadata) = &widget.metadata {
+                        if let Some(metadata) = widget.metadata() {
                             let metadata =
                                 serde_json::to_string_pretty(metadata).wrap_err_with(|| {
                                     format!("Failed to serialize widget metadata for {widget_name}")

@@ -84,15 +84,15 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                             .into_iter()
                             .filter(|(widget_name, new_widget)| {
                                 if let Some(old_widget) = account_metadata.widgets.get(widget_name) {
-                                    let has_code_changed = crate::common::diff_code(&old_widget.code, &new_widget.code).is_err();
-                                    let has_metadata_changed = old_widget.metadata != new_widget.metadata && new_widget.metadata.is_some();
+                                    let has_code_changed = crate::common::diff_code(old_widget.code(), new_widget.code()).is_err();
+                                    let has_metadata_changed = old_widget.metadata() != new_widget.metadata() && new_widget.metadata().is_some();
                                     if !has_code_changed {
                                         println!("Code for widget <{widget_name}> has not changed");
                                     }
                                     if has_metadata_changed {
                                         println!(
                                             "Metadata for widget <{widget_name}> changed:\n - old metadata: {:?}\n - new metadata: {:?}",
-                                            old_widget.metadata, new_widget.metadata
+                                            old_widget.metadata(), new_widget.metadata()
                                         );
                                     } else {
                                         println!("Metadata for widget <{widget_name}> has not changed");

@@ -119,7 +119,7 @@ pub fn get_local_widgets() -> color_eyre::eyre::Result<
 
         widgets.insert(
             widget_name,
-            crate::socialdb_types::SocialDbWidget { code, metadata },
+            crate::socialdb_types::SocialDbWidget::CodeWithMetadata { code, metadata },
         );
     }
     Ok(widgets)

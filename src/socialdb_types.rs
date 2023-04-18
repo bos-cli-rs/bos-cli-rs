@@ -20,11 +20,31 @@ pub struct SocialDbAccountMetadata {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct SocialDbWidget {
-    #[serde(rename = "")]
-    pub code: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<SocialDbWidgetMetadata>,
+#[serde(untagged)]
+pub enum SocialDbWidget {
+    Code(String),
+    CodeWithMetadata {
+        #[serde(rename = "")]
+        code: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        metadata: Option<SocialDbWidgetMetadata>,
+    },
+}
+
+impl SocialDbWidget {
+    pub fn code(&self) -> &str {
+        match self {
+            Self::Code(code) => code,
+            Self::CodeWithMetadata { code, .. } => code,
+        }
+    }
+
+    pub fn metadata(&self) -> Option<&SocialDbWidgetMetadata> {
+        match self {
+            Self::Code(_) => None,
+            Self::CodeWithMetadata { metadata, .. } => metadata.as_ref(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]

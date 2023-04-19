@@ -3,8 +3,9 @@
 Command line utility helps to develop widgets for [near.social](https://near.social) by allowing developers to use standard developer tools like their best code editor and standard tools for source code version control, and then deploy their widgets to SocialDB in one command.
 
 There are currently only two commands implemented:
-* `deploy` allows you to upload/publish widgets from your local `./src` folder to near.social account.
-* `download` allows you to download the existing widgets from any near.social account to the local `./src` folder.
+
+- `deploy` allows you to upload/publish widgets from your local `./src` folder to near.social account.
+- `download` allows you to download the existing widgets from any near.social account to the local `./src` folder.
 
 This tools is in its early stage, so there are some known limitations around storage deposit.
 More commands are still on the way, see the [issues tracker](https://github.com/FroVolod/near-social/issues) and propose more features there.
@@ -16,7 +17,7 @@ Watch an early intro screencast tour [here](https://www.loom.com/share/8b6c3509e
 
 ### From Binaries
 
-The [release page](https://github.com/FroVolod/near-social/releases) includes precompiled binaries for Linux, macOS and Windows. 
+The [release page](https://github.com/FroVolod/near-social/releases) includes precompiled binaries for Linux, macOS and Windows.
 
 ### From Source
 
@@ -28,31 +29,35 @@ cargo install --git https://github.com/FroVolod/near-social
 
 ### GitHub Actions
 
-You can automate widgets deployment being done on every commit to `main` branch (or chose your own condition) with the following script (put it into `.github/workflows/release.yml` of your project):
+#### Reusable Workflow
+
+This repo contains a reusable workflow which you can directly leverage from your component repository
+
+1. TODO: generate public and private key
+2. In your repo, go to _Settings > Secrets and Variables > Actions_ and create a new repository secret named `SIGNER_PRIVATE_KEY` with the generated private key in `ed25519:<private_key>` format
+3. Create a file at `.github/workflows/deploy-mainnet.yml` in your component repo with the following contents.
+   See the [workflow definition](./github/workflows/deploy-mainnet.yml) for explanations of the inputs
 
 ```yml
-name: Release
+name: Deploy Components to Mainnet
 on:
   push:
     branches: [main]
 jobs:
-  deploy-widgets:
-    runs-on: ubuntu-latest
-    name: Deploy widgets to near.social (mainnet)
-    env:
-      NEAR_SOCIAL_ACCOUNT_ID: ${{ vars.NEAR_SOCIAL_ACCOUNT_ID }}
-      NEAR_SOCIAL_ACCOUNT_PUBLIC_KEY: ${{ vars.NEAR_SOCIAL_ACCOUNT_PUBLIC_KEY }}
-      NEAR_SOCIAL_ACCOUNT_PRIVATE_KEY: ${{ secrets.NEAR_SOCIAL_ACCOUNT_PRIVATE_KEY }}
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
-
-    - name: Install near-social CLI
-      run: |
-        curl --proto '=https' --tlsv1.2 -L -sSf https://github.com/FroVolod/near-social/releases/download/v0.2.3/installer.sh | sh
-
-    - name: Deploy widgets
-      run: |
-        near-social deploy "$NEAR_SOCIAL_ACCOUNT_ID" sign-as "$NEAR_SOCIAL_ACCOUNT_ID" network-config mainnet sign-with-plaintext-private-key --signer-public-key "$NEAR_SOCIAL_ACCOUNT_PUBLIC_KEY" --signer-private-key "$NEAR_SOCIAL_ACCOUNT_PRIVATE_KEY" send
+  deploy-mainnet:
+    uses: FroVolod/near-social/.github/workflows/deploy-mainnet.yml@main
+    with:
+      cli-version: <FILL>
+      deploy-account-address: <FILL>
+      signer-account-address: <FILL>
+      signer-public-key: <FILL>
+    secrets:
+      SIGNER_PRIVATE_KEY: ${{ secrets.SIGNER_PRIVATE_KEY }}
 ```
+
+4. Commit and push the workflow
+5. On changes to the `main` branch, updated components in `src` will be deployed!
+
+#### Custom Workflow
+
+Copy the contents of `.github/workflows/deploy-mainnet.yml` to your repo as a starting point

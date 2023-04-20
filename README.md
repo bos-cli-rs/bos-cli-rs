@@ -1,6 +1,6 @@
-# bos CLI
+# BOS CLI
 
-Command line utility helps to develop widgets for [near.social](https://near.social) by allowing developers to use standard developer tools like their best code editor and standard tools for source code version control, and then deploy their widgets to SocialDB in one command.
+Command line utility helps to develop components for [NEAR Blockchain Operating System](https://near.org/blog/near-announces-the-blockchain-operating-system/) by allowing developers to use standard developer tools like their best code editor and standard tools for source code version control, and then deploy their components to SocialDB in one command.
 
 Currently, only two groups of commands are implemented:
 
@@ -9,8 +9,8 @@ Currently, only two groups of commands are implemented:
 
 ### components  -   Working with components (Download, Deploy, etc.)
 
-- `deploy` allows you to upload/publish widgets from your local `./src` folder to near.social account.
-- `download` allows you to download the existing widgets from any near.social account to the local `./src` folder.
+- `deploy` allows you to upload/publish components from your local `./src` folder to near.social account.
+- `download` allows you to download the existing components from any near.social account to the local `./src` folder.
 
 ### storage-management   -   Storage management: deposit, withdrawal, balance review
 

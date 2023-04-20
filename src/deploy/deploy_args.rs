@@ -40,10 +40,11 @@ impl SignerContext {
 
 impl From<SignerContext> for near_cli_rs::commands::ActionContext {
     fn from(item: SignerContext) -> Self {
-        let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = Arc::new({
-            let deploy_to_account_id = item.deploy_to_account_id.clone();
+        let deploy_to_account_id = item.deploy_to_account_id.clone();
+        let signer_id = item.signer_account_id.clone();
 
-            move |prepopulated_unsigned_transaction, network_config| {
+        let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = Arc::new({
+            move |network_config| {
                 let near_social_account_id = crate::consts::NEAR_SOCIAL_ACCOUNT_ID.get(network_config.network_name.as_str())
                     .ok_or_else(||
                         color_eyre::eyre::eyre!(
@@ -51,11 +52,15 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                             network_config.network_name
                         )
                     )?;
-
+                let mut prepopulated_transaction = near_cli_rs::commands::PrepopulatedTransaction {
+                    signer_id: signer_id.clone(),
+                    receiver_id: near_social_account_id.clone(),
+                    actions: vec![],
+                };
                 let local_widgets = crate::common::get_local_widgets()?;
                 if local_widgets.is_empty() {
                     println!("There are no widgets in the current ./src folder. Goodbye.");
-                    return Ok(());
+                    return Ok(prepopulated_transaction);
                 }
 
                 let call_result = network_config
@@ -77,7 +82,6 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
                 let remote_social_db_state: crate::socialdb_types::SocialDb = call_result.parse_result_from_json()?;
 
-                prepopulated_unsigned_transaction.receiver_id = near_social_account_id.clone();
                 let widgets_to_deploy =
                     if let Some(account_metadata) = remote_social_db_state.accounts.get(deploy_to_account_id.as_ref()) {
                         let updated_widgets: HashMap<String, crate::socialdb_types::SocialDbWidget> = local_widgets
@@ -107,7 +111,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
                         if updated_widgets.is_empty() {
                             println!("There are no new or modified widgets in the current ./src folder. Goodbye.");
-                            return Ok(());
+                            return Ok(prepopulated_transaction);
                         }
                         updated_widgets
                     } else {
@@ -140,7 +144,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     Some(&remote_social_db_state_json),
                 )?;
 
-                prepopulated_unsigned_transaction.actions = vec![
+                prepopulated_transaction.actions = vec![
                     near_primitives::transaction::Action::FunctionCall(
                         near_primitives::transaction::FunctionCallAction {
                             method_name: "set".to_string(),
@@ -153,16 +157,14 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     )
                 ];
 
-                Ok(())
+                Ok(prepopulated_transaction)
             }
         });
 
         let on_before_signing_callback: near_cli_rs::commands::OnBeforeSigningCallback =
             Arc::new({
-                let signer_account_id: near_primitives::types::AccountId =
-                    item.signer_account_id.clone();
+                let signer_account_id = item.signer_account_id.clone();
                 let deploy_to_account_id = item.deploy_to_account_id.clone();
-
                 move |prepopulated_unsigned_transaction, network_config| {
                     if let near_primitives::transaction::Action::FunctionCall(action) =
                         &mut prepopulated_unsigned_transaction.actions[0]
@@ -184,8 +186,6 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
             });
 
         let on_after_sending_transaction_callback: near_cli_rs::transaction_signature_options::OnAfterSendingTransactionCallback = Arc::new({
-            let deploy_to_account_id = item.deploy_to_account_id;
-
             move |transaction_info, _network_config| {
                 let args = if let near_primitives::views::FinalExecutionStatus::SuccessValue(_) = transaction_info.status {
                     if let near_primitives::views::ActionView::FunctionCall { args, .. } =
@@ -204,7 +204,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 let transaction_function_args: super::TransactionFunctionArgs =
                     serde_json::from_slice(args).wrap_err("Internal error: Could not parse SocialDB request that we just created.")?;
 
-                let social_account_metadata = transaction_function_args.data.accounts.get(deploy_to_account_id.as_ref())
+                let social_account_metadata = transaction_function_args.data.accounts.get(item.deploy_to_account_id.as_ref())
                     .wrap_err("Internal error: Could not get metadata from SocialDB request that we just created.")?;
                 let updated_widgets = &social_account_metadata.widgets;
 
@@ -219,9 +219,6 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
         Self {
             config: item.config,
-            signer_account_id: item.signer_account_id,
-            receiver_account_id: "v1.social08.testnet".parse().unwrap(),
-            actions: vec![],
             on_after_getting_network_callback,
             on_before_signing_callback,
             on_before_sending_transaction_callback: std::sync::Arc::new(

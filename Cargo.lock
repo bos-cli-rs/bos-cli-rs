@@ -202,6 +202,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "bos-cli"
+version = "0.2.5"
+dependencies = [
+ "clap",
+ "color-eyre",
+ "console",
+ "futures",
+ "glob",
+ "inquire",
+ "interactive-clap",
+ "interactive-clap-derive",
+ "lazy_static",
+ "linked-hash-map",
+ "near-cli-rs",
+ "near-crypto",
+ "near-jsonrpc-client",
+ "near-jsonrpc-primitives",
+ "near-primitives",
+ "security-framework",
+ "serde",
+ "serde_json",
+ "shell-words",
+ "similar",
+ "strum",
+ "strum_macros",
+ "tokio",
+]
+
+[[package]]
 name = "bs58"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1671,35 +1700,6 @@ dependencies = [
  "near-rpc-error-core",
  "serde",
  "syn",
-]
-
-[[package]]
-name = "near-social"
-version = "0.2.5"
-dependencies = [
- "clap",
- "color-eyre",
- "console",
- "futures",
- "glob",
- "inquire",
- "interactive-clap",
- "interactive-clap-derive",
- "lazy_static",
- "linked-hash-map",
- "near-cli-rs",
- "near-crypto",
- "near-jsonrpc-client",
- "near-jsonrpc-primitives",
- "near-primitives",
- "security-framework",
- "serde",
- "serde_json",
- "shell-words",
- "similar",
- "strum",
- "strum_macros",
- "tokio",
 ]
 
 [[package]]

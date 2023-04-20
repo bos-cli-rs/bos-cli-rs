@@ -52,7 +52,7 @@ impl DeployToAccount {
         loop {
             let deploy_to_account_id: near_cli_rs::types::account_id::AccountId =
                 CustomType::new(" Which account do you want to deploy the widgets to?").prompt()?;
-            if !crate::common::is_account_exist(
+            if !near_cli_rs::common::is_account_exist(
                 &context.0.network_connection,
                 deploy_to_account_id.clone().into(),
             ) {

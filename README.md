@@ -1,12 +1,21 @@
-# near-social CLI
+# bos CLI
 
 Command line utility helps to develop widgets for [near.social](https://near.social) by allowing developers to use standard developer tools like their best code editor and standard tools for source code version control, and then deploy their widgets to SocialDB in one command.
 
-There are currently only two commands implemented:
-* `deploy` allows you to upload/publish widgets from your local `./src` folder to near.social account.
-* `download` allows you to download the existing widgets from any near.social account to the local `./src` folder.
+Currently, only two groups of commands are implemented.:
+- components           -   Working with components (Download, Deploy, etc.)
+- storage-management   -   Storage management: deposit, withdrawal, balance review
 
-This tools is in its early stage, so there are some known limitations around storage deposit.
+### components  -   Working with components (Download, Deploy, etc.)
+- `deploy` allows you to upload/publish widgets from your local `./src` folder to near.social account.
+- `download` allows you to download the existing widgets from any near.social account to the local `./src` folder.
+
+### storage-management   -   Storage management: deposit, withdrawal, balance review
+- `view-balance` allows you to view the storage balance for an account.
+- `deposit` allows you to make a storage deposit for the account.
+- `withdraw` allows you to make a withdraw a deposit from storage for an account ID.
+
+This tools is in its early stage.
 More commands are still on the way, see the [issues tracker](https://github.com/FroVolod/near-social/issues) and propose more features there.
 Yet, NEAR GigsBoard uses this CLI in production for Continuous Delivery (CD) setup, check it out [here](https://github.com/near/devgigsboard-widgets/blob/69fb12cf2fb62d14db6911661bac77cdc969a8b4/.github/workflows/release.yml).
 
@@ -16,14 +25,14 @@ Watch an early intro screencast tour [here](https://www.loom.com/share/8b6c3509e
 
 ### From Binaries
 
-The [release page](https://github.com/FroVolod/near-social/releases) includes precompiled binaries for Linux, macOS and Windows. 
+The [release page](https://github.com/FroVolod/bos-cli-rs/releases) includes precompiled binaries for Linux, macOS and Windows. 
 
 ### From Source
 
-With Rust's package manager cargo, you can install near-social via:
+With Rust's package manager cargo, you can install `bos` via:
 
 ```
-cargo install --git https://github.com/FroVolod/near-social
+cargo install --git https://github.com/FroVolod/bos-cli-rs
 ```
 
 ### GitHub Actions
@@ -50,7 +59,7 @@ jobs:
 
     - name: Install near-social CLI
       run: |
-        curl --proto '=https' --tlsv1.2 -L -sSf https://github.com/FroVolod/near-social/releases/download/v0.2.3/installer.sh | sh
+        curl --proto '=https' --tlsv1.2 -L -sSf https://github.com/FroVolod/bos-cli-rs/releases/download/v0.2.3/installer.sh | sh
 
     - name: Deploy widgets
       run: |

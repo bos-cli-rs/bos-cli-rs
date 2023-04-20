@@ -238,7 +238,7 @@ impl Signer {
                 CustomType::new(" What is the signer account ID?")
                     .with_default(context.deploy_to_account_id.clone())
                     .prompt()?;
-            if !crate::common::is_account_exist(
+            if !near_cli_rs::common::is_account_exist(
                 &context.config.network_connection,
                 signer_account_id.clone().into(),
             ) {

@@ -3,9 +3,8 @@ pub use near_cli_rs::CliResult;
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
 pub mod common;
+mod components;
 pub mod consts;
-mod deploy;
-mod download;
 pub mod socialdb_types;
 mod storage_management;
 
@@ -26,15 +25,10 @@ struct Cmd {
 /// What are you up to? (select one of the options with the up-down arrows on your keyboard and press Enter)
 pub enum Command {
     #[strum_discriminants(strum(
-        message = "download             -   Download widgets from account"
+        message = "components           -   Working with components (Download, Deploy, etc.)"
     ))]
-    /// Download widgets from account
-    Download(self::download::AccountId),
-    #[strum_discriminants(strum(
-        message = "deploy               -   Deploy widget if code has changed"
-    ))]
-    /// Deploy widget if code has changed
-    Deploy(self::deploy::DeployToAccount),
+    /// Working with components (Download, Deploy, etc.)
+    Components(self::components::Components),
     #[strum_discriminants(strum(
         message = "storage-management   -   Storage management: deposit, withdrawal, balance review"
     ))]
@@ -58,7 +52,7 @@ fn main() -> CliResult {
             | interactive_clap::ResultFromCli::Cancel(Some(cli_cmd)) => {
                 println!(
                     "Your console command:\n{} {}",
-                    std::env::args().next().as_deref().unwrap_or("./near_cli"),
+                    std::env::args().next().as_deref().unwrap_or("./bos"),
                     shell_words::join(cli_cmd.to_cli_args())
                 );
                 return Ok(());
@@ -72,7 +66,7 @@ fn main() -> CliResult {
                 if let Some(cli_cmd) = optional_cli_cmd {
                     println!(
                         "Your console command:\n{} {}",
-                        std::env::args().next().as_deref().unwrap_or("./near_cli"),
+                        std::env::args().next().as_deref().unwrap_or("./bos"),
                         shell_words::join(cli_cmd.to_cli_args())
                     );
                 }

@@ -62,24 +62,6 @@ pub fn diff_code(old_code: &str, new_code: &str) -> Result<(), DiffCodeError> {
     Err(DiffCodeError)
 }
 
-pub fn is_account_exist(
-    networks: &linked_hash_map::LinkedHashMap<String, near_cli_rs::config::NetworkConfig>,
-    account_id: near_primitives::types::AccountId,
-) -> bool {
-    for network in networks {
-        if near_cli_rs::common::get_account_state(
-            network.1.clone(),
-            account_id.clone(),
-            near_primitives::types::Finality::Final.into(),
-        )
-        .is_ok()
-        {
-            return true;
-        }
-    }
-    false
-}
-
 pub fn get_local_widgets() -> color_eyre::eyre::Result<
     std::collections::HashMap<String, crate::socialdb_types::SocialDbWidget>,
 > {

@@ -1,31 +1,30 @@
-# bos CLI
+# BOS CLI
 
-Command line utility helps to develop widgets for [near.social](https://near.social) by allowing developers to use standard developer tools like their best code editor and standard tools for source code version control, and then deploy their widgets to SocialDB in one command.
+Command line utility helps to develop components for [NEAR Blockchain Operating System](https://near.org/blog/near-announces-the-blockchain-operating-system/) by allowing developers to use standard developer tools like their best code editor and standard tools for source code version control, and then deploy their components to SocialDB in one command.
 
 Currently, only two groups of commands are implemented:
-- components           -   Working with components (Download, Deploy, etc.)
-- storage-management   -   Storage management: deposit, withdrawal, balance review
+
+- `components`           -   Working with components (Download, Deploy, etc.)
+- `storage-management`   -   Storage management: deposit, withdrawal, balance review
 
 ### components  -   Working with components (Download, Deploy, etc.)
-- `deploy` allows you to upload/publish widgets from your local `./src` folder to near.social account.
-- `download` allows you to download the existing widgets from any near.social account to the local `./src` folder.
+
+- `deploy` allows you to upload/publish components from your local `./src` folder to near.social account.
+- `download` allows you to download the existing components from any near.social account to the local `./src` folder.
 
 ### storage-management   -   Storage management: deposit, withdrawal, balance review
+
 - `view-balance` allows you to view the storage balance for an account.
 - `deposit` allows you to make a storage deposit for the account.
 - `withdraw` allows you to make a withdraw a deposit from storage for an account ID.
 
-This tools is in its early stage.
-More commands are still on the way, see the [issues tracker](https://github.com/FroVolod/near-social/issues) and propose more features there.
-Yet, NEAR GigsBoard uses this CLI in production for Continuous Delivery (CD) setup, check it out [here](https://github.com/near/devgigsboard-widgets/blob/69fb12cf2fb62d14db6911661bac77cdc969a8b4/.github/workflows/release.yml).
-
-Watch an early intro screencast tour [here](https://www.loom.com/share/8b6c3509eb61498b8bffbe65a625616d).
+More commands are still on the way, see the [issues tracker](https://github.com/FroVolod/bos-cli-rs/issues) and propose more features there.
 
 ## Install
 
 ### From Binaries
 
-The [release page](https://github.com/FroVolod/bos-cli-rs/releases) includes precompiled binaries for Linux, macOS and Windows. 
+The [release page](https://github.com/FroVolod/bos-cli-rs/releases) includes precompiled binaries for Linux, macOS and Windows.
 
 ### From Source
 
@@ -37,31 +36,49 @@ cargo install --git https://github.com/FroVolod/bos-cli-rs
 
 ### GitHub Actions
 
-You can automate widgets deployment being done on every commit to `main` branch (or chose your own condition) with the following script (put it into `.github/workflows/release.yml` of your project):
+#### Reusable Workflow
 
-```yml
-name: Release
-on:
-  push:
-    branches: [main]
-jobs:
-  deploy-widgets:
-    runs-on: ubuntu-latest
-    name: Deploy widgets to near.social (mainnet)
-    env:
-      NEAR_SOCIAL_ACCOUNT_ID: ${{ vars.NEAR_SOCIAL_ACCOUNT_ID }}
-      NEAR_SOCIAL_ACCOUNT_PUBLIC_KEY: ${{ vars.NEAR_SOCIAL_ACCOUNT_PUBLIC_KEY }}
-      NEAR_SOCIAL_ACCOUNT_PRIVATE_KEY: ${{ secrets.NEAR_SOCIAL_ACCOUNT_PRIVATE_KEY }}
+This repo contains a reusable workflow which you can directly leverage from your component repository
 
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+1. Prepare access key that will be used for components deployment.
 
-    - name: Install near-social CLI
-      run: |
-        curl --proto '=https' --tlsv1.2 -L -sSf https://github.com/FroVolod/bos-cli-rs/releases/download/v0.2.3/installer.sh | sh
+   It is recommended to use a dedicated function-call-only access key, so you need to:
 
-    - name: Deploy widgets
-      run: |
-        near-social deploy "$NEAR_SOCIAL_ACCOUNT_ID" sign-as "$NEAR_SOCIAL_ACCOUNT_ID" network-config mainnet sign-with-plaintext-private-key --signer-public-key "$NEAR_SOCIAL_ACCOUNT_PUBLIC_KEY" --signer-private-key "$NEAR_SOCIAL_ACCOUNT_PRIVATE_KEY" send
-```
+   1.1. Add a new access key to your account. Here is [near CLI](https://near.cli.rs) command to do that:
+
+   ```bash
+   near account add-key "ACCOUNT_ID" grant-function-call-access --allowance '1 NEAR' --receiver-account-id social.near --method-names 'set' autogenerate-new-keypair print-to-terminal network-config mainnet
+   ```
+   1.2. Grant write permission to the key (replace `PUBLIC_KEY` with the one you added to the account on the previous step, and `ACCOUNT_ID` with the account id where you want to deploy BOS components):
+
+   ```bash
+   near contract call-function as-transaction social.near grant_write_permission json-args '{"public_key": "PUBLIC_KEY", "keys": ["ACCOUNT_ID/widget"]}' prepaid-gas '100.000 TeraGas' attached-deposit '1 NEAR' sign-as "ACCOUNT_ID" network-config mainnet
+   ```
+
+   Note: the attached deposit is going to be used to cover the storage costs associated with the data you store on BOS, 1 NEAR is enough to store 100kb of data (components code, metadata, etc).
+2. In your repo, go to _Settings > Secrets and Variables > Actions_ and create a new repository secret named `SIGNER_PRIVATE_KEY` with the private key in `ed25519:<private_key>` format (if you followed (1.1), it is be printed in your terminal)
+3. Create a file at `.github/workflows/deploy-mainnet.yml` in your component repo with the following contents.
+   See the [workflow definition](./github/workflows/deploy-mainnet.yml) for explanations of the inputs
+
+    ```yml
+    name: Deploy Components to Mainnet
+    on:
+      push:
+        branches: [main]
+    jobs:
+      deploy-mainnet:
+        uses: FroVolod/bos-cli-rs/.github/workflows/deploy-mainnet.yml@main
+        with:
+          deploy-account-address: <FILL>
+          signer-account-address: <FILL>
+          signer-public-key: <FILL>
+        secrets:
+          SIGNER_PRIVATE_KEY: ${{ secrets.SIGNER_PRIVATE_KEY }}
+    ```
+
+4. Commit and push the workflow
+5. On changes to the `main` branch, updated components in `src` will be deployed!
+
+#### Custom Workflow
+
+Copy the contents of `.github/workflows/deploy-mainnet.yml` to your repo as a starting point

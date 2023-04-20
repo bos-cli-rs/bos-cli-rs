@@ -1487,7 +1487,7 @@ dependencies = [
 [[package]]
 name = "near-cli-rs"
 version = "0.3.2"
-source = "git+https://github.com/near/near-cli-rs?rev=277faf585c5e3c91448b55cece0b76b2c5802a20#277faf585c5e3c91448b55cece0b76b2c5802a20"
+source = "git+https://github.com/near/near-cli-rs?rev=f0e851fdcc797b4b884e8ece5cb1e960cbc5d34f#f0e851fdcc797b4b884e8ece5cb1e960cbc5d34f"
 dependencies = [
  "base64 0.13.1",
  "bip39",

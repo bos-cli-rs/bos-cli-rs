@@ -1,13 +1,17 @@
 [package]
-name = "near-social"
-version = "0.2.5"
+name = "bos-cli"
+version = "0.3.0"
 authors = ["FroVolod <frol_off@meta.ua>", "frol <frolvlad@gmail.com>"]
 license = "MIT OR Apache-2.0"
 edition = "2021"
-repository = "https://github.com/FroVolod/near-social"
+repository = "https://github.com/FroVolod/bos-cli-rs"
 description = "Command line utility helps to develop widgets for near.social by allowing developers to use standard developer tools like their best code editor and standard tools for source code version control, and then deploy their widgets to SocialDB in one command."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "bos"
+path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.0.18", features = ["derive"] }
@@ -39,7 +43,7 @@ interactive-clap = "0.2.0"
 interactive-clap-derive = "0.2.0"
 console = "0.15.5"
 
-near-cli-rs = { git = "https://github.com/near/near-cli-rs", rev="f0e851fdcc797b4b884e8ece5cb1e960cbc5d34f" }
+near-cli-rs = "0.3.3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 security-framework = "2.7.0"

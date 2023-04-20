@@ -202,6 +202,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "bos-cli"
+version = "0.3.0"
+dependencies = [
+ "clap",
+ "color-eyre",
+ "console",
+ "futures",
+ "glob",
+ "inquire",
+ "interactive-clap",
+ "interactive-clap-derive",
+ "lazy_static",
+ "linked-hash-map",
+ "near-cli-rs",
+ "near-crypto",
+ "near-jsonrpc-client",
+ "near-jsonrpc-primitives",
+ "near-primitives",
+ "security-framework",
+ "serde",
+ "serde_json",
+ "shell-words",
+ "similar",
+ "strum",
+ "strum_macros",
+ "tokio",
+]
+
+[[package]]
 name = "bs58"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1486,8 +1515,9 @@ dependencies = [
 
 [[package]]
 name = "near-cli-rs"
-version = "0.3.2"
-source = "git+https://github.com/near/near-cli-rs?rev=f0e851fdcc797b4b884e8ece5cb1e960cbc5d34f#f0e851fdcc797b4b884e8ece5cb1e960cbc5d34f"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34029e715a72edb67dd81f6ce74dc52aacb57cbd5ea5b072e9d3ae6e4894664c"
 dependencies = [
  "base64 0.13.1",
  "bip39",
@@ -1671,35 +1701,6 @@ dependencies = [
  "near-rpc-error-core",
  "serde",
  "syn",
-]
-
-[[package]]
-name = "near-social"
-version = "0.2.5"
-dependencies = [
- "clap",
- "color-eyre",
- "console",
- "futures",
- "glob",
- "inquire",
- "interactive-clap",
- "interactive-clap-derive",
- "lazy_static",
- "linked-hash-map",
- "near-cli-rs",
- "near-crypto",
- "near-jsonrpc-client",
- "near-jsonrpc-primitives",
- "near-primitives",
- "security-framework",
- "serde",
- "serde_json",
- "shell-words",
- "similar",
- "strum",
- "strum_macros",
- "tokio",
 ]
 
 [[package]]

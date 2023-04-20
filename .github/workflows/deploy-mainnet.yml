@@ -1,0 +1,46 @@
+name: Deploy Components to Mainnet
+on:
+  workflow_call:
+    inputs:
+      cli-version:
+        required: false
+        description: "Version of BOS CLI to use for deploy (e.g. 0.3.0)"
+        type: string
+        default: "0.3.0"
+      deploy-account-address:
+        required: true
+        description: "Account under which component code should be deployed"
+        type: string
+      signer-account-address:
+        required: true
+        description: "Account which will be used for signing deploy transaction, frequently the same as deploy-account-address"
+        type: string
+      signer-public-key:
+        required: true
+        description: "Public key for signing transactions in the format: `ed25519:<public_key>`"
+        type: string
+    secrets:
+      SIGNER_PRIVATE_KEY:
+        description: "Private key in `ed25519:<private_key>` format for signing transaction"
+        required: true
+jobs:
+  deploy-widgets:
+    runs-on: ubuntu-latest
+    name: Deploy widgets to social.near (mainnet)
+    env:
+      BOS_DEPLOY_ACCOUNT_ID: ${{ inputs.deploy-account-address }}
+      BOS_SIGNER_ACCOUNT_ID: ${{ inputs.signer-account-address }}
+      BOS_SIGNER_PUBLIC_KEY: ${{ inputs.signer-public-key }}
+      BOS_SIGNER_PRIVATE_KEY: ${{ secrets.SIGNER_PRIVATE_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install near-social CLI
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/FroVolod/bos-cli-rs/releases/download/v${{ inputs.cli-version }}/bos-cli-v{{ inputs.cli-version }}-installer.sh | sh
+
+      - name: Deploy widgets
+        run: |
+          bos components deploy "$BOS_DEPLOY_ACCOUNT_ID" sign-as "$BOS_SIGNER_ACCOUNT_ID" network-config mainnet sign-with-plaintext-private-key --signer-public-key "$BOS_SIGNER_PUBLIC_KEY" --signer-private-key "$BOS_SIGNER_PRIVATE_KEY" send

@@ -2,7 +2,7 @@
 
 Command line utility helps to develop widgets for [near.social](https://near.social) by allowing developers to use standard developer tools like their best code editor and standard tools for source code version control, and then deploy their widgets to SocialDB in one command.
 
-Currently, only two groups of commands are implemented.:
+Currently, only two groups of commands are implemented:
 - components           -   Working with components (Download, Deploy, etc.)
 - storage-management   -   Storage management: deposit, withdrawal, balance review
 

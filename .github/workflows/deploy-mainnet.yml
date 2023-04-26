@@ -39,7 +39,7 @@ jobs:
 
       - name: Install near-social CLI
         run: |
-          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/FroVolod/bos-cli-rs/releases/download/v${{ inputs.cli-version }}/bos-cli-v{{ inputs.cli-version }}-installer.sh | sh
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/FroVolod/bos-cli-rs/releases/download/v${{ inputs.cli-version }}/bos-cli-v${{ inputs.cli-version }}-installer.sh | sh
 
       - name: Deploy widgets
         run: |

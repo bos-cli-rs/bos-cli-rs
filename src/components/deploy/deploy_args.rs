@@ -67,34 +67,32 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 let runtime = tokio::runtime::Builder::new_multi_thread().enable_all().build()?;
                 let chunk_size = 15;
                 let concurrency = 10;
-                let deploy_account_id = deploy_to_account_id.as_ref();
 
-                let remote_widgets = runtime.block_on(
-                    futures::stream::iter(&mut local_widgets.keys().cloned().collect::<Vec<_>>().chunks(chunk_size))
-                        .map(|local_widgets_name_batch| async move {
-                            Ok(get_widgets(
-                                network_config.clone(),
-                                near_social_account_id.clone(),
-                                deploy_account_id,
-                                local_widgets_name_batch.to_vec()
-                            ).await?)
+                let remote_widgets: HashMap<crate::socialdb_types::WidgetName, crate::socialdb_types::SocialDbWidget> = runtime.block_on(
+                    futures::stream::iter(local_widgets.keys().collect::<Vec<_>>().chunks(chunk_size))
+                        .map(|local_widgets_name_batch| async {
+                            get_widgets(
+                                network_config,
+                                near_social_account_id,
+                                &deploy_to_account_id,
+                                local_widgets_name_batch
+                            ).await
                         })
                         .buffer_unordered(concurrency)
-                        .collect::<Vec<_>>()
-                )
+                        .collect::<Vec<Result<_, _>>>()
+                 ).into_iter()
+                     // TODO: Use `.try_reduce` instead once it is stabilized: https://doc.rust-lang.org/stable/std/iter/trait.Iterator.html#method.try_reduce
+                    .collect::<Result<Vec<_>, _>>()?
                     .into_iter()
-                    .filter_map(|result: color_eyre::Result<HashMap<crate::socialdb_types::WidgetName, crate::socialdb_types::SocialDbWidget>>| result.ok())
-                    .reduce(|mut acc, next| {
-                        acc.extend(next);
-                        acc
-                    });
+                    .reduce(|mut acc, x| { acc.extend(x); acc })
+                    .unwrap_or_default();
 
                 let widgets_to_deploy =
-                    if let Some(widgets) = remote_widgets.clone() {
+                if !remote_widgets.is_empty() {
                         let updated_widgets: HashMap<String, crate::socialdb_types::SocialDbWidget> = local_widgets
                             .into_iter()
                             .filter(|(widget_name, new_widget)| {
-                                if let Some(old_widget) = widgets.get(widget_name) {
+                                if let Some(old_widget) = remote_widgets.get(widget_name) {
                                     let has_code_changed = crate::common::diff_code(old_widget.code(), new_widget.code()).is_err();
                                     let has_metadata_changed = old_widget.metadata() != new_widget.metadata() && new_widget.metadata().is_some();
                                     if !has_code_changed {
@@ -126,21 +124,20 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         local_widgets
                     };
 
-                let mut accounts = HashMap::new();
-                accounts.insert(
-                    deploy_to_account_id.clone(),
-                    crate::socialdb_types::SocialDbAccountMetadata {
-                        widgets: widgets_to_deploy
-                    },
-                );
-
-                let new_social_db_state = crate::socialdb_types::SocialDb { accounts: accounts.clone() };
+                let new_social_db_state = crate::socialdb_types::SocialDb {
+                    accounts: HashMap::from([(
+                        deploy_to_account_id.clone(),
+                        crate::socialdb_types::SocialDbAccountMetadata {
+                            widgets: widgets_to_deploy
+                        },
+                    )])
+                };
                 let new_social_db_state_json = serde_json::json!(&new_social_db_state);
                 let remote_social_db_state_json = serde_json::json!(&crate::socialdb_types::SocialDb {
                     accounts: HashMap::from([(
                         deploy_to_account_id.clone(),
                         crate::socialdb_types::SocialDbAccountMetadata {
-                            widgets: remote_widgets.unwrap_or_default()
+                            widgets: remote_widgets
                         }
                     )])
                 });
@@ -350,10 +347,10 @@ fn get_deposit(
 }
 
 async fn get_widgets(
-    network_config: near_cli_rs::config::NetworkConfig,
-    near_social_account_id: near_primitives::types::AccountId,
-    deploy_to_account_id: &str,
-    local_widget_names_batch: Vec<String>,
+    network_config: &near_cli_rs::config::NetworkConfig,
+    near_social_account_id: &near_primitives::types::AccountId,
+    deploy_to_account_id: &near_primitives::types::AccountId,
+    local_widget_names_batch: &[&crate::socialdb_types::WidgetName],
 ) -> color_eyre::Result<
     HashMap<crate::socialdb_types::WidgetName, crate::socialdb_types::SocialDbWidget>,
 > {
@@ -371,7 +368,7 @@ async fn get_widgets(
         .call(near_jsonrpc_client::methods::query::RpcQueryRequest {
             block_reference: near_primitives::types::Finality::Final.into(),
             request: near_primitives::views::QueryRequest::CallFunction {
-                account_id: near_social_account_id,
+                account_id: near_social_account_id.clone(),
                 method_name: "get".to_string(),
                 args: near_primitives::types::FunctionArgs::from(args),
             },
@@ -385,12 +382,9 @@ async fn get_widgets(
                 .parse_result_from_json::<crate::socialdb_types::SocialDb>()
                 .wrap_err("ERROR: failed to parse Social DB response")?
                 .accounts
-                .get(deploy_to_account_id)
-                .unwrap_or(&crate::socialdb_types::SocialDbAccountMetadata {
-                    widgets: HashMap::new(),
-                })
-                .widgets
-                .clone())
+                .remove(deploy_to_account_id)
+                .map(|crate::socialdb_types::SocialDbAccountMetadata { widgets }| widgets)
+                .unwrap_or_default())
         }
         _ => unreachable!("ERROR: unexpected response type from JSON RPC client"),
     }

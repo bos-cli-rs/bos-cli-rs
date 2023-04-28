@@ -6,7 +6,6 @@ use color_eyre::eyre::{ContextCompat, WrapErr};
 use futures::StreamExt;
 use inquire::{CustomType, Select};
 use near_cli_rs::common::CallResultExt;
-use near_jsonrpc_client::MethodCallResult;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = super::DeployToAccountContext)]
@@ -68,57 +67,34 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 let runtime = tokio::runtime::Builder::new_multi_thread().enable_all().build()?;
                 let chunk_size = 15;
                 let concurrency = 10;
+                let deploy_account_id = deploy_to_account_id.as_ref();
 
-                let remote_social_db_state = runtime.block_on(
-                    futures::stream::iter(&mut local_widgets.keys().collect::<Vec<_>>().chunks(chunk_size).map(|local_widget_names_batch| {
-                                serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
-                                    keys: local_widget_names_batch.iter().map(|name| format!("{deploy_to_account_id}/widget/{name}/**")).collect(),
-                                })
-                                .wrap_err("Internal error: could not serialize SocialDB input args")
-                                .unwrap()
-                                .into_bytes()
-                    }))
-                        .map(|args| async move {
-                            get_widgets(
+                let remote_widgets = runtime.block_on(
+                    futures::stream::iter(&mut local_widgets.keys().cloned().collect::<Vec<_>>().chunks(chunk_size))
+                        .map(|local_widgets_name_batch| async move {
+                            Ok(get_widgets(
                                 network_config.clone(),
                                 near_social_account_id.clone(),
-                                args,
-                            ).await
+                                deploy_account_id,
+                                local_widgets_name_batch.to_vec()
+                            ).await?)
                         })
                         .buffer_unordered(concurrency)
                         .collect::<Vec<_>>()
                 )
                     .into_iter()
-                    .fold(
-                        crate::socialdb_types::SocialDb {
-                            accounts: HashMap::new(),
-                        },
-                        |mut social_db, batch_result| {
-                            if let Ok(result) = batch_result {
-                                let batch = match result.kind {
-                                    near_jsonrpc_primitives::types::query::QueryResponseKind::CallResult(r) => r.parse_result_from_json::<crate::socialdb_types::SocialDb>().unwrap(),
-                                    _ => unreachable!("The call result should be a CallResult"),
-                                };
-                                if let Some(account_metadata) = batch.accounts.get(deploy_to_account_id.as_ref()) {
-                                    social_db.accounts.entry(deploy_to_account_id.clone()).and_modify(|old| {
-                                        old.widgets.extend(account_metadata.widgets.clone());
-                                    }).or_insert(crate::socialdb_types::SocialDbAccountMetadata {
-                                        widgets: account_metadata.widgets.clone(),
-                                    });
-                                }
-
-                            }
-
-                            social_db
-                        }
-                    );
+                    .filter_map(|result: color_eyre::Result<HashMap<crate::socialdb_types::WidgetName, crate::socialdb_types::SocialDbWidget>>| result.ok())
+                    .reduce(|mut acc, next| {
+                        acc.extend(next);
+                        acc
+                    });
 
                 let widgets_to_deploy =
-                    if let Some(account_metadata) = remote_social_db_state.accounts.get(deploy_to_account_id.as_ref()) {
+                    if let Some(widgets) = remote_widgets.clone() {
                         let updated_widgets: HashMap<String, crate::socialdb_types::SocialDbWidget> = local_widgets
                             .into_iter()
                             .filter(|(widget_name, new_widget)| {
-                                if let Some(old_widget) = account_metadata.widgets.get(widget_name) {
+                                if let Some(old_widget) = widgets.get(widget_name) {
                                     let has_code_changed = crate::common::diff_code(old_widget.code(), new_widget.code()).is_err();
                                     let has_metadata_changed = old_widget.metadata() != new_widget.metadata() && new_widget.metadata().is_some();
                                     if !has_code_changed {
@@ -160,7 +136,14 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
                 let new_social_db_state = crate::socialdb_types::SocialDb { accounts: accounts.clone() };
                 let new_social_db_state_json = serde_json::json!(&new_social_db_state);
-                let remote_social_db_state_json = serde_json::json!(&remote_social_db_state);
+                let remote_social_db_state_json = serde_json::json!(&crate::socialdb_types::SocialDb {
+                    accounts: HashMap::from([(
+                        deploy_to_account_id.clone(),
+                        crate::socialdb_types::SocialDbAccountMetadata {
+                            widgets: remote_widgets.unwrap_or_default()
+                        }
+                    )])
+                });
 
                 let args = serde_json::to_string(&super::TransactionFunctionArgs {
                     data: new_social_db_state,
@@ -369,12 +352,21 @@ fn get_deposit(
 async fn get_widgets(
     network_config: near_cli_rs::config::NetworkConfig,
     near_social_account_id: near_primitives::types::AccountId,
-    args: Vec<u8>,
-) -> MethodCallResult<
-    near_jsonrpc_client::methods::query::RpcQueryResponse,
-    near_jsonrpc_client::methods::query::RpcQueryError,
+    deploy_to_account_id: &str,
+    local_widget_names_batch: Vec<String>,
+) -> color_eyre::Result<
+    HashMap<crate::socialdb_types::WidgetName, crate::socialdb_types::SocialDbWidget>,
 > {
-    network_config
+    let args = serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
+        keys: local_widget_names_batch
+            .iter()
+            .map(|name| format!("{deploy_to_account_id}/widget/{name}/**"))
+            .collect(),
+    })
+    .wrap_err("Internal error: could not serialize SocialDB input args")?
+    .into_bytes();
+
+    match network_config
         .json_rpc_client()
         .call(near_jsonrpc_client::methods::query::RpcQueryRequest {
             block_reference: near_primitives::types::Finality::Final.into(),
@@ -385,4 +377,21 @@ async fn get_widgets(
             },
         })
         .await
+        .wrap_err("Failed to query batch of widgets from Social DB")?
+        .kind
+    {
+        near_jsonrpc_primitives::types::query::QueryResponseKind::CallResult(call_result) => {
+            Ok(call_result
+                .parse_result_from_json::<crate::socialdb_types::SocialDb>()
+                .wrap_err("ERROR: failed to parse Social DB response")?
+                .accounts
+                .get(deploy_to_account_id)
+                .unwrap_or(&crate::socialdb_types::SocialDbAccountMetadata {
+                    widgets: HashMap::new(),
+                })
+                .widgets
+                .clone())
+        }
+        _ => unreachable!("ERROR: unexpected response type from JSON RPC client"),
+    }
 }

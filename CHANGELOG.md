@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2023-04-28
+
+Fixes:
+* Support large codebases
+
+## [0.3.0] - 2023-04-20
+
+Breaking changes:
+* Renamed CLI to bos (crate name is bos-cli, and repo name is bos-cli-rs)
+* Restructured the commands
+
 ## [0.2.4] - 2023-03-02
 
 * Upgraded cargo-dist to 0.0.4-prelease.2 to reduce the Linux release binary size

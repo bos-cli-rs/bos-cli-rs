@@ -6,7 +6,7 @@ on:
         required: false
         description: "Version of BOS CLI to use for deploy (e.g. 0.3.0)"
         type: string
-        default: "0.3.0"
+        default: "0.3.1"
       deploy-account-address:
         required: true
         description: "Account under which component code should be deployed"

@@ -4,7 +4,8 @@ use std::sync::Arc;
 
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use inquire::{CustomType, Select};
-use near_cli_rs::common::{CallResultExt, JsonRpcClientExt};
+use near_cli_rs::common::CallResultExt;
+use near_jsonrpc_client::MethodCallResult;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = super::DeployToAccountContext)]
@@ -63,24 +64,41 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     return Ok(prepopulated_transaction);
                 }
 
-                let call_result = network_config
-                    .json_rpc_client()
-                    .blocking_call_view_function(
-                        near_social_account_id,
-                        "get",
-                        serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
-                            keys: local_widgets
-                            .keys()
+                let runtime = tokio::runtime::Builder::new_multi_thread().enable_all().build()?;
+                let chunk_size = 10;
+                let mut calls = Vec::with_capacity(local_widgets.len() / chunk_size + 1);
+                let local_widget_names = local_widgets.keys().cloned().collect::<Vec<_>>();
+
+                for (index, _) in local_widget_names.iter().enumerate().step_by(chunk_size) {
+                    let args = serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
+                        keys: local_widget_names.iter().skip(index).take(chunk_size)
                             .map(|name| format!("{deploy_to_account_id}/widget/{name}/**"))
                             .collect(),
-                        })
-                        .wrap_err("Internal error: could not serialize SocialDB input args")?
-                        .into_bytes(),
-                        near_primitives::types::Finality::Final.into(),
-                    )
-                    .wrap_err("Failed to fetch the widgets state from SocialDB")?;
+                    })
+                    .wrap_err("Internal error: could not serialize SocialDB input args")?
+                    .into_bytes();
 
-                let remote_social_db_state: crate::socialdb_types::SocialDb = call_result.parse_result_from_json()?;
+                    calls.push(runtime.spawn(get_widgets(network_config.clone(), near_social_account_id.clone(), args)));
+                }
+
+                let mut remote_social_db_state: crate::socialdb_types::SocialDb = crate::socialdb_types::SocialDb {
+                    accounts: HashMap::new(),
+                };
+
+                for result in runtime.block_on(futures::future::join_all(calls)) {
+                    let result = match result.wrap_err("Failed to fetch the widgets state from SocialDB")?.wrap_err("Failed to fetch the widgets state from SocialDB")?.kind {
+                        near_jsonrpc_primitives::types::query::QueryResponseKind::CallResult(r) => r.parse_result_from_json::<crate::socialdb_types::SocialDb>()?,
+                        _ => unreachable!("The call result should be a CallResult"),
+                    };
+
+                    if let Some(account_metadata) = result.accounts.get(deploy_to_account_id.as_ref()) {
+                        remote_social_db_state.accounts.entry(deploy_to_account_id.clone()).and_modify(|old| {
+                            old.widgets.extend(account_metadata.widgets.clone());
+                        }).or_insert(crate::socialdb_types::SocialDbAccountMetadata {
+                            widgets: account_metadata.widgets.clone(),
+                        });
+                    }
+                }
 
                 let widgets_to_deploy =
                     if let Some(account_metadata) = remote_social_db_state.accounts.get(deploy_to_account_id.as_ref()) {
@@ -333,4 +351,25 @@ fn get_deposit(
         color_eyre::eyre::bail!("ERROR: signer access key cannot be used to sign a transaction to update widgets in Social DB.")
     };
     Ok(deposit)
+}
+
+async fn get_widgets(
+    network_config: near_cli_rs::config::NetworkConfig,
+    near_social_account_id: near_primitives::types::AccountId,
+    args: Vec<u8>,
+) -> MethodCallResult<
+    near_jsonrpc_client::methods::query::RpcQueryResponse,
+    near_jsonrpc_client::methods::query::RpcQueryError,
+> {
+    network_config
+        .json_rpc_client()
+        .call(near_jsonrpc_client::methods::query::RpcQueryRequest {
+            block_reference: near_primitives::types::Finality::Final.into(),
+            request: near_primitives::views::QueryRequest::CallFunction {
+                account_id: near_social_account_id,
+                method_name: "get".to_string(),
+                args: near_primitives::types::FunctionArgs::from(args),
+            },
+        })
+        .await
 }

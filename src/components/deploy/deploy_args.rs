@@ -81,11 +81,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         .buffer_unordered(concurrency)
                         .collect::<Vec<Result<_, _>>>()
                  ).into_iter()
-                     // TODO: Use `.try_reduce` instead once it is stabilized: https://doc.rust-lang.org/stable/std/iter/trait.Iterator.html#method.try_reduce
-                    .collect::<Result<Vec<_>, _>>()?
-                    .into_iter()
-                    .reduce(|mut acc, x| { acc.extend(x); acc })
-                    .unwrap_or_default();
+                    .try_fold(HashMap::new(), |mut acc, x| { acc.extend(x?); Ok::<_, color_eyre::eyre::Error>(acc) })?;
 
                 let widgets_to_deploy =
                 if !remote_widgets.is_empty() {

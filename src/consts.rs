@@ -10,15 +10,7 @@ lazy_static! {
                 near_primitives::types::AccountId::from_str("social.near").unwrap()
             ),
             (
-                "meta-mainnet",
-                near_primitives::types::AccountId::from_str("social.near").unwrap()
-            ),
-            (
                 "testnet",
-                near_primitives::types::AccountId::from_str("v1.social08.testnet").unwrap()
-            ),
-            (
-                "meta-testnet",
                 near_primitives::types::AccountId::from_str("v1.social08.testnet").unwrap()
             ),
         ]);

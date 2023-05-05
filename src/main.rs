@@ -7,6 +7,7 @@ mod components;
 pub mod consts;
 pub mod socialdb_types;
 mod storage_management;
+mod grant_write_access;
 
 /// near-cli is a toolbox for interacting with NEAR protocol
 pub type GlobalContext = (near_cli_rs::config::Config,);
@@ -34,6 +35,11 @@ pub enum Command {
     ))]
     /// Storage management: deposit, withdrawal, balance review
     StorageManagement(self::storage_management::StorageManagement),
+    #[strum_discriminants(strum(
+        message = "grant-write-access   -   Granting access to a function-call-only access key or a different account"
+    ))]
+    /// Granting access to a function-call-only access key or a different account
+    GrantWriteAccess,
 }
 
 fn main() -> CliResult {

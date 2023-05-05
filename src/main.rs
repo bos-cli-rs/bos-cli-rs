@@ -39,7 +39,7 @@ pub enum Command {
         message = "grant-write-access   -   Granting access to a function-call-only access key or a different account"
     ))]
     /// Granting access to a function-call-only access key or a different account
-    GrantWriteAccess,
+    GrantWriteAccess(self::grant_write_access::Widget),
 }
 
 fn main() -> CliResult {

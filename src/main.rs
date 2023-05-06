@@ -5,9 +5,9 @@ use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 pub mod common;
 mod components;
 pub mod consts;
+mod grant_write_access;
 pub mod socialdb_types;
 mod storage_management;
-mod grant_write_access;
 
 /// near-cli is a toolbox for interacting with NEAR protocol
 pub type GlobalContext = (near_cli_rs::config::Config,);

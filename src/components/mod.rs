@@ -1,5 +1,6 @@
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
+mod delete;
 mod deploy;
 mod download;
 
@@ -23,4 +24,7 @@ pub enum ComponentsCommand {
     ))]
     /// Deploy widget if code has changed
     Deploy(self::deploy::DeployToAccount),
+    #[strum_discriminants(strum(message = "delete               -   Delete widgets"))]
+    /// Delete widgets
+    DeleteWidgets,
 }

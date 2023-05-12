@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use color_eyre::eyre::ContextCompat;
 use inquire::{CustomType, Select};
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
@@ -48,24 +49,19 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
         let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = std::sync::Arc::new({
             move |network_config| {
                 let near_social_account_id = crate::consts::NEAR_SOCIAL_ACCOUNT_ID.get(network_config.network_name.as_str())
-                    .ok_or_else(||
-                        color_eyre::eyre::eyre!(
-                            "The <{}> network does not have a near-social contract.",
-                            network_config.network_name
-                        )
-                    )?;
+                    .wrap_err_with(|| format!("The <{}> network does not have a near-social contract.", network_config.network_name))?;
                 let args = match &permission_key {
                     crate::common::PermissionKey::PredecessorId(account_id) => {
                         serde_json::json!({
-                                "predecessor_id": account_id.to_string(),
-                                "keys": widgets
-                            }).to_string().into_bytes()
+                            "predecessor_id": account_id.to_string(),
+                            "keys": widgets
+                        }).to_string().into_bytes()
                     }
                     crate::common::PermissionKey::PublicKey(public_key) => {
                         serde_json::json!({
                             "public_key": public_key.to_string(),
-                                "keys": widgets
-                            }).to_string().into_bytes()
+                            "keys": widgets
+                        }).to_string().into_bytes()
                     }
                 };
                 let prepopulated_transaction = near_cli_rs::commands::PrepopulatedTransaction {

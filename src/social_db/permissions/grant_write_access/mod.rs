@@ -15,7 +15,7 @@ pub struct Widget {
 #[derive(Debug, EnumDiscriminants, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = crate::GlobalContext)]
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
-/// What are you up to?
+/// Select grant access permissions
 pub enum Access {
     #[strum_discriminants(strum(
         message = "to-function-call-access-key  -   Granting access to a function-call-only access key"

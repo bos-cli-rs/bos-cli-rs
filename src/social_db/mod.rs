@@ -16,10 +16,10 @@ pub struct SocialDbManagement {
 /// What are you up to? (select one of the options with the up-down arrows on your keyboard and press Enter)
 pub enum SocialDbCommand {
     #[strum_discriminants(strum(
-        message = "perpaid-storage   -   Storage management: deposit, withdrawal, balance review"
+        message = "prepaid-storage   -   Storage management: deposit, withdrawal, balance review"
     ))]
     /// Storage management: deposit, withdrawal, balance review
-    PerpaidStorage(self::storage_management::StorageManagement),
+    PrepaidStorage(self::storage_management::StorageManagement),
     #[strum_discriminants(strum(
         message = "permissions       -   Granting access permissions to a different account"
     ))]

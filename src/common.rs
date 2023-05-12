@@ -62,6 +62,45 @@ pub fn diff_code(old_code: &str, new_code: &str) -> Result<(), DiffCodeError> {
     Err(DiffCodeError)
 }
 
+pub fn get_remote_widgets(
+    account_id: &near_primitives::types::AccountId,
+    network_config: &near_cli_rs::config::NetworkConfig,
+    near_social_account_id: &near_primitives::types::AccountId,
+) -> color_eyre::eyre::Result<
+    Option<
+        std::collections::HashMap<
+            crate::socialdb_types::WidgetName,
+            crate::socialdb_types::SocialDbWidget,
+        >,
+    >,
+> {
+    let input_args = serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
+        keys: vec![format!("{account_id}/widget/**")],
+    })
+    .wrap_err("Internal error: could not serialize SocialDB input args")?;
+
+    let call_result = network_config
+        .json_rpc_client()
+        .blocking_call_view_function(
+            near_social_account_id,
+            "get",
+            input_args.into_bytes(),
+            near_primitives::types::Finality::Final.into(),
+        )
+        .wrap_err("Failed to fetch the widgets state from SocialDB")?;
+
+    let downloaded_social_db: crate::socialdb_types::SocialDb =
+        serde_json::from_slice(&call_result.result)
+            .wrap_err("Failed to parse the widgets state from SocialDB")?;
+
+    if let Some(account_metadata) = downloaded_social_db.accounts.get(account_id) {
+        Ok(Some(account_metadata.widgets.clone()))
+    } else {
+        println!("\nThere are currently no widgets in the account <{account_id}>.",);
+        Ok(None)
+    }
+}
+
 pub fn get_local_widgets() -> color_eyre::eyre::Result<
     std::collections::HashMap<String, crate::socialdb_types::SocialDbWidget>,
 > {

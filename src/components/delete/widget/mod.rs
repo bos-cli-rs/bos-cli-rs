@@ -1,11 +1,6 @@
 use std::str::FromStr;
 
-use inquire::{CustomType, MultiSelect, Select, Text};
-use strum::{EnumDiscriminants, EnumIter, EnumMessage};
-
-// mod storage_deposit;
-// mod sign_as;
-// mod account_id;
+use inquire::{Select, Text};
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = super::DeleleteWidgetsFromAccountContext)]
@@ -50,24 +45,26 @@ impl Widget {
             No,
         }
 
-        eprintln!();
+        println!();
         let select_choose_input = Select::new(
             "Do you want to enter a list of widgets you want to remove?",
             vec![ConfirmOptions::Yes, ConfirmOptions::No],
         )
         .prompt()?;
         if let ConfirmOptions::Yes = select_choose_input {
-            let mut input_widget =
-                Text::new("Enter a comma-separated list of widgets to be removed:").prompt()?;
-            if input_widget.contains('\"') {
-                input_widget.clear()
-            };
-            if input_widget.is_empty() {
-                Ok(Some(near_cli_rs::types::vec_string::VecString(vec![])))
-            } else {
-                Ok(Some(near_cli_rs::types::vec_string::VecString::from_str(
-                    &input_widget,
-                )?))
+            loop {
+                let mut input_widget =
+                    Text::new("Enter a comma-separated list of widgets to be removed:").prompt()?;
+                if input_widget.contains('\"') {
+                    input_widget.clear()
+                };
+                if input_widget.is_empty() {
+                    continue;
+                } else {
+                    return Ok(Some(near_cli_rs::types::vec_string::VecString::from_str(
+                        &input_widget,
+                    )?));
+                }
             }
         } else {
             Ok(Some(near_cli_rs::types::vec_string::VecString(vec![])))

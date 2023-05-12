@@ -1,9 +1,7 @@
 use std::str::FromStr;
 
+use inquire::{CustomType, Select};
 use serde_json::{json, Value::Null};
-
-use inquire::{CustomType, Select, Text};
-use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = super::widget::WidgetContext)]
@@ -30,14 +28,9 @@ impl SignerContext {
         previous_context: super::widget::WidgetContext,
         scope: &<Signer as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
-        let widgets = if previous_context.widgets.is_empty() {
-            previous_context.widgets //XXX todo: All widgets
-        } else {
-            previous_context.widgets
-        };
         Ok(Self {
             config: previous_context.config,
-            widgets,
+            widgets: previous_context.widgets,
             account_id: previous_context.account_id,
             signer_account_id: scope.signer_account_id.clone().into(),
         })
@@ -47,7 +40,7 @@ impl SignerContext {
 impl From<SignerContext> for near_cli_rs::commands::ActionContext {
     fn from(item: SignerContext) -> Self {
         let widgets = item.widgets.clone();
-        let account_id = item.account_id.clone();
+        let account_id: near_primitives::types::AccountId = item.account_id.clone().into();
         let signer_id = item.signer_account_id.clone();
 
         let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = std::sync::Arc::new({
@@ -59,142 +52,105 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                             network_config.network_name
                         )
                     )?;
-                let widgets = widgets.clone();
-                let mut actions: Vec<near_primitives::transaction::Action> = widgets.iter()
-                    .map(|widget|
-                        near_primitives::transaction::Action::FunctionCall(
-                            near_primitives::transaction::FunctionCallAction {
-                                method_name: "set".to_string(),
-                                args: serde_json::json!({
-                                    "data": serde_json::json!({
-                                        account_id.to_string(): json!({
-                                            "widget": json!({
-                                                widget.clone(): json!({
-                                                "metadata": json!({
-                                                    "description": Null,
-                                                    "image": json!({
-                                                        "url": Null,
-                                                    }),
-                                                    "name": Null,
-                                                    "tags": json!({
-                                                        "app": Null,
-                                                        "tag": Null,
-                                                    })
+
+                if let Some(remote_widgets) = crate::common::get_remote_widgets(&account_id, network_config, near_social_account_id)? {
+                    let widgets = if widgets.is_empty() {
+                        remote_widgets.keys().cloned().collect()
+                    } else {
+                        widgets.clone()
+                        .into_iter()
+                        .filter(|widget| remote_widgets.get(widget).is_some())
+                        .collect::<Vec<_>>()
+                    };
+                    if widgets.is_empty() {
+                        println!("No widgets to remove. Goodbye.");
+                        return Ok(near_cli_rs::commands::PrepopulatedTransaction {
+                            signer_id: signer_id.clone(),
+                            receiver_id: near_social_account_id.clone(),
+                            actions: vec![],
+                        });
+                    }
+                    let mut actions: Vec<near_primitives::transaction::Action> = widgets.iter()
+                        .map(|widget|
+                            near_primitives::transaction::Action::FunctionCall(
+                                near_primitives::transaction::FunctionCallAction {
+                                    method_name: "set".to_string(),
+                                    args: serde_json::json!({
+                                        "data": serde_json::json!({
+                                            account_id.to_string(): json!({
+                                                "widget": json!({
+                                                    widget.clone(): json!({
+                                                    "metadata": json!({
+                                                        "description": Null,
+                                                        "image": json!({
+                                                            "url": Null,
+                                                        }),
+                                                        "name": Null,
+                                                        "tags": json!({
+                                                            "app": Null,
+                                                            "tag": Null,
+                                                        })
+                                                        })
                                                     })
                                                 })
                                             })
                                         })
-                                    })
-                                }).to_string().into_bytes(),
-                                gas: near_cli_rs::common::NearGas::from_str("12 TeraGas")
-                                    .unwrap()
-                                    .inner,
-                                deposit: near_cli_rs::common::NearBalance::from_yoctonear(0).to_yoctonear(),
-                            },
-                        ),
-                        // near_primitives::transaction::Action::FunctionCall(
-                        //     near_primitives::transaction::FunctionCallAction {
-                        //         method_name: "set".to_string(),
-                        //         args: json!({
-                        //             "data": json!({
-                        //                 account_id.to_string(): json!({
-                        //                     "widget": json!({
-                        //                         widget: Null
-                        //                     })
-                        //                 })
-                        //             })
-                        //         }).to_string().into_bytes(),
-                        //         gas: near_cli_rs::common::NearGas::from_str("100 TeraGas")
-                        //             .unwrap()
-                        //             .inner,
-                        //         deposit: near_cli_rs::common::NearBalance::from_yoctonear(0).to_yoctonear(),
-                        //     },
-                        // ),
-                    ).collect();
+                                    }).to_string().into_bytes(),
+                                    gas: near_cli_rs::common::NearGas::from_str("12 TeraGas")
+                                        .unwrap()
+                                        .inner,
+                                    deposit: near_cli_rs::common::NearBalance::from_yoctonear(0).to_yoctonear(),
+                                },
+                            ),
+                        ).collect();
                     let mut actions_new: Vec<near_primitives::transaction::Action> = widgets.iter()
-                    .map(|widget|
-                        near_primitives::transaction::Action::FunctionCall(
-                            near_primitives::transaction::FunctionCallAction {
-                                method_name: "set".to_string(),
-                                args: json!({
-                                    "data": json!({
-                                        account_id.to_string(): json!({
-                                            "widget": json!({
-                                                widget: Null
+                        .map(|widget|
+                            near_primitives::transaction::Action::FunctionCall(
+                                near_primitives::transaction::FunctionCallAction {
+                                    method_name: "set".to_string(),
+                                    args: json!({
+                                        "data": json!({
+                                            account_id.to_string(): json!({
+                                                "widget": json!({
+                                                    widget: Null
+                                                })
                                             })
                                         })
-                                    })
-                                }).to_string().into_bytes(),
-                                gas: near_cli_rs::common::NearGas::from_str("12 TeraGas")
-                                    .unwrap()
-                                    .inner,
-                                deposit: near_cli_rs::common::NearBalance::from_yoctonear(0).to_yoctonear(),
-                            },
-                        ),
-                    ).collect();
+                                    }).to_string().into_bytes(),
+                                    gas: near_cli_rs::common::NearGas::from_str("12 TeraGas")
+                                        .unwrap()
+                                        .inner,
+                                    deposit: near_cli_rs::common::NearBalance::from_yoctonear(0).to_yoctonear(),
+                                },
+                            ),
+                        ).collect();
 
-                actions.append(&mut actions_new);
+                    actions.append(&mut actions_new);
 
-                let prepopulated_transaction = near_cli_rs::commands::PrepopulatedTransaction {
-                    signer_id: signer_id.clone(),
-                    receiver_id: near_social_account_id.clone(),
-                    actions,
-                };
-
-                Ok(prepopulated_transaction)
+                    Ok(near_cli_rs::commands::PrepopulatedTransaction {
+                        signer_id: signer_id.clone(),
+                        receiver_id: near_social_account_id.clone(),
+                        actions,
+                    })
+                } else {
+                    println!("Goodbye.");
+                    Ok(near_cli_rs::commands::PrepopulatedTransaction {
+                        signer_id: signer_id.clone(),
+                        receiver_id: near_social_account_id.clone(),
+                        actions: vec![],
+                    })
+                }
             }
         });
-
-        // let on_before_signing_callback: near_cli_rs::commands::OnBeforeSigningCallback =
-        //     std::sync::Arc::new({
-        //         let signer_account_id = item.signer_account_id.clone();
-        //         let deploy_to_account_id = item.deploy_to_account_id.clone();
-        //         move |prepopulated_unsigned_transaction, network_config| {
-        //             if let near_primitives::transaction::Action::FunctionCall(action) =
-        //                 &mut prepopulated_unsigned_transaction.actions[0]
-        //             {
-        //                 action.deposit = get_deposit(
-        //                     network_config,
-        //                     &signer_account_id,
-        //                     &prepopulated_unsigned_transaction.public_key,
-        //                     &deploy_to_account_id,
-        //                     &prepopulated_unsigned_transaction.receiver_id,
-        //                     near_cli_rs::common::NearBalance::from_yoctonear(action.deposit),
-        //                 )?
-        //                 .to_yoctonear();
-        //                 Ok(())
-        //             } else {
-        //                 color_eyre::eyre::bail!("Unexpected action to change widgets",);
-        //             }
-        //         }
-        //     });
 
         let on_after_sending_transaction_callback: near_cli_rs::transaction_signature_options::OnAfterSendingTransactionCallback = std::sync::Arc::new({
             let account_id = item.account_id.clone();
             move |transaction_info, _network_config| {
-                let args = if let near_primitives::views::FinalExecutionStatus::SuccessValue(_) = transaction_info.status {
-                    if let near_primitives::views::ActionView::FunctionCall { args, .. } =
-                        &transaction_info.transaction.actions[0]
-                    {
-                        args
-                    } else {
-                        color_eyre::eyre::bail!(
-                            "Internal error: Unexpected function call arguments",
-                        );
-                    }
+                if let near_primitives::views::FinalExecutionStatus::SuccessValue(_) = transaction_info.status {
+                    println!("Selected widgets removed successfully for <{}>", &account_id);
                 } else {
-                    color_eyre::eyre::bail!("Could not grant permission to <{}>", account_id.clone());
+                    color_eyre::eyre::bail!("The selected widgets were not successfully removed for <{}>", &account_id);
                 };
-
-                // let transaction_function_args: super::TransactionFunctionArgs =
-                //     serde_json::from_slice(args).wrap_err("Internal error: Could not parse SocialDB request that we just created.")?;
-
-                // let social_account_metadata = transaction_function_args.data.accounts.get(item.deploy_to_account_id.as_ref())
-                //     .wrap_err("Internal error: Could not get metadata from SocialDB request that we just created.")?;
-                // let updated_widgets = &social_account_metadata.widgets;
-
-                // println!("\n<{}> widgets were successfully deployed:", updated_widgets.len());
-                println!();
                 Ok(())
             }
         });

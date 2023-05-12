@@ -1,5 +1,7 @@
 use std::str::FromStr;
 
+use serde_json::{json, Value::Null};
+
 use inquire::{CustomType, Select, Text};
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
@@ -19,7 +21,7 @@ pub struct Signer {
 pub struct SignerContext {
     config: near_cli_rs::config::Config,
     widgets: Vec<String>,
-    account_id: near_primitives::types::AccountId,
+    account_id: near_cli_rs::types::account_id::AccountId,
     signer_account_id: near_primitives::types::AccountId,
 }
 
@@ -29,13 +31,9 @@ impl SignerContext {
         scope: &<Signer as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         let widgets = if previous_context.widgets.is_empty() {
-            vec![format!("{}/widget", scope.signer_account_id)]
+            previous_context.widgets //XXX todo: All widgets
         } else {
-            previous_context
-                .widgets
-                .into_iter()
-                .map(|widget| format!("{}/widget/{}", scope.signer_account_id, widget))
-                .collect()
+            previous_context.widgets
         };
         Ok(Self {
             config: previous_context.config,
@@ -61,24 +59,86 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                             network_config.network_name
                         )
                     )?;
-                let mut prepopulated_transaction = near_cli_rs::commands::PrepopulatedTransaction {
+                let widgets = widgets.clone();
+                let mut actions: Vec<near_primitives::transaction::Action> = widgets.iter()
+                    .map(|widget|
+                        near_primitives::transaction::Action::FunctionCall(
+                            near_primitives::transaction::FunctionCallAction {
+                                method_name: "set".to_string(),
+                                args: serde_json::json!({
+                                    "data": serde_json::json!({
+                                        account_id.to_string(): json!({
+                                            "widget": json!({
+                                                widget.clone(): json!({
+                                                "metadata": json!({
+                                                    "description": Null,
+                                                    "image": json!({
+                                                        "url": Null,
+                                                    }),
+                                                    "name": Null,
+                                                    "tags": json!({
+                                                        "app": Null,
+                                                        "tag": Null,
+                                                    })
+                                                    })
+                                                })
+                                            })
+                                        })
+                                    })
+                                }).to_string().into_bytes(),
+                                gas: near_cli_rs::common::NearGas::from_str("12 TeraGas")
+                                    .unwrap()
+                                    .inner,
+                                deposit: near_cli_rs::common::NearBalance::from_yoctonear(0).to_yoctonear(),
+                            },
+                        ),
+                        // near_primitives::transaction::Action::FunctionCall(
+                        //     near_primitives::transaction::FunctionCallAction {
+                        //         method_name: "set".to_string(),
+                        //         args: json!({
+                        //             "data": json!({
+                        //                 account_id.to_string(): json!({
+                        //                     "widget": json!({
+                        //                         widget: Null
+                        //                     })
+                        //                 })
+                        //             })
+                        //         }).to_string().into_bytes(),
+                        //         gas: near_cli_rs::common::NearGas::from_str("100 TeraGas")
+                        //             .unwrap()
+                        //             .inner,
+                        //         deposit: near_cli_rs::common::NearBalance::from_yoctonear(0).to_yoctonear(),
+                        //     },
+                        // ),
+                    ).collect();
+                    let mut actions_new: Vec<near_primitives::transaction::Action> = widgets.iter()
+                    .map(|widget|
+                        near_primitives::transaction::Action::FunctionCall(
+                            near_primitives::transaction::FunctionCallAction {
+                                method_name: "set".to_string(),
+                                args: json!({
+                                    "data": json!({
+                                        account_id.to_string(): json!({
+                                            "widget": json!({
+                                                widget: Null
+                                            })
+                                        })
+                                    })
+                                }).to_string().into_bytes(),
+                                gas: near_cli_rs::common::NearGas::from_str("12 TeraGas")
+                                    .unwrap()
+                                    .inner,
+                                deposit: near_cli_rs::common::NearBalance::from_yoctonear(0).to_yoctonear(),
+                            },
+                        ),
+                    ).collect();
+
+                actions.append(&mut actions_new);
+
+                let prepopulated_transaction = near_cli_rs::commands::PrepopulatedTransaction {
                     signer_id: signer_id.clone(),
                     receiver_id: near_social_account_id.clone(),
-                    actions: vec![
-                    near_primitives::transaction::Action::FunctionCall(
-                        near_primitives::transaction::FunctionCallAction {
-                            method_name: "grant_write_permission".to_string(),
-                            args: serde_json::json!({
-                                "predecessor_id": account_id.to_string(),
-                                "keys": widgets
-                            }).to_string().into_bytes(),
-                            gas: near_cli_rs::common::NearGas::from_str("100 TeraGas")
-                                .unwrap()
-                                .inner,
-                            deposit: extra_storage_deposit.to_yoctonear(),
-                        },
-                    )
-                ],
+                    actions,
                 };
 
                 Ok(prepopulated_transaction)
@@ -155,11 +215,13 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
 impl Signer {
     fn input_signer_account_id(
-        context: &super::storage_deposit::ExtraStorageDepositContext,
+        context: &super::widget::WidgetContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {
         loop {
             let signer_account_id: near_cli_rs::types::account_id::AccountId =
-                CustomType::new(" What is the signer account ID?").prompt()?;
+                CustomType::new(" What is the signer account ID?")
+                    .with_default(context.account_id.clone())
+                    .prompt()?;
             if !near_cli_rs::common::is_account_exist(
                 &context.config.network_connection,
                 signer_account_id.clone().into(),

@@ -26,5 +26,5 @@ pub enum ComponentsCommand {
     Deploy(self::deploy::DeployToAccount),
     #[strum_discriminants(strum(message = "delete               -   Delete widgets"))]
     /// Delete widgets
-    DeleteWidgets,
+    DeleteWidgets(self::delete::DeleleteWidgetsFromAccount),
 }

@@ -1,11 +1,6 @@
 mod sign_as;
 mod widget;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct TransactionFunctionArgs {
-    pub data: crate::socialdb_types::SocialDb,
-}
-
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = crate::GlobalContext)]
 #[interactive_clap(output_context = DeleleteWidgetsFromAccountContext)]
@@ -20,7 +15,7 @@ pub struct DeleleteWidgetsFromAccount {
 #[derive(Clone)]
 pub struct DeleleteWidgetsFromAccountContext {
     pub config: near_cli_rs::config::Config,
-    pub account_id: near_primitives::types::AccountId,
+    pub account_id: near_cli_rs::types::account_id::AccountId,
 }
 
 impl DeleleteWidgetsFromAccountContext {
@@ -30,7 +25,7 @@ impl DeleleteWidgetsFromAccountContext {
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
             config: previous_context.0,
-            account_id: scope.account_id.clone().into(),
+            account_id: scope.account_id.clone(),
         })
     }
 }

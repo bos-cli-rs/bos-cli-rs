@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use inquire::{CustomType, Select, Text};
+use inquire::{CustomType, MultiSelect, Select, Text};
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
 // mod storage_deposit;
@@ -11,7 +11,6 @@ use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 #[interactive_clap(input_context = super::DeleleteWidgetsFromAccountContext)]
 #[interactive_clap(output_context = WidgetContext)]
 pub struct Widget {
-    #[interactive_clap(long)]
     #[interactive_clap(skip_default_input_arg)]
     widgets: near_cli_rs::types::vec_string::VecString,
     #[interactive_clap(named_arg)]
@@ -22,7 +21,7 @@ pub struct Widget {
 #[derive(Clone)]
 pub struct WidgetContext {
     pub config: near_cli_rs::config::Config,
-    pub account_id: near_primitives::types::AccountId,
+    pub account_id: near_cli_rs::types::account_id::AccountId,
     pub widgets: Vec<String>,
 }
 
@@ -45,23 +44,21 @@ impl Widget {
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::vec_string::VecString>> {
         #[derive(strum_macros::Display)]
         enum ConfirmOptions {
-            #[strum(
-                to_string = "Yes, I want to enter a list of widgets that can be granted permission."
-            )]
+            #[strum(to_string = "Yes, I want to enter a list of widgets that I want to remove.")]
             Yes,
-            #[strum(to_string = "No, I want to grant permission to all widgets.")]
+            #[strum(to_string = "No, I want to remove all widgets.")]
             No,
         }
 
         eprintln!();
         let select_choose_input = Select::new(
-            "Do you want to enter a list of widgets that you want to grant permission to?",
+            "Do you want to enter a list of widgets you want to remove?",
             vec![ConfirmOptions::Yes, ConfirmOptions::No],
         )
         .prompt()?;
         if let ConfirmOptions::Yes = select_choose_input {
             let mut input_widget =
-                Text::new("Enter a comma-separated list of allowed widgets.").prompt()?;
+                Text::new("Enter a comma-separated list of widgets to be removed:").prompt()?;
             if input_widget.contains('\"') {
                 input_widget.clear()
             };

@@ -39,8 +39,8 @@ impl ExtraStorageDeposit {
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::common::NearBalance>> {
         eprintln!();
         match near_cli_rs::common::NearBalance::from_str(
-            &Text::new("Enter the amount of the NEAR tokens you want to extra storage deposit")
-                .with_initial_value("1 NEAR")
+            &Text::new("Enter the amount of the NEAR tokens you want to extra storage deposit (each 100 kb of data requires 1 NEAR deposit):")
+                .with_initial_value("0 NEAR")
                 .prompt()?,
         ) {
             Ok(deposit) => Ok(Some(deposit)),

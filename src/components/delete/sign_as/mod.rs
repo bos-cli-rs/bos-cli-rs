@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use color_eyre::eyre::ContextCompat;
 use inquire::{CustomType, Select};
 use serde_json::{json, Value::Null};
 
@@ -46,12 +47,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
         let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = std::sync::Arc::new({
             move |network_config| {
                 let near_social_account_id = crate::consts::NEAR_SOCIAL_ACCOUNT_ID.get(network_config.network_name.as_str())
-                    .ok_or_else(||
-                        color_eyre::eyre::eyre!(
-                            "The <{}> network does not have a near-social contract.",
-                            network_config.network_name
-                        )
-                    )?;
+                    .wrap_err_with(|| format!("The <{}> network does not have a near-social contract.", network_config.network_name))?;
 
                 if let Some(remote_widgets) = crate::common::get_remote_widgets(&account_id, network_config, near_social_account_id)? {
                     let widgets = if widgets.is_empty() {

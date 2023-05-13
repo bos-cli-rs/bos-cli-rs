@@ -24,5 +24,5 @@ pub enum SocialDbCommand {
         message = "permissions       -   Granting access permissions to a different account"
     ))]
     /// Granting access permissions to a different account
-    Permissions(self::permissions::PermissionsManagement),
+    Permissions(self::permissions::Permissions),
 }

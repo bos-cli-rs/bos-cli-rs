@@ -1,7 +1,7 @@
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
 mod permissions;
-mod storage_management;
+mod prepaid_storage;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = crate::GlobalContext)]
@@ -19,7 +19,7 @@ pub enum SocialDbCommand {
         message = "prepaid-storage   -   Storage management: deposit, withdrawal, balance review"
     ))]
     /// Storage management: deposit, withdrawal, balance review
-    PrepaidStorage(self::storage_management::StorageManagement),
+    PrepaidStorage(self::prepaid_storage::PrepaidStorage),
     #[strum_discriminants(strum(
         message = "permissions       -   Granting access permissions to a different account"
     ))]

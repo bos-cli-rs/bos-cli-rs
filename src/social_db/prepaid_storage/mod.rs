@@ -2,21 +2,21 @@ use color_eyre::eyre::ContextCompat;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = crate::GlobalContext)]
-#[interactive_clap(output_context = StorageManagementContext)]
-pub struct StorageManagement {
+#[interactive_clap(output_context = PrepaidStorageContext)]
+pub struct PrepaidStorage {
     #[interactive_clap(subcommand)]
     storage_actions: near_cli_rs::commands::account::storage_management::StorageActions,
 }
 
 #[derive(Clone)]
-pub struct StorageManagementContext(
+pub struct PrepaidStorageContext(
     near_cli_rs::commands::account::storage_management::ContractContext,
 );
 
-impl StorageManagementContext {
+impl PrepaidStorageContext {
     pub fn from_previous_context(
         previous_context: crate::GlobalContext,
-        _scope: &<StorageManagement as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
+        _scope: &<PrepaidStorage as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         let get_contract_account_id: near_cli_rs::commands::account::storage_management::GetContractAccountId = std::sync::Arc::new(
             move |network_config|
@@ -37,10 +37,10 @@ impl StorageManagementContext {
     }
 }
 
-impl From<StorageManagementContext>
+impl From<PrepaidStorageContext>
     for near_cli_rs::commands::account::storage_management::ContractContext
 {
-    fn from(item: StorageManagementContext) -> Self {
+    fn from(item: PrepaidStorageContext) -> Self {
         item.0
     }
 }

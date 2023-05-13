@@ -4,7 +4,7 @@ mod grant_write_access;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = crate::GlobalContext)]
-pub struct PermissionsManagement {
+pub struct Permissions {
     #[interactive_clap(subcommand)]
     permissions_command: PermissionsCommand,
 }

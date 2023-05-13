@@ -5,8 +5,8 @@ use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 pub mod common;
 mod components;
 pub mod consts;
+mod social_db;
 pub mod socialdb_types;
-mod storage_management;
 
 /// near-cli is a toolbox for interacting with NEAR protocol
 pub type GlobalContext = (near_cli_rs::config::Config,);
@@ -25,15 +25,13 @@ struct Cmd {
 /// What are you up to? (select one of the options with the up-down arrows on your keyboard and press Enter)
 pub enum Command {
     #[strum_discriminants(strum(
-        message = "components           -   Working with components (Download, Deploy, etc.)"
+        message = "components   -   Working with components (Download, Deploy, etc.)"
     ))]
     /// Working with components (Download, Deploy, etc.)
     Components(self::components::Components),
-    #[strum_discriminants(strum(
-        message = "storage-management   -   Storage management: deposit, withdrawal, balance review"
-    ))]
+    #[strum_discriminants(strum(message = "socialdb     -   SocialDb management"))]
     /// Storage management: deposit, withdrawal, balance review
-    StorageManagement(self::storage_management::StorageManagement),
+    SocialDb(self::social_db::SocialDb),
 }
 
 fn main() -> CliResult {

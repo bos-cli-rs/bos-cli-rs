@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = crate::GlobalContext)]
+#[interactive_clap(input_context = super::SocialDbKeyContext)]
 #[interactive_clap(output_context = AccessToAccountContext)]
 pub struct AccessToAccount {
     /// Enter the account ID you will grant permission to
@@ -14,11 +14,12 @@ pub struct AccessToAccountContext(super::storage_deposit::AccessToPermissionKeyC
 
 impl AccessToAccountContext {
     pub fn from_previous_context(
-        previous_context: crate::GlobalContext,
+        previous_context: super::SocialDbKeyContext,
         scope: &<AccessToAccount as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self(super::storage_deposit::AccessToPermissionKeyContext {
-            config: previous_context.0,
+            config: previous_context.config,
+            social_db_key: previous_context.social_db_key,
             permission_key: scope.account_id.0.clone().into(),
         }))
     }

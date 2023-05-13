@@ -18,5 +18,5 @@ pub enum PermissionsCommand {
         message = "grant-write-access   -   Granting access to a function-call-only access key or a different account"
     ))]
     /// Granting access to a function-call-only access key or a different account
-    GrantWriteAccess(self::grant_write_access::Widget),
+    GrantWriteAccess(self::grant_write_access::SocialDbKey),
 }

@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = crate::GlobalContext)]
+#[interactive_clap(input_context = super::SocialDbKeyContext)]
 #[interactive_clap(output_context = AccessToPublicKeyContext)]
 pub struct AccessToPublicKey {
     /// Enter the public access key that you will grant permission to
@@ -14,11 +14,12 @@ pub struct AccessToPublicKeyContext(super::storage_deposit::AccessToPermissionKe
 
 impl AccessToPublicKeyContext {
     pub fn from_previous_context(
-        previous_context: crate::GlobalContext,
+        previous_context: super::SocialDbKeyContext,
         scope: &<AccessToPublicKey as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self(super::storage_deposit::AccessToPermissionKeyContext {
-            config: previous_context.0,
+            config: previous_context.config,
+            social_db_key: previous_context.social_db_key,
             permission_key: scope.public_key.0.clone().into(),
         }))
     }

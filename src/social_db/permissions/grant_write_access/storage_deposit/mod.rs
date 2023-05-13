@@ -16,6 +16,7 @@ pub struct ExtraStorageDeposit {
 #[derive(Clone)]
 pub struct ExtraStorageDepositContext {
     pub config: near_cli_rs::config::Config,
+    pub social_db_key: String,
     pub permission_key: crate::common::PermissionKey,
     pub extra_storage_deposit: near_cli_rs::common::NearBalance,
 }
@@ -27,6 +28,7 @@ impl ExtraStorageDepositContext {
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
             config: previous_context.config,
+            social_db_key: previous_context.social_db_key,
             permission_key: previous_context.permission_key,
             extra_storage_deposit: scope.extra_storage_deposit.clone(),
         })
@@ -52,5 +54,6 @@ impl ExtraStorageDeposit {
 #[derive(Clone)]
 pub struct AccessToPermissionKeyContext {
     pub config: near_cli_rs::config::Config,
+    pub social_db_key: String,
     pub permission_key: crate::common::PermissionKey,
 }

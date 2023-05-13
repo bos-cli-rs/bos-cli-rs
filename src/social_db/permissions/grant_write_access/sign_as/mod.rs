@@ -18,7 +18,7 @@ pub struct Signer {
 #[derive(Clone)]
 pub struct SignerContext {
     config: near_cli_rs::config::Config,
-    widgets: Vec<String>,
+    social_db_keys: Vec<String>,
     permission_key: crate::common::PermissionKey,
     extra_storage_deposit: near_cli_rs::common::NearBalance,
     signer_account_id: near_primitives::types::AccountId,
@@ -31,7 +31,10 @@ impl SignerContext {
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
             config: previous_context.config,
-            widgets: vec![format!("{}/widget", scope.signer_account_id)],
+            social_db_keys: vec![format!(
+                "{}/{}",
+                scope.signer_account_id, previous_context.social_db_key
+            )],
             permission_key: previous_context.permission_key,
             extra_storage_deposit: previous_context.extra_storage_deposit,
             signer_account_id: scope.signer_account_id.clone().into(),
@@ -41,7 +44,7 @@ impl SignerContext {
 
 impl From<SignerContext> for near_cli_rs::commands::ActionContext {
     fn from(item: SignerContext) -> Self {
-        let widgets = item.widgets.clone();
+        let social_db_keys = item.social_db_keys.clone();
         let permission_key = item.permission_key.clone();
         let extra_storage_deposit = item.extra_storage_deposit.clone();
         let signer_id = item.signer_account_id.clone();
@@ -54,13 +57,13 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     crate::common::PermissionKey::PredecessorId(account_id) => {
                         serde_json::json!({
                             "predecessor_id": account_id.to_string(),
-                            "keys": widgets
+                            "keys": social_db_keys
                         }).to_string().into_bytes()
                     }
                     crate::common::PermissionKey::PublicKey(public_key) => {
                         serde_json::json!({
                             "public_key": public_key.to_string(),
-                            "keys": widgets
+                            "keys": social_db_keys
                         }).to_string().into_bytes()
                     }
                 };
@@ -94,10 +97,10 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     {
                         match &permission_key {
                         crate::common::PermissionKey::PredecessorId(account_id) => {
-                            eprintln!("<{signer_id}> granted account <{account_id}> permission to edit its widgets");
+                            eprintln!("<{signer_id}> has granted <{account_id}> permission to edit their social_db keys");
                         }
                         crate::common::PermissionKey::PublicKey(public_key) => {
-                            eprintln!("<{signer_id}> granted public key <{public_key}> permission to edit its widgets");
+                            eprintln!("<{signer_id}> has granted public key <{public_key}> permission to edit their social_db keys");
                         }
                     }
                     } else {

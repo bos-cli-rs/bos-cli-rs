@@ -31,7 +31,7 @@ pub enum Command {
     Components(self::components::Components),
     #[strum_discriminants(strum(message = "socialdb     -   SocialDb management"))]
     /// Storage management: deposit, withdrawal, balance review
-    SocialDb(self::social_db::SocialDbManagement),
+    SocialDb(self::social_db::SocialDb),
 }
 
 fn main() -> CliResult {

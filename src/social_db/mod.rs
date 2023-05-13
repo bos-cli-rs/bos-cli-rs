@@ -5,7 +5,7 @@ mod storage_management;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = crate::GlobalContext)]
-pub struct SocialDbManagement {
+pub struct SocialDb {
     #[interactive_clap(subcommand)]
     social_db_command: SocialDbCommand,
 }

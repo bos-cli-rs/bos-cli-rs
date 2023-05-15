@@ -50,19 +50,14 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     .wrap_err_with(|| format!("The <{}> network does not have a near-social contract.", network_config.network_name))?;
 
                 if let Some(remote_widgets) = crate::common::get_remote_widgets(&account_id, network_config, near_social_account_id)? {
-                    // let widgets = if widgets.is_empty() {
-                    //     remote_widgets.keys().cloned().collect()
-                    // } else {
-                    //     widgets.clone()
-                    //     .into_iter()
-                    //     .filter(|widget| remote_widgets.get(widget).is_some())
-                    //     .collect::<Vec<_>>()
-                    // };
-                    let widgets =
+                    let widgets = if widgets.is_empty() {
+                        remote_widgets.keys().cloned().collect()
+                    } else {
                         widgets.clone()
-                        
-                    ;
-                        println!("{:?}", widgets);
+                        .into_iter()
+                        .filter(|widget| remote_widgets.get(widget).is_some())
+                        .collect::<Vec<_>>()
+                    };
                     if widgets.is_empty() {
                         println!("No widgets to remove. Goodbye.");
                         return Ok(near_cli_rs::commands::PrepopulatedTransaction {
@@ -104,29 +99,6 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                                 },
                             ),
                         ).collect();
-                    let mut actions_metadata_null: Vec<near_primitives::transaction::Action> = widgets.iter()
-                        .map(|widget|
-                            near_primitives::transaction::Action::FunctionCall(
-                                near_primitives::transaction::FunctionCallAction {
-                                    method_name: "set".to_string(),
-                                    args: serde_json::json!({
-                                        "data": serde_json::json!({
-                                            account_id.to_string(): json!({
-                                                "widget": json!({
-                                                    widget.clone(): json!({
-                                                    "metadata": Null
-                                                    })
-                                                })
-                                            })
-                                        })
-                                    }).to_string().into_bytes(),
-                                    gas: near_cli_rs::common::NearGas::from_str("12 TeraGas")
-                                        .unwrap()
-                                        .inner,
-                                    deposit: near_cli_rs::common::NearBalance::from_yoctonear(0).to_yoctonear(),
-                                },
-                            ),
-                        ).collect();
                     let mut actions_widget_null: Vec<near_primitives::transaction::Action> = widgets.iter()
                         .map(|widget|
                             near_primitives::transaction::Action::FunctionCall(
@@ -149,7 +121,6 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                             ),
                         ).collect();
 
-                    actions.append(&mut actions_metadata_null);
                     actions.append(&mut actions_widget_null);
 
                     Ok(near_cli_rs::commands::PrepopulatedTransaction {

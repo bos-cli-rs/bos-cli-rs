@@ -47,7 +47,7 @@ impl Widget {
 
         println!();
         let select_choose_input = Select::new(
-            "Do you want to enter a list of widgets you want to remove?",
+            "Do you want to enter a list of widgets you want to remove?\nNote! You can delete no more than 12 widgets at a time.",
             vec![ConfirmOptions::Yes, ConfirmOptions::No],
         )
         .prompt()?;

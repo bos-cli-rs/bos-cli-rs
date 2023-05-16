@@ -50,7 +50,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     .wrap_err_with(|| format!("The <{}> network does not have a near-social contract.", network_config.network_name))?;
 
                 if let Some(remote_widgets) = crate::common::get_remote_widgets(&account_id, network_config, near_social_account_id)? {
-                    let widgets = if widgets.is_empty() {
+                    let widgets_to_remove = if widgets.is_empty() {
                         remote_widgets.keys().cloned().collect()
                     } else {
                         widgets.clone()
@@ -58,7 +58,10 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         .filter(|widget| remote_widgets.get(widget).is_some())
                         .collect::<Vec<_>>()
                     };
-                    if widgets.is_empty() {
+                    if widgets_to_remove.len() > 12 {
+                        return color_eyre::eyre::Result::Err(color_eyre::eyre::eyre!("You have specified more than 12 widgets at once."));
+                    }
+                    if widgets_to_remove.is_empty() {
                         println!("No widgets to remove. Goodbye.");
                         return Ok(near_cli_rs::commands::PrepopulatedTransaction {
                             signer_id: signer_id.clone(),
@@ -66,7 +69,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                             actions: vec![],
                         });
                     }
-                    let mut actions: Vec<near_primitives::transaction::Action> = widgets.iter()
+                    let mut actions: Vec<near_primitives::transaction::Action> = widgets_to_remove.iter()
                         .map(|widget|
                             near_primitives::transaction::Action::FunctionCall(
                                 near_primitives::transaction::FunctionCallAction {
@@ -99,7 +102,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                                 },
                             ),
                         ).collect();
-                    let mut actions_widget_null: Vec<near_primitives::transaction::Action> = widgets.iter()
+                    let mut actions_widget_null: Vec<near_primitives::transaction::Action> = widgets_to_remove.iter()
                         .map(|widget|
                             near_primitives::transaction::Action::FunctionCall(
                                 near_primitives::transaction::FunctionCallAction {

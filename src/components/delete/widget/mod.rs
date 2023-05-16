@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use inquire::{Select, Text};
+use inquire::Text;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = super::DeleleteWidgetsFromAccountContext)]
@@ -26,8 +26,8 @@ impl WidgetContext {
         scope: &<Widget as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
-            config: previous_context.config,
-            account_id: previous_context.account_id,
+            config: previous_context.0.config,
+            account_id: previous_context.0.account_id,
             widgets: scope.widgets.clone().into(),
         })
     }
@@ -37,37 +37,22 @@ impl Widget {
     pub fn input_widgets(
         _context: &super::DeleleteWidgetsFromAccountContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::vec_string::VecString>> {
-        #[derive(strum_macros::Display)]
-        enum ConfirmOptions {
-            #[strum(to_string = "Yes, I want to enter a list of widgets that I want to remove.")]
-            Yes,
-            #[strum(to_string = "No, I want to remove all widgets.")]
-            No,
-        }
-
-        println!();
-        let select_choose_input = Select::new(
-            "Do you want to enter a list of widgets you want to remove?\nNote! You can delete no more than 12 widgets at a time.",
-            vec![ConfirmOptions::Yes, ConfirmOptions::No],
-        )
-        .prompt()?;
-        if let ConfirmOptions::Yes = select_choose_input {
-            loop {
-                let mut input_widget =
-                    Text::new("Enter a comma-separated list of widgets to be removed:").prompt()?;
-                if input_widget.contains('\"') {
-                    input_widget.clear()
-                };
-                if input_widget.is_empty() {
-                    continue;
+        loop {
+            let mut input_widget =
+                    Text::new("Enter a comma-separated list of widgets to be removed.\nNote! You can delete no more than 12 widgets at a time.").prompt()?;
+            if input_widget.contains('\"') {
+                input_widget.clear()
+            };
+            if input_widget.is_empty() {
+                continue;
+            } else {
+                let widgets = near_cli_rs::types::vec_string::VecString::from_str(&input_widget)?;
+                if widgets.0.len() > 12 {
+                    println!("You have specified more than 12 widgets at once.")
                 } else {
-                    return Ok(Some(near_cli_rs::types::vec_string::VecString::from_str(
-                        &input_widget,
-                    )?));
+                    return Ok(Some(widgets));
                 }
             }
-        } else {
-            Ok(Some(near_cli_rs::types::vec_string::VecString(vec![])))
         }
     }
 }

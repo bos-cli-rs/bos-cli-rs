@@ -4,19 +4,26 @@ Command line utility helps to develop components for [NEAR Blockchain Operating 
 
 Currently, only two groups of commands are implemented:
 
-- `components`           -   Working with components (Download, Deploy, etc.)
-- `storage-management`   -   Storage management: deposit, withdrawal, balance review
+- `components`  -   Working with components (Download, Deploy, etc.)
+- `socialdb`    -   SocialDb management
 
 ### components  -   Working with components (Download, Deploy, etc.)
 
 - `deploy` allows you to upload/publish components from your local `./src` folder to near.social account.
 - `download` allows you to download the existing components from any near.social account to the local `./src` folder.
+- `delete` allows you to delete the existing components from any near.social account.
 
-### storage-management   -   Storage management: deposit, withdrawal, balance review
+### socialdb    -   SocialDb management
+
+#### prepaid-storage   -   Storage management: deposit, withdrawal, balance review
 
 - `view-balance` allows you to view the storage balance for an account.
 - `deposit` allows you to make a storage deposit for the account.
 - `withdraw` allows you to make a withdraw a deposit from storage for an account ID.
+
+#### permissions       -   Granting access permissions to a different account
+
+- `grant-write-access` allows grant access to the access key to call a function or another account.
 
 More commands are still on the way, see the [issues tracker](https://github.com/FroVolod/bos-cli-rs/issues) and propose more features there.
 

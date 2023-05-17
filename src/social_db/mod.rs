@@ -1,5 +1,6 @@
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
+mod data;
 mod permissions;
 mod prepaid_storage;
 
@@ -15,6 +16,11 @@ pub struct SocialDb {
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
 /// What are you up to? (select one of the options with the up-down arrows on your keyboard and press Enter)
 pub enum SocialDbCommand {
+    #[strum_discriminants(strum(
+        message = "data              -   Data management: viewing, adding, updating, deleting information by a given key"
+    ))]
+    /// Data management: viewing, adding, updating, deleting information by a given key
+    Data(self::data::Data),
     #[strum_discriminants(strum(
         message = "prepaid-storage   -   Storage management: deposit, withdrawal, balance review"
     ))]

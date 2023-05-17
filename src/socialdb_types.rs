@@ -15,7 +15,7 @@ pub struct SocialDb {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SocialDbAccountMetadata {
-    #[serde(rename = "component")]
+    #[serde(rename = "widget")]
     pub components: HashMap<ComponentName, SocialDbComponent>,
 }
 

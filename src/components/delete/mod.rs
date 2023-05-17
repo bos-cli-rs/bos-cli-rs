@@ -32,6 +32,7 @@ impl DeleleteComponentsFromAccountContext {
 #[derive(Debug, EnumDiscriminants, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = DeleleteComponentsFromAccountContext)]
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
+/// Which components do you want to remove?
 pub enum DeleteCommand {
     #[strum_discriminants(strum(
         message = "selected  - Delete selected components from your account"

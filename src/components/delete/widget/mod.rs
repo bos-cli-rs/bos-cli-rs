@@ -39,7 +39,7 @@ impl Widget {
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::vec_string::VecString>> {
         loop {
             let mut input_widget =
-                    Text::new("Enter a comma-separated list of widgets to be removed.\nNote! You can delete no more than 12 widgets at a time.").prompt()?;
+                    Text::new("Enter a list of components to be removed (not more than 12 widgets at a time, separated by comma): ").prompt()?;
             if input_widget.contains('\"') {
                 input_widget.clear()
             };

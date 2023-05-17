@@ -1,6 +1,4 @@
-use std::str::FromStr;
-
-use inquire::Text;
+use inquire::CustomType;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = super::DeleleteComponentsFromAccountContext)]
@@ -38,21 +36,14 @@ impl Component {
         _context: &super::DeleleteComponentsFromAccountContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::vec_string::VecString>> {
         loop {
-            let mut input_component =
-                    Text::new("Enter a list of components to be removed (not more than 12 components at a time, separated by comma): ").prompt()?;
-            if input_component.contains('\"') {
-                input_component.clear()
-            };
-            if input_component.is_empty() {
+            let input_components: near_cli_rs::types::vec_string::VecString =
+                    CustomType::new("Enter a list of components to be removed (not more than 12 components at a time, separated by comma): ").prompt()?;
+            if input_components.0.is_empty() {
                 continue;
+            } else if input_components.0.len() > 12 {
+                println!("You have specified more than 12 components at once.")
             } else {
-                let components =
-                    near_cli_rs::types::vec_string::VecString::from_str(&input_component)?;
-                if components.0.len() > 12 {
-                    println!("You have specified more than 12 components at once.")
-                } else {
-                    return Ok(Some(components));
-                }
+                return Ok(Some(input_components));
             }
         }
     }

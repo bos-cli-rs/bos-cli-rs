@@ -1,50 +1,48 @@
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
+mod component;
 mod sign_as;
-mod widget;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = crate::GlobalContext)]
-#[interactive_clap(output_context = DeleleteWidgetsFromAccountContext)]
-pub struct DeleleteWidgetsFromAccount {
-    /// Which account do you want to delete the widgets to?
+#[interactive_clap(output_context = DeleleteComponentsFromAccountContext)]
+pub struct DeleleteComponentsFromAccount {
+    /// Which account do you want to delete the components to?
     account_id: near_cli_rs::types::account_id::AccountId,
     #[interactive_clap(subcommand)]
     delete_command: DeleteCommand,
 }
 
 #[derive(Clone)]
-pub struct DeleleteWidgetsFromAccountContext(self::widget::WidgetContext);
+pub struct DeleleteComponentsFromAccountContext(self::component::ComponentContext);
 
-impl DeleleteWidgetsFromAccountContext {
+impl DeleleteComponentsFromAccountContext {
     pub fn from_previous_context(
         previous_context: crate::GlobalContext,
-        scope: &<DeleleteWidgetsFromAccount as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
+        scope: &<DeleleteComponentsFromAccount as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
-        Ok(Self(self::widget::WidgetContext {
+        Ok(Self(self::component::ComponentContext {
             config: previous_context.0,
             account_id: scope.account_id.clone(),
-            widgets: vec![],
+            components: vec![],
         }))
     }
 }
 
 #[derive(Debug, EnumDiscriminants, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(context = DeleleteWidgetsFromAccountContext)]
+#[interactive_clap(context = DeleleteComponentsFromAccountContext)]
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
 pub enum DeleteCommand {
     #[strum_discriminants(strum(
-        message = "selected-widgets  - Delete selected widgets from your account"
+        message = "selected  - Delete selected components from your account"
     ))]
-    SelectedWidgets(self::widget::Widget),
-    #[strum_discriminants(strum(
-        message = "all-widgets       - Delete all widgets from your account"
-    ))]
-    AllWidgets(self::sign_as::Signer),
+    Selected(self::component::Component),
+    #[strum_discriminants(strum(message = "all       - Delete all components from your account"))]
+    All(self::sign_as::Signer),
 }
 
-impl From<DeleleteWidgetsFromAccountContext> for self::widget::WidgetContext {
-    fn from(item: DeleleteWidgetsFromAccountContext) -> Self {
+impl From<DeleleteComponentsFromAccountContext> for self::component::ComponentContext {
+    fn from(item: DeleleteComponentsFromAccountContext) -> Self {
         item.0
     }
 }

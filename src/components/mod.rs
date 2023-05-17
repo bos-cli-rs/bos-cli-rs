@@ -16,13 +16,15 @@ pub struct Components {
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
 /// What are you up to?
 pub enum ComponentsCommand {
-    #[strum_discriminants(strum(message = "download   -   Download widgets from account"))]
-    /// Download widgets from account
+    #[strum_discriminants(strum(message = "download   -   Download components from account"))]
+    /// Download components from account
     Download(self::download::AccountId),
-    #[strum_discriminants(strum(message = "deploy     -   Deploy widget if code has changed"))]
-    /// Deploy widget if code has changed
+    #[strum_discriminants(strum(
+        message = "deploy     -   Deploy components if code has changed"
+    ))]
+    /// Deploy сomponents if code has changed
     Deploy(self::deploy::DeployToAccount),
-    #[strum_discriminants(strum(message = "delete     -   Delete widgets from account"))]
-    /// Delete widgets from account
-    Delete(self::delete::DeleleteWidgetsFromAccount),
+    #[strum_discriminants(strum(message = "delete     -   Delete components from account"))]
+    /// Delete components from account
+    Delete(self::delete::DeleleteComponentsFromAccount),
 }

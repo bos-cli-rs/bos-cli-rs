@@ -5,7 +5,7 @@ use inquire::{CustomType, Select};
 use serde_json::{json, Value::Null};
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = super::widget::WidgetContext)]
+#[interactive_clap(input_context = super::component::ComponentContext)]
 #[interactive_clap(output_context = SignerContext)]
 pub struct Signer {
     #[interactive_clap(skip_default_input_arg)]
@@ -19,19 +19,19 @@ pub struct Signer {
 #[derive(Clone)]
 pub struct SignerContext {
     config: near_cli_rs::config::Config,
-    widgets: Vec<String>,
+    components: Vec<String>,
     account_id: near_cli_rs::types::account_id::AccountId,
     signer_account_id: near_primitives::types::AccountId,
 }
 
 impl SignerContext {
     pub fn from_previous_context(
-        previous_context: super::widget::WidgetContext,
+        previous_context: super::component::ComponentContext,
         scope: &<Signer as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
             config: previous_context.config,
-            widgets: previous_context.widgets,
+            components: previous_context.components,
             account_id: previous_context.account_id,
             signer_account_id: scope.signer_account_id.clone().into(),
         })
@@ -40,7 +40,7 @@ impl SignerContext {
 
 impl From<SignerContext> for near_cli_rs::commands::ActionContext {
     fn from(item: SignerContext) -> Self {
-        let widgets = item.widgets.clone();
+        let components = item.components.clone();
         let account_id: near_primitives::types::AccountId = item.account_id.clone().into();
         let signer_id = item.signer_account_id.clone();
 
@@ -49,28 +49,28 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 let near_social_account_id = crate::consts::NEAR_SOCIAL_ACCOUNT_ID.get(network_config.network_name.as_str())
                     .wrap_err_with(|| format!("The <{}> network does not have a near-social contract.", network_config.network_name))?;
 
-                if let Some(remote_widgets) = crate::common::get_remote_widgets(&account_id, network_config, near_social_account_id)? {
-                    let widgets_to_remove = if widgets.is_empty() {
-                        remote_widgets.keys().cloned().collect()
+                if let Some(remote_components) = crate::common::get_remote_components(&account_id, network_config, near_social_account_id)? {
+                    let components_to_remove = if components.is_empty() {
+                        remote_components.keys().cloned().collect()
                     } else {
-                        widgets.clone()
+                        components.clone()
                         .into_iter()
-                        .filter(|widget| remote_widgets.get(widget).is_some())
+                        .filter(|component| remote_components.get(component).is_some())
                         .collect::<Vec<_>>()
                     };
-                    if widgets_to_remove.len() > 12 {
-                        return color_eyre::eyre::Result::Err(color_eyre::eyre::eyre!("You have specified more than 12 widgets at once."));
+                    if components_to_remove.len() > 12 {
+                        return color_eyre::eyre::Result::Err(color_eyre::eyre::eyre!("You have specified more than 12 components at once."));
                     }
-                    if widgets_to_remove.is_empty() {
-                        println!("No widgets to remove. Goodbye.");
+                    if components_to_remove.is_empty() {
+                        println!("No components to remove. Goodbye.");
                         return Ok(near_cli_rs::commands::PrepopulatedTransaction {
                             signer_id: signer_id.clone(),
                             receiver_id: near_social_account_id.clone(),
                             actions: vec![],
                         });
                     }
-                    let mut actions: Vec<near_primitives::transaction::Action> = widgets_to_remove.iter()
-                        .map(|widget|
+                    let mut actions: Vec<near_primitives::transaction::Action> = components_to_remove.iter()
+                        .map(|component|
                             near_primitives::transaction::Action::FunctionCall(
                                 near_primitives::transaction::FunctionCallAction {
                                     method_name: "set".to_string(),
@@ -78,7 +78,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                                         "data": serde_json::json!({
                                             account_id.to_string(): json!({
                                                 "widget": json!({
-                                                    widget.clone(): json!({
+                                                    component.clone(): json!({
                                                     "metadata": json!({
                                                         "description": Null,
                                                         "image": json!({
@@ -102,8 +102,8 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                                 },
                             ),
                         ).collect();
-                    let mut actions_widget_null: Vec<near_primitives::transaction::Action> = widgets_to_remove.iter()
-                        .map(|widget|
+                    let mut actions_component_null: Vec<near_primitives::transaction::Action> = components_to_remove.iter()
+                        .map(|component|
                             near_primitives::transaction::Action::FunctionCall(
                                 near_primitives::transaction::FunctionCallAction {
                                     method_name: "set".to_string(),
@@ -111,7 +111,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                                         "data": json!({
                                             account_id.to_string(): json!({
                                                 "widget": json!({
-                                                    widget: Null
+                                                    component: Null
                                                 })
                                             })
                                         })
@@ -124,7 +124,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                             ),
                         ).collect();
 
-                    actions.append(&mut actions_widget_null);
+                    actions.append(&mut actions_component_null);
 
                     Ok(near_cli_rs::commands::PrepopulatedTransaction {
                         signer_id: signer_id.clone(),
@@ -146,9 +146,9 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
             let account_id = item.account_id.clone();
             move |transaction_info, _network_config| {
                 if let near_primitives::views::FinalExecutionStatus::SuccessValue(_) = transaction_info.status {
-                    println!("Selected widgets removed successfully for <{}>", &account_id);
+                    println!("Selected components removed successfully for <{}>", &account_id);
                 } else {
-                    color_eyre::eyre::bail!("The selected widgets were not successfully removed for <{}>", &account_id);
+                    color_eyre::eyre::bail!("The selected components were not successfully removed for <{}>", &account_id);
                 };
                 Ok(())
             }
@@ -170,7 +170,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
 impl Signer {
     fn input_signer_account_id(
-        context: &super::widget::WidgetContext,
+        context: &super::component::ComponentContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {
         loop {
             let signer_account_id: near_cli_rs::types::account_id::AccountId =

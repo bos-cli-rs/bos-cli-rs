@@ -62,15 +62,15 @@ pub fn diff_code(old_code: &str, new_code: &str) -> Result<(), DiffCodeError> {
     Err(DiffCodeError)
 }
 
-pub fn get_remote_widgets(
+pub fn get_remote_components(
     account_id: &near_primitives::types::AccountId,
     network_config: &near_cli_rs::config::NetworkConfig,
     near_social_account_id: &near_primitives::types::AccountId,
 ) -> color_eyre::eyre::Result<
     Option<
         std::collections::HashMap<
-            crate::socialdb_types::WidgetName,
-            crate::socialdb_types::SocialDbWidget,
+            crate::socialdb_types::ComponentName,
+            crate::socialdb_types::SocialDbComponent,
         >,
     >,
 > {
@@ -87,50 +87,50 @@ pub fn get_remote_widgets(
             input_args.into_bytes(),
             near_primitives::types::Finality::Final.into(),
         )
-        .wrap_err("Failed to fetch the widgets state from SocialDB")?;
+        .wrap_err("Failed to fetch the components state from SocialDB")?;
 
     let downloaded_social_db: crate::socialdb_types::SocialDb =
         serde_json::from_slice(&call_result.result)
-            .wrap_err("Failed to parse the widgets state from SocialDB")?;
+            .wrap_err("Failed to parse the components state from SocialDB")?;
 
     if let Some(account_metadata) = downloaded_social_db.accounts.get(account_id) {
-        Ok(Some(account_metadata.widgets.clone()))
+        Ok(Some(account_metadata.components.clone()))
     } else {
-        println!("\nThere are currently no widgets in the account <{account_id}>.",);
+        println!("\nThere are currently no components in the account <{account_id}>.",);
         Ok(None)
     }
 }
 
-pub fn get_local_widgets() -> color_eyre::eyre::Result<
-    std::collections::HashMap<String, crate::socialdb_types::SocialDbWidget>,
+pub fn get_local_components() -> color_eyre::eyre::Result<
+    std::collections::HashMap<String, crate::socialdb_types::SocialDbComponent>,
 > {
-    let mut widgets = HashMap::new();
+    let mut components = HashMap::new();
 
-    for widget_filepath in glob("./src/**/*.jsx")?.filter_map(Result::ok) {
-        let widget_name: crate::socialdb_types::WidgetName = widget_filepath
+    for component_filepath in glob("./src/**/*.jsx")?.filter_map(Result::ok) {
+        let component_name: crate::socialdb_types::ComponentName = component_filepath
             .strip_prefix("src")?
             .with_extension("")
             .to_str()
             .wrap_err_with(|| {
                 format!(
-                    "Widget name cannot be presented as UTF-8: {}",
-                    widget_filepath.display()
+                    "Component name cannot be presented as UTF-8: {}",
+                    component_filepath.display()
                 )
             })?
             .replace('/', ".");
 
-        let code = std::fs::read_to_string(&widget_filepath).wrap_err_with(|| {
+        let code = std::fs::read_to_string(&component_filepath).wrap_err_with(|| {
             format!(
-                "Failed to read widget source code from {}",
-                widget_filepath.display()
+                "Failed to read component source code from {}",
+                component_filepath.display()
             )
         })?;
 
-        let metadata_filepath = widget_filepath.with_extension("metadata.json");
+        let metadata_filepath = component_filepath.with_extension("metadata.json");
         let metadata = if let Ok(metadata_json) = std::fs::read_to_string(&metadata_filepath) {
             Some(serde_json::from_str(&metadata_json).wrap_err_with(|| {
                 format!(
-                    "Failed to parse widget metadata from {}",
+                    "Failed to parse component metadata from {}",
                     metadata_filepath.display()
                 )
             })?)
@@ -138,12 +138,12 @@ pub fn get_local_widgets() -> color_eyre::eyre::Result<
             None
         };
 
-        widgets.insert(
-            widget_name,
-            crate::socialdb_types::SocialDbWidget::CodeWithMetadata { code, metadata },
+        components.insert(
+            component_name,
+            crate::socialdb_types::SocialDbComponent::CodeWithMetadata { code, metadata },
         );
     }
-    Ok(widgets)
+    Ok(components)
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

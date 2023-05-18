@@ -345,3 +345,22 @@ fn estimate_data_size(data: &serde_json::Value, prev_data: Option<&serde_json::V
         }
     }
 }
+
+pub fn component_items_null(mut data: serde_json::Value) -> serde_json::Value {
+    match &mut data {
+        serde_json::Value::Object(data) => {
+            println!("+ + {:?}", data);
+            for (key, value) in data.iter() {
+                component_items_null(value.clone());
+            }
+        }
+        serde_json::Value::String(s) => {
+            s.clear();
+            println!("= = {:?}", s);
+        }
+        _ => {
+            unreachable!("estimate_data_size expects only Object or String values");
+        }
+    };
+    data.clone()
+}

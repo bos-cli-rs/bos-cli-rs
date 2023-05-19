@@ -67,7 +67,7 @@ This repo contains a reusable workflow which you can directly leverage from your
         branches: [main]
     jobs:
       deploy-mainnet:
-        uses: FroVolod/bos-cli-rs/.github/workflows/deploy-mainnet.yml@main
+        uses: FroVolod/bos-cli-rs/.github/workflows/deploy-mainnet.yml@master
         with:
           deploy-account-address: <FILL>
           signer-account-address: <FILL>

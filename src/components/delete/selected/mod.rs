@@ -1,17 +1,9 @@
 use inquire::CustomType;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(context = super::DeleteComponentsFromAccountContext)]
-pub struct AllComponents {
-    #[interactive_clap(named_arg)]
-    /// Specify signer account ID
-    sign_as: super::sign_as::Signer,
-}
-
-#[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = super::DeleteComponentsFromAccountContext)]
 #[interactive_clap(output_context = ComponentContext)]
-pub struct SelectedComponents {
+pub struct Selected {
     #[interactive_clap(skip_default_input_arg)]
     components: near_cli_rs::types::vec_string::VecString,
     #[interactive_clap(named_arg)]
@@ -29,7 +21,7 @@ pub struct ComponentContext {
 impl ComponentContext {
     pub fn from_previous_context(
         previous_context: super::DeleteComponentsFromAccountContext,
-        scope: &<SelectedComponents as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
+        scope: &<Selected as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
             config: previous_context.0.config,
@@ -39,7 +31,7 @@ impl ComponentContext {
     }
 }
 
-impl SelectedComponents {
+impl Selected {
     pub fn input_components(
         _context: &super::DeleteComponentsFromAccountContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::vec_string::VecString>> {

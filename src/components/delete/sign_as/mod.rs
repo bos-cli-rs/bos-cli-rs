@@ -40,11 +40,11 @@ impl SignerContext {
 
 impl From<SignerContext> for near_cli_rs::commands::ActionContext {
     fn from(item: SignerContext) -> Self {
-        let components = item.components.clone();
-        let account_id: near_primitives::types::AccountId = item.account_id.clone().into();
-        let signer_id = item.signer_account_id.clone();
-
         let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = std::sync::Arc::new({
+            let components = item.components.clone();
+            let account_id: near_primitives::types::AccountId = item.account_id.clone().into();
+            let signer_id = item.signer_account_id.clone();
+
             move |network_config| {
                 let near_social_account_id = crate::consts::NEAR_SOCIAL_ACCOUNT_ID.get(network_config.network_name.as_str())
                     .wrap_err_with(|| format!("The <{}> network does not have a near-social contract.", network_config.network_name))?;
@@ -52,10 +52,10 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 let keys_components_to_remove = if components.is_empty() {
                     vec![format!("{account_id}/widget/**")]
                 } else {
-                    components.clone()
-                    .into_iter()
-                    .map(|component| format!("{account_id}/widget/{component}/**"))
-                    .collect::<Vec<_>>()
+                    components
+                        .iter()
+                        .map(|component| format!("{account_id}/widget/{component}/**"))
+                        .collect::<Vec<_>>()
                 };
 
                 let input_args = serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
@@ -63,7 +63,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 })
                 .wrap_err("Internal error: could not serialize SocialDB input args")?;
 
-                let call_result = network_config
+                let mut social_db_data_to_remove: serde_json::Value = network_config
                     .json_rpc_client()
                     .blocking_call_view_function(
                         near_social_account_id,
@@ -71,30 +71,27 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         input_args.into_bytes(),
                         near_primitives::types::Finality::Final.into(),
                     )
-                    .wrap_err("Failed to fetch the components state from SocialDB")?;
-
-                if call_result.result.is_empty() {
-                    color_eyre::eyre::bail!("There is no information for this request");
+                    .wrap_err("Failed to fetch the components from SocialDB")?
+                    .parse_result_from_json()
+                    .wrap_err("SocialDB `get` data response cannot be parsed")?;
+                if social_db_data_to_remove.as_object().map(|result| result.is_empty()).unwrap_or(true) {
+                    println!("No components to remove. Goodbye.");
+                    return Ok(near_cli_rs::commands::PrepopulatedTransaction {
+                        signer_id: signer_id.clone(),
+                        receiver_id: near_social_account_id.clone(),
+                        actions: vec![],
+                    });
                 }
-                let actions = if let Ok(mut json_result) =
-                    call_result.parse_result_from_json::<serde_json::Value>()
-                {
-                    crate::common::component_items_as_null(&mut json_result);
+                mark_leaf_values_as_null(&mut social_db_data_to_remove);
 
-                    if json_result.as_object().unwrap().is_empty() {
-                        println!("No components to remove. Goodbye.");
-                        return Ok(near_cli_rs::commands::PrepopulatedTransaction {
-                            signer_id: signer_id.clone(),
-                            receiver_id: near_social_account_id.clone(),
-                            actions: vec![],
-                        });
-                    }
-
-                    vec![near_primitives::transaction::Action::FunctionCall(
+                Ok(near_cli_rs::commands::PrepopulatedTransaction {
+                    signer_id: signer_id.clone(),
+                    receiver_id: near_social_account_id.clone(),
+                    actions: vec![near_primitives::transaction::Action::FunctionCall(
                         near_primitives::transaction::FunctionCallAction {
                             method_name: "set".to_string(),
                             args: serde_json::json!({
-                                "data": json_result
+                                "data": social_db_data_to_remove
                             }).to_string().into_bytes(),
                             gas: near_cli_rs::common::NearGas::from_str("300 TeraGas")
                                 .unwrap()
@@ -102,24 +99,18 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                             deposit: near_cli_rs::common::NearBalance::from_yoctonear(0).to_yoctonear(),
                         },
                     )]
-                } else {
-                    color_eyre::eyre::bail!("Return value cannot be parsed (binary data)");
-                };
-                Ok(near_cli_rs::commands::PrepopulatedTransaction {
-                    signer_id: signer_id.clone(),
-                    receiver_id: near_social_account_id.clone(),
-                    actions,
                 })
             }
         });
 
         let on_after_sending_transaction_callback: near_cli_rs::transaction_signature_options::OnAfterSendingTransactionCallback = std::sync::Arc::new({
             let account_id = item.account_id.clone();
+
             move |transaction_info, _network_config| {
                 if let near_primitives::views::FinalExecutionStatus::SuccessValue(_) = transaction_info.status {
-                    println!("Selected components removed successfully for <{}>", &account_id);
+                    println!("The components were deleted successfully from <{}>", &account_id);
                 } else {
-                    color_eyre::eyre::bail!("The selected components were not successfully removed for <{}>", &account_id);
+                    color_eyre::eyre::bail!("The components were not successfully deleted from <{}>", &account_id);
                 };
                 Ok(())
             }
@@ -171,6 +162,20 @@ impl Signer {
             } else {
                 return Ok(Some(signer_account_id));
             }
+        }
+    }
+}
+
+/// Helper function that marks SocialDB values to be deleted by setting `null` to the values
+fn mark_leaf_values_as_null(data: &mut serde_json::Value) {
+    match data {
+        serde_json::Value::Object(object_data) => {
+            for value in object_data.values_mut() {
+                mark_leaf_values_as_null(value);
+            }
+        }
+        data => {
+            *data = serde_json::Value::Null;
         }
     }
 }

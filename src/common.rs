@@ -306,16 +306,3 @@ fn estimate_data_size(data: &serde_json::Value, prev_data: Option<&serde_json::V
         }
     }
 }
-
-pub fn component_items_as_null(data: &mut serde_json::Value) {
-    match data {
-        serde_json::Value::Object(object_data) => {
-            for value in object_data.values_mut() {
-                component_items_as_null(value);
-            }
-        }
-        data => {
-            *data = serde_json::Value::Null;
-        }
-    }
-}

@@ -7,7 +7,7 @@ mod sign_as;
 #[interactive_clap(input_context = crate::GlobalContext)]
 #[interactive_clap(output_context = DeleleteComponentsFromAccountContext)]
 pub struct DeleleteComponentsFromAccount {
-    /// Which account do you want to delete the components to?
+    /// Which account do you want to delete the components from?
     account_id: near_cli_rs::types::account_id::AccountId,
     #[interactive_clap(subcommand)]
     delete_command: DeleteCommand,

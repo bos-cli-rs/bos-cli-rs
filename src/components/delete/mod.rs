@@ -37,9 +37,9 @@ pub enum DeleteCommand {
     #[strum_discriminants(strum(
         message = "selected  - Delete selected components from your account"
     ))]
-    Selected(self::component::Component),
+    Selected(self::component::SelectedComponents),
     #[strum_discriminants(strum(message = "all       - Delete all components from your account"))]
-    All(self::sign_as::Signer),
+    All(self::component::AllComponents),
 }
 
 impl From<DeleleteComponentsFromAccountContext> for self::component::ComponentContext {

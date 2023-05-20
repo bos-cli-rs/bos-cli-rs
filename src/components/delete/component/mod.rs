@@ -37,11 +37,10 @@ impl Component {
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::vec_string::VecString>> {
         loop {
             let input_components: near_cli_rs::types::vec_string::VecString =
-                    CustomType::new("Enter a list of components to be removed (not more than 12 components at a time, separated by comma): ").prompt()?;
+                CustomType::new("Enter a comma-separated list of components to remove: ")
+                    .prompt()?;
             if input_components.0.is_empty() {
                 continue;
-            } else if input_components.0.len() > 12 {
-                println!("You have specified more than 12 components at once.")
             } else {
                 return Ok(Some(input_components));
             }

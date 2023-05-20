@@ -2,8 +2,7 @@ use std::str::FromStr;
 
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use inquire::{CustomType, Select};
-use near_cli_rs::common::{CallResultExt, JsonRpcClientExt, RpcQueryResponseExt};
-use serde_json::{json, Value::Null};
+use near_cli_rs::common::{CallResultExt, JsonRpcClientExt};
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = super::component::ComponentContext)]
@@ -50,34 +49,20 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 let near_social_account_id = crate::consts::NEAR_SOCIAL_ACCOUNT_ID.get(network_config.network_name.as_str())
                     .wrap_err_with(|| format!("The <{}> network does not have a near-social contract.", network_config.network_name))?;
 
-                // if let Some(remote_components) = crate::common::get_remote_components(&account_id, network_config, near_social_account_id)? {
-                //     let components_to_remove = if components.is_empty() {
-                //         remote_components.keys().cloned().collect()
-                //     } else {
-                //         components.clone()
-                //         .into_iter()
-                //         .filter(|component| remote_components.get(component).is_some())
-                //         .collect::<Vec<_>>()
-                //     };
-                //     if components_to_remove.len() > 12 {
-                //         return color_eyre::eyre::Result::Err(color_eyre::eyre::eyre!("You have specified more than 12 components at once."));
-                //     }
-                //     if components_to_remove.is_empty() {
-                //         println!("No components to remove. Goodbye.");
-                //         return Ok(near_cli_rs::commands::PrepopulatedTransaction {
-                //             signer_id: signer_id.clone(),
-                //             receiver_id: near_social_account_id.clone(),
-                //             actions: vec![],
-                //         });
-                //     }
-
-
+                let keys_components_to_remove = if components.is_empty() {
+                    vec![format!("{account_id}/widget/**")]
+                } else {
+                    components.clone()
+                    .into_iter()
+                    .map(|component| format!("{account_id}/widget/{component}/**"))
+                    .collect::<Vec<_>>()
+                };
 
                 let input_args = serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
-                    keys: vec![format!("{account_id}/widget/**")],
+                    keys: keys_components_to_remove,
                 })
                 .wrap_err("Internal error: could not serialize SocialDB input args")?;
-            
+
                 let call_result = network_config
                     .json_rpc_client()
                     .blocking_call_view_function(
@@ -87,96 +72,44 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         near_primitives::types::Finality::Final.into(),
                     )
                     .wrap_err("Failed to fetch the components state from SocialDB")?;
-            
-                    if call_result.result.is_empty() {
-                        println!("There is no information for this request");
-                    } else if let Ok(mut json_result) =
-                        call_result.parse_result_from_json::<serde_json::Value>()
-                    {
-                        println!("{}", serde_json::to_string_pretty(&json_result)?);
-                        crate::common::component_items_as_null(&mut json_result);
-                        println!("*** {:#?}", json_result);
-                    } else if let Ok(string_result) = String::from_utf8(call_result.result) {
-                        println!("{string_result}");
-                    } else {
-                        println!("The returned value is not printable (binary data)");
+
+                if call_result.result.is_empty() {
+                    color_eyre::eyre::bail!("There is no information for this request");
+                }
+                let actions = if let Ok(mut json_result) =
+                    call_result.parse_result_from_json::<serde_json::Value>()
+                {
+                    crate::common::component_items_as_null(&mut json_result);
+
+                    if json_result.as_object().unwrap().is_empty() {
+                        println!("No components to remove. Goodbye.");
+                        return Ok(near_cli_rs::commands::PrepopulatedTransaction {
+                            signer_id: signer_id.clone(),
+                            receiver_id: near_social_account_id.clone(),
+                            actions: vec![],
+                        });
                     }
 
-
-
-                    let mut actions: Vec<near_primitives::transaction::Action> = components.iter()
-                        .map(|component|
-                            near_primitives::transaction::Action::FunctionCall(
-                                near_primitives::transaction::FunctionCallAction {
-                                    method_name: "set".to_string(),
-                                    args: serde_json::json!({
-                                        "data": serde_json::json!({
-                                            account_id.to_string(): json!({
-                                                "widget": json!({
-                                                    component.clone(): json!({
-                                                    "": null,
-                                                    "metadata": json!({
-                                                        "description": Null,
-                                                        "image": json!({
-                                                            "ipfs_cid": Null,
-                                                            "url": Null,
-                                                        }),
-                                                        "name": Null,
-                                                        "tags": json!({
-                                                            "app": Null,
-                                                            "tag": Null,
-                                                            "developer-governance": Null,
-                                                        })
-                                                        })
-                                                    })
-                                                })
-                                            })
-                                        })
-                                    }).to_string().into_bytes(),
-                                    gas: near_cli_rs::common::NearGas::from_str("12 TeraGas")
-                                        .unwrap()
-                                        .inner,
-                                    deposit: near_cli_rs::common::NearBalance::from_yoctonear(0).to_yoctonear(),
-                                },
-                            ),
-                        ).collect();
-                    // let mut actions_component_null: Vec<near_primitives::transaction::Action> = components.iter()
-                    //     .map(|component|
-                    //         near_primitives::transaction::Action::FunctionCall(
-                    //             near_primitives::transaction::FunctionCallAction {
-                    //                 method_name: "set".to_string(),
-                    //                 args: json!({
-                    //                     "data": json!({
-                    //                         account_id.to_string(): json!({
-                    //                             "widget": json!({
-                    //                                 component: Null
-                    //                             })
-                    //                         })
-                    //                     })
-                    //                 }).to_string().into_bytes(),
-                    //                 gas: near_cli_rs::common::NearGas::from_str("12 TeraGas")
-                    //                     .unwrap()
-                    //                     .inner,
-                    //                 deposit: near_cli_rs::common::NearBalance::from_yoctonear(0).to_yoctonear(),
-                    //             },
-                    //         ),
-                    //     ).collect();
-
-                    // actions.append(&mut actions_component_null);
-
-                    Ok(near_cli_rs::commands::PrepopulatedTransaction {
-                        signer_id: signer_id.clone(),
-                        receiver_id: near_social_account_id.clone(),
-                        actions,
-                    })
-                // } else {
-                //     println!("Goodbye.");
-                //     Ok(near_cli_rs::commands::PrepopulatedTransaction {
-                //         signer_id: signer_id.clone(),
-                //         receiver_id: near_social_account_id.clone(),
-                //         actions: vec![],
-                //     })
-                // }
+                    vec![near_primitives::transaction::Action::FunctionCall(
+                        near_primitives::transaction::FunctionCallAction {
+                            method_name: "set".to_string(),
+                            args: serde_json::json!({
+                                "data": json_result
+                            }).to_string().into_bytes(),
+                            gas: near_cli_rs::common::NearGas::from_str("300 TeraGas")
+                                .unwrap()
+                                .inner,
+                            deposit: near_cli_rs::common::NearBalance::from_yoctonear(0).to_yoctonear(),
+                        },
+                    )]
+                } else {
+                    color_eyre::eyre::bail!("Return value cannot be parsed (binary data)");
+                };
+                Ok(near_cli_rs::commands::PrepopulatedTransaction {
+                    signer_id: signer_id.clone(),
+                    receiver_id: near_social_account_id.clone(),
+                    actions,
+                })
             }
         });
 

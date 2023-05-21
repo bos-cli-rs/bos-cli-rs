@@ -57,7 +57,7 @@ impl SocialDbKey {
         _context: &crate::GlobalContext,
     ) -> color_eyre::eyre::Result<Option<String>> {
         Ok(Some(
-            Text::new(" Enter the prefix of the social_db key that you will grant permission to (default value: 'widget'):")
+            Text::new("Enter the prefix of the social_db key that you will grant permission to (default value: 'widget'):")
                 .with_default("widget")
                 .prompt()?,
         ))

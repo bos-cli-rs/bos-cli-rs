@@ -12,7 +12,7 @@ pub struct Data {
 #[derive(Debug, EnumDiscriminants, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = crate::GlobalContext)]
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
-/// Select the data command
+/// Select the data command:
 pub enum DataCommand {
     #[strum_discriminants(strum(message = "view     -   Viewing information by a given key"))]
     /// Viewing information by a given key

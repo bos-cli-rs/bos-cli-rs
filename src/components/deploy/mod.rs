@@ -12,7 +12,7 @@ pub struct TransactionFunctionArgs {
 #[interactive_clap(output_context = DeployToAccountContext)]
 pub struct DeployToAccount {
     #[interactive_clap(skip_default_input_arg)]
-    /// Which account do you want to deploy the widgets to?
+    /// Which account do you want to deploy the components to?
     deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
     #[interactive_clap(named_arg)]
     /// Specify signer account ID
@@ -41,17 +41,18 @@ impl DeployToAccount {
     fn input_deploy_to_account_id(
         context: &crate::GlobalContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {
-        let widgets = crate::common::get_local_widgets()?;
+        let components = crate::common::get_local_components()?;
         println!(
-            "\nThere are <{}> widgets in the current folder ready for deployment:",
-            widgets.len()
+            "\nThere are <{}> components in the current folder ready for deployment:",
+            components.len()
         );
-        for widget in widgets.keys() {
-            println!(" * {widget}")
+        for component in components.keys() {
+            println!(" * {component}")
         }
         loop {
             let deploy_to_account_id: near_cli_rs::types::account_id::AccountId =
-                CustomType::new(" Which account do you want to deploy the widgets to?").prompt()?;
+                CustomType::new(" Which account do you want to deploy the components to?")
+                    .prompt()?;
             if !near_cli_rs::common::is_account_exist(
                 &context.0.network_connection,
                 deploy_to_account_id.clone().into(),
@@ -68,7 +69,7 @@ impl DeployToAccount {
                     No,
                 }
                 let select_choose_input = Select::new(
-                    "Do you want to enter a new widget deployment account name?",
+                    "Do you want to enter a new component deployment account name?",
                     vec![ConfirmOptions::Yes, ConfirmOptions::No],
                 )
                 .prompt()?;

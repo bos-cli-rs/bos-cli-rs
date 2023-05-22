@@ -5,7 +5,7 @@ use near_cli_rs::common::JsonRpcClientExt;
 #[interactive_clap(input_context = crate::GlobalContext)]
 #[interactive_clap(output_context = AccountIdContext)]
 pub struct AccountId {
-    /// Which account do you want to download widgets from?
+    /// Which account do you want to download components from?
     account_id: near_cli_rs::types::account_id::AccountId,
     #[interactive_clap(named_arg)]
     /// Select network
@@ -50,11 +50,11 @@ impl AccountIdContext {
                             input_args.into_bytes(),
                             near_primitives::types::Finality::Final.into(),
                         )
-                        .wrap_err("Failed to fetch the widgets state from SocialDB")?;
+                        .wrap_err("Failed to fetch the components state from SocialDB")?;
 
                     let downloaded_social_db: crate::socialdb_types::SocialDb =
                         serde_json::from_slice(&call_result.result)
-                            .wrap_err("Failed to parse the widgets state from SocialDB")?;
+                            .wrap_err("Failed to parse the components state from SocialDB")?;
 
                     let downloaded_social_account_metadata: &crate::socialdb_types::SocialDbAccountMetadata =
                         if let Some(account_metadata) =
@@ -65,51 +65,51 @@ impl AccountIdContext {
                             account_metadata
                         } else {
                             println!(
-                                "\nThere are currently no widgets in the account <{account_id}>.",
+                                "\nThere are currently no components in the account <{account_id}>.",
                             );
                             return Ok(());
                         };
 
-                    let widgets = &downloaded_social_account_metadata.widgets;
-                    let widgets_src_folder = std::path::PathBuf::from("./src");
-                    for (widget_name, widget) in widgets.iter() {
-                        let mut widget_path = widgets_src_folder.clone();
-                        widget_path.extend(widget_name.split('.'));
-                        std::fs::create_dir_all(widget_path.parent().wrap_err_with(|| {
+                    let components = &downloaded_social_account_metadata.components;
+                    let components_src_folder = std::path::PathBuf::from("./src");
+                    for (component_name, component) in components.iter() {
+                        let mut component_path = components_src_folder.clone();
+                        component_path.extend(component_name.split('.'));
+                        std::fs::create_dir_all(component_path.parent().wrap_err_with(|| {
                             format!(
-                                "Failed to get the parent path for {widget_name} where the path is {}",
-                                widget_path.display()
+                                "Failed to get the parent path for {component_name} where the path is {}",
+                                component_path.display()
                             )
                         })?)?;
-                        let widget_code_path = widget_path.with_extension("jsx");
-                        std::fs::write(&widget_code_path, widget.code().as_bytes()).wrap_err_with(
-                            || {
+                        let component_code_path = component_path.with_extension("jsx");
+                        std::fs::write(&component_code_path, component.code().as_bytes())
+                            .wrap_err_with(|| {
                                 format!(
-                                    "Failed to save widget code into {}",
-                                    widget_code_path.display()
+                                    "Failed to save component code into {}",
+                                    component_code_path.display()
                                 )
-                            },
-                        )?;
-                        if let Some(metadata) = widget.metadata() {
+                            })?;
+                        if let Some(metadata) = component.metadata() {
                             let metadata =
                                 serde_json::to_string_pretty(metadata).wrap_err_with(|| {
-                                    format!("Failed to serialize widget metadata for {widget_name}")
+                                    format!("Failed to serialize component metadata for {component_name}")
                                 })?;
-                            let widget_metadata_path = widget_path.with_extension("metadata.json");
-                            std::fs::write(&widget_metadata_path, metadata.as_bytes())
+                            let component_metadata_path =
+                                component_path.with_extension("metadata.json");
+                            std::fs::write(&component_metadata_path, metadata.as_bytes())
                                 .wrap_err_with(|| {
                                     format!(
-                                        "Failed to save widget metadata into {}",
-                                        widget_metadata_path.display()
+                                        "Failed to save component metadata into {}",
+                                        component_metadata_path.display()
                                     )
                                 })?;
                         }
                     }
 
                     println!(
-                        "Widgets for account <{}> were downloaded into <{}> successfully",
+                        "Components for account <{}> were downloaded into <{}> successfully",
                         account_id,
-                        widgets_src_folder.display()
+                        components_src_folder.display()
                     );
 
                     Ok(())

@@ -11,7 +11,7 @@ mod storage_deposit;
 #[interactive_clap(output_context = SocialDbKeyContext)]
 pub struct SocialDbKey {
     #[interactive_clap(skip_default_input_arg)]
-    /// Enter the prefix of the social_db key that you will grant permission to (default value: 'widget')
+    /// Enter the prefix of the social_db key that you will grant permission to (default value: 'widget'):
     social_db_key: String,
     #[interactive_clap(subcommand)]
     access: Access,
@@ -38,7 +38,7 @@ impl SocialDbKeyContext {
 #[derive(Debug, EnumDiscriminants, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = SocialDbKeyContext)]
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
-/// Select grant access permissions
+/// Select grant access permissions:
 pub enum Access {
     #[strum_discriminants(strum(
         message = "to-function-call-access-key  -   Granting access to a function-call-only access key"
@@ -57,7 +57,7 @@ impl SocialDbKey {
         _context: &crate::GlobalContext,
     ) -> color_eyre::eyre::Result<Option<String>> {
         Ok(Some(
-            Text::new(" Enter the prefix of the social_db key that you will grant permission to (default value: 'widget')")
+            Text::new(" Enter the prefix of the social_db key that you will grant permission to (default value: 'widget'):")
                 .with_default("widget")
                 .prompt()?,
         ))

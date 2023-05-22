@@ -2,7 +2,7 @@
 #[interactive_clap(input_context = super::SocialDbKeyContext)]
 #[interactive_clap(output_context = AccessToAccountContext)]
 pub struct AccessToAccount {
-    /// Enter the account ID you will grant permission to
+    /// Enter the account ID you will grant permission to:
     account_id: near_cli_rs::types::account_id::AccountId,
     #[interactive_clap(named_arg)]
     /// Specify extra storage deposit

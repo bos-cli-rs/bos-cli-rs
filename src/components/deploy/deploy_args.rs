@@ -53,9 +53,9 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     receiver_id: near_social_account_id.clone(),
                     actions: vec![],
                 };
-                let local_widgets = crate::common::get_local_widgets()?;
-                if local_widgets.is_empty() {
-                    println!("There are no widgets in the current ./src folder. Goodbye.");
+                let local_components = crate::common::get_local_components()?;
+                if local_components.is_empty() {
+                    println!("There are no components in the current ./src folder. Goodbye.");
                     return Ok(prepopulated_transaction);
                 }
 
@@ -63,14 +63,14 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 let chunk_size = 15;
                 let concurrency = 10;
 
-                let remote_widgets: HashMap<crate::socialdb_types::WidgetName, crate::socialdb_types::SocialDbWidget> = runtime.block_on(
-                    futures::stream::iter(local_widgets.keys().collect::<Vec<_>>().chunks(chunk_size))
-                        .map(|local_widgets_name_batch| async {
-                            get_widgets(
+                let remote_components: HashMap<crate::socialdb_types::ComponentName, crate::socialdb_types::SocialDbComponent> = runtime.block_on(
+                    futures::stream::iter(local_components.keys().collect::<Vec<_>>().chunks(chunk_size))
+                        .map(|local_components_name_batch| async {
+                            get_components(
                                 network_config,
                                 near_social_account_id,
                                 &deploy_to_account_id,
-                                local_widgets_name_batch
+                                local_components_name_batch
                             ).await
                         })
                         .buffer_unordered(concurrency)
@@ -78,48 +78,48 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                  ).into_iter()
                     .try_fold(HashMap::new(), |mut acc, x| { acc.extend(x?); Ok::<_, color_eyre::eyre::Error>(acc) })?;
 
-                let widgets_to_deploy =
-                if !remote_widgets.is_empty() {
-                        let updated_widgets: HashMap<String, crate::socialdb_types::SocialDbWidget> = local_widgets
+                let components_to_deploy =
+                if !remote_components.is_empty() {
+                        let updated_components: HashMap<String, crate::socialdb_types::SocialDbComponent> = local_components
                             .into_iter()
-                            .filter(|(widget_name, new_widget)| {
-                                if let Some(old_widget) = remote_widgets.get(widget_name) {
-                                    let has_code_changed = crate::common::diff_code(old_widget.code(), new_widget.code()).is_err();
-                                    let has_metadata_changed = old_widget.metadata() != new_widget.metadata() && new_widget.metadata().is_some();
+                            .filter(|(component_name, new_component)| {
+                                if let Some(old_component) = remote_components.get(component_name) {
+                                    let has_code_changed = crate::common::diff_code(old_component.code(), new_component.code()).is_err();
+                                    let has_metadata_changed = old_component.metadata() != new_component.metadata() && new_component.metadata().is_some();
                                     if !has_code_changed {
-                                        println!("Code for widget <{widget_name}> has not changed");
+                                        println!("Code for component <{component_name}> has not changed");
                                     }
                                     if has_metadata_changed {
                                         println!(
-                                            "Metadata for widget <{widget_name}> changed:\n - old metadata: {:?}\n - new metadata: {:?}",
-                                            old_widget.metadata(), new_widget.metadata()
+                                            "Metadata for component <{component_name}> changed:\n - old metadata: {:?}\n - new metadata: {:?}",
+                                            old_component.metadata(), new_component.metadata()
                                         );
                                     } else {
-                                        println!("Metadata for widget <{widget_name}> has not changed");
+                                        println!("Metadata for component <{component_name}> has not changed");
                                     }
                                     has_code_changed || has_metadata_changed
                                 } else {
-                                    println!("Found new widget <{widget_name}> to deploy");
+                                    println!("Found new component <{component_name}> to deploy");
                                     true
                                 }
                             })
                             .collect();
 
-                        if updated_widgets.is_empty() {
-                            println!("There are no new or modified widgets in the current ./src folder. Goodbye.");
+                        if updated_components.is_empty() {
+                            println!("There are no new or modified components in the current ./src folder. Goodbye.");
                             return Ok(prepopulated_transaction);
                         }
-                        updated_widgets
+                        updated_components
                     } else {
-                        println!("\nAll local widgets will be deployed to <{deploy_to_account_id}> as new.");
-                        local_widgets
+                        println!("\nAll local components will be deployed to <{deploy_to_account_id}> as new.");
+                        local_components
                     };
 
                 let new_social_db_state = crate::socialdb_types::SocialDb {
                     accounts: HashMap::from([(
                         deploy_to_account_id.clone(),
                         crate::socialdb_types::SocialDbAccountMetadata {
-                            widgets: widgets_to_deploy
+                            components: components_to_deploy
                         },
                     )])
                 };
@@ -128,7 +128,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     accounts: HashMap::from([(
                         deploy_to_account_id.clone(),
                         crate::socialdb_types::SocialDbAccountMetadata {
-                            widgets: remote_widgets
+                            components: remote_components
                         }
                     )])
                 });
@@ -182,7 +182,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         .to_yoctonear();
                         Ok(())
                     } else {
-                        color_eyre::eyre::bail!("Unexpected action to change widgets",);
+                        color_eyre::eyre::bail!("Unexpected action to change components",);
                     }
                 }
             });
@@ -200,7 +200,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         );
                     }
                 } else {
-                    color_eyre::eyre::bail!("Widgets deployment failed!");
+                    color_eyre::eyre::bail!("Components deployment failed!");
                 };
 
                 let transaction_function_args: super::TransactionFunctionArgs =
@@ -208,11 +208,11 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
                 let social_account_metadata = transaction_function_args.data.accounts.get(item.deploy_to_account_id.as_ref())
                     .wrap_err("Internal error: Could not get metadata from SocialDB request that we just created.")?;
-                let updated_widgets = &social_account_metadata.widgets;
+                let updated_components = &social_account_metadata.components;
 
-                println!("\n<{}> widgets were successfully deployed:", updated_widgets.len());
-                for widget in updated_widgets.keys() {
-                    println!(" * {widget}")
+                println!("\n<{}> components were successfully deployed:", updated_components.len());
+                for component in updated_components.keys() {
+                    println!(" * {component}")
                 }
                 println!();
                 Ok(())
@@ -328,25 +328,25 @@ fn get_deposit(
             }
         } else {
             color_eyre::eyre::bail!(
-                "ERROR: signer is not allowed to modify deploy_to_account_id widgets."
+                "ERROR: signer is not allowed to modify deploy_to_account_id components."
             )
         }
     } else {
-        color_eyre::eyre::bail!("ERROR: signer access key cannot be used to sign a transaction to update widgets in Social DB.")
+        color_eyre::eyre::bail!("ERROR: signer access key cannot be used to sign a transaction to update components in Social DB.")
     };
     Ok(deposit)
 }
 
-async fn get_widgets(
+async fn get_components(
     network_config: &near_cli_rs::config::NetworkConfig,
     near_social_account_id: &near_primitives::types::AccountId,
     deploy_to_account_id: &near_primitives::types::AccountId,
-    local_widget_names_batch: &[&crate::socialdb_types::WidgetName],
+    local_components_names_batch: &[&crate::socialdb_types::ComponentName],
 ) -> color_eyre::Result<
-    HashMap<crate::socialdb_types::WidgetName, crate::socialdb_types::SocialDbWidget>,
+    HashMap<crate::socialdb_types::ComponentName, crate::socialdb_types::SocialDbComponent>,
 > {
     let args = serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
-        keys: local_widget_names_batch
+        keys: local_components_names_batch
             .iter()
             .map(|name| format!("{deploy_to_account_id}/widget/{name}/**"))
             .collect(),
@@ -365,7 +365,7 @@ async fn get_widgets(
             },
         })
         .await
-        .wrap_err("Failed to query batch of widgets from Social DB")?
+        .wrap_err("Failed to query batch of components from Social DB")?
         .kind
     {
         near_jsonrpc_primitives::types::query::QueryResponseKind::CallResult(call_result) => {
@@ -374,7 +374,7 @@ async fn get_widgets(
                 .wrap_err("ERROR: failed to parse Social DB response")?
                 .accounts
                 .remove(deploy_to_account_id)
-                .map(|crate::socialdb_types::SocialDbAccountMetadata { widgets }| widgets)
+                .map(|crate::socialdb_types::SocialDbAccountMetadata { components }| components)
                 .unwrap_or_default())
         }
         _ => unreachable!("ERROR: unexpected response type from JSON RPC client"),

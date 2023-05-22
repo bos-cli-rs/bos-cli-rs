@@ -62,36 +62,36 @@ pub fn diff_code(old_code: &str, new_code: &str) -> Result<(), DiffCodeError> {
     Err(DiffCodeError)
 }
 
-pub fn get_local_widgets() -> color_eyre::eyre::Result<
-    std::collections::HashMap<String, crate::socialdb_types::SocialDbWidget>,
+pub fn get_local_components() -> color_eyre::eyre::Result<
+    std::collections::HashMap<String, crate::socialdb_types::SocialDbComponent>,
 > {
-    let mut widgets = HashMap::new();
+    let mut components = HashMap::new();
 
-    for widget_filepath in glob("./src/**/*.jsx")?.filter_map(Result::ok) {
-        let widget_name: crate::socialdb_types::WidgetName = widget_filepath
+    for component_filepath in glob("./src/**/*.jsx")?.filter_map(Result::ok) {
+        let component_name: crate::socialdb_types::ComponentName = component_filepath
             .strip_prefix("src")?
             .with_extension("")
             .to_str()
             .wrap_err_with(|| {
                 format!(
-                    "Widget name cannot be presented as UTF-8: {}",
-                    widget_filepath.display()
+                    "Component name cannot be presented as UTF-8: {}",
+                    component_filepath.display()
                 )
             })?
             .replace('/', ".");
 
-        let code = std::fs::read_to_string(&widget_filepath).wrap_err_with(|| {
+        let code = std::fs::read_to_string(&component_filepath).wrap_err_with(|| {
             format!(
-                "Failed to read widget source code from {}",
-                widget_filepath.display()
+                "Failed to read component source code from {}",
+                component_filepath.display()
             )
         })?;
 
-        let metadata_filepath = widget_filepath.with_extension("metadata.json");
+        let metadata_filepath = component_filepath.with_extension("metadata.json");
         let metadata = if let Ok(metadata_json) = std::fs::read_to_string(&metadata_filepath) {
             Some(serde_json::from_str(&metadata_json).wrap_err_with(|| {
                 format!(
-                    "Failed to parse widget metadata from {}",
+                    "Failed to parse component metadata from {}",
                     metadata_filepath.display()
                 )
             })?)
@@ -99,12 +99,12 @@ pub fn get_local_widgets() -> color_eyre::eyre::Result<
             None
         };
 
-        widgets.insert(
-            widget_name,
-            crate::socialdb_types::SocialDbWidget::CodeWithMetadata { code, metadata },
+        components.insert(
+            component_name,
+            crate::socialdb_types::SocialDbComponent::CodeWithMetadata { code, metadata },
         );
     }
-    Ok(widgets)
+    Ok(components)
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

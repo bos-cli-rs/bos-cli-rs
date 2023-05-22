@@ -306,3 +306,17 @@ fn estimate_data_size(data: &serde_json::Value, prev_data: Option<&serde_json::V
         }
     }
 }
+
+/// Helper function that marks SocialDB values to be deleted by setting `null` to the values
+pub fn mark_leaf_values_as_null(data: &mut serde_json::Value) {
+    match data {
+        serde_json::Value::Object(object_data) => {
+            for value in object_data.values_mut() {
+                mark_leaf_values_as_null(value);
+            }
+        }
+        data => {
+            *data = serde_json::Value::Null;
+        }
+    }
+}

@@ -1,5 +1,6 @@
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
+mod delete;
 mod view;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
@@ -24,5 +25,5 @@ pub enum DataCommand {
     Set,
     #[strum_discriminants(strum(message = "delete   -   Deleting information by a given key"))]
     /// Deleting information by a given key
-    Delete,
+    Delete(self::delete::Delete),
 }

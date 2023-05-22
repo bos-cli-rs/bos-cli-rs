@@ -52,7 +52,7 @@ impl ViewContext {
                         )
                         .wrap_err("Failed to fetch the widgets state from SocialDB")?;
                     if call_result.result.is_empty() {
-                        println!("There is no information for this request");
+                        eprintln!("There is no information for this request");
                     } else if let Ok(json_result) =
                         call_result.parse_result_from_json::<serde_json::Value>()
                     {
@@ -60,7 +60,7 @@ impl ViewContext {
                     } else if let Ok(string_result) = String::from_utf8(call_result.result) {
                         println!("{string_result}");
                     } else {
-                        println!("The returned value is not printable (binary data)");
+                        eprintln!("The returned value is not printable (binary data)");
                     }
                     Ok(())
                 }

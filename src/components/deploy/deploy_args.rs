@@ -222,6 +222,9 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
         Self {
             config: item.config,
             on_after_getting_network_callback,
+            on_refine_prepopulated_transaction_callback: std::sync::Arc::new(
+                |_prepolulated_transaction, _network_config| Ok(()),
+            ),
             on_before_signing_callback,
             on_before_sending_transaction_callback: std::sync::Arc::new(
                 |_signed_transaction, _network_config, _message| Ok(()),

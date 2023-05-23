@@ -17,16 +17,7 @@ pub struct Delete {
 }
 
 #[derive(Clone)]
-pub struct DeleteContext {
-    pub config: near_cli_rs::config::Config,
-    pub account_id: near_cli_rs::types::account_id::AccountId,
-    pub on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback,
-    pub on_before_signing_callback: near_cli_rs::commands::OnBeforeSigningCallback,
-    pub on_before_sending_transaction_callback:
-        near_cli_rs::transaction_signature_options::OnBeforeSendingTransactionCallback,
-    pub on_after_sending_transaction_callback:
-        near_cli_rs::transaction_signature_options::OnAfterSendingTransactionCallback,
-}
+pub struct DeleteContext(self::sign_as::PreparedSignerContext);
 
 impl DeleteContext {
     pub fn from_previous_context(
@@ -90,7 +81,7 @@ impl DeleteContext {
         });
 
         let on_after_sending_transaction_callback: near_cli_rs::transaction_signature_options::OnAfterSendingTransactionCallback = std::sync::Arc::new({
-            // let account_id = account_id.clone();
+            let account_id = account_id.clone();
 
             move |transaction_info, _network_config| {
                 if let near_primitives::views::FinalExecutionStatus::SuccessValue(_) = transaction_info.status {
@@ -105,7 +96,7 @@ impl DeleteContext {
 
 
 
-        Ok(Self {
+        Ok(Self(sign_as::PreparedSignerContext {
             config: previous_context.0,
             account_id,
             on_after_getting_network_callback,
@@ -116,11 +107,11 @@ impl DeleteContext {
                 |_signed_transaction, _network_config, _message| Ok(()),
             ),
             on_after_sending_transaction_callback,
-        })
+        }))
     }
 }
 
-impl From<DeleteContext> for near_cli_rs::commands::ActionContext {
+impl From<DeleteContext> for sign_as::PreparedSignerContext {
     fn from(item: DeleteContext) -> Self {
         item.0
     }

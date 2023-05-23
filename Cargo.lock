@@ -1827,8 +1827,7 @@ dependencies = [
 [[package]]
 name = "near-cli-rs"
 version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00603bb7f00787674318e85ad4087b15d8099a0383007162f937997bc52fe173"
+source = "git+https://github.com/near/near-cli-rs?rev=6b2f989786b0e6e46559e63573752cd11e358d04#6b2f989786b0e6e46559e63573752cd11e358d04"
 dependencies = [
  "base64 0.13.1",
  "bip39",

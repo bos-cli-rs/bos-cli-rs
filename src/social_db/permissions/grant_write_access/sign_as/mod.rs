@@ -143,7 +143,7 @@ impl Signer {
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {
         loop {
             let signer_account_id: near_cli_rs::types::account_id::AccountId =
-                CustomType::new(" What is the signer account ID?").prompt()?;
+                CustomType::new("What is the signer account ID?").prompt()?;
             if !near_cli_rs::common::is_account_exist(
                 &context.config.network_connection,
                 signer_account_id.clone().into(),

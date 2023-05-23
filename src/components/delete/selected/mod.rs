@@ -37,7 +37,7 @@ impl Selected {
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::vec_string::VecString>> {
         loop {
             let input_components: near_cli_rs::types::vec_string::VecString =
-                CustomType::new("Enter a comma-separated list of components to remove: ")
+                CustomType::new("Enter a comma-separated list of components to remove:")
                     .prompt()?;
             if input_components.0.is_empty() {
                 continue;

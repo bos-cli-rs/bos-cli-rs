@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.1...v0.3.2) - 2023-05-24
+
+### Added
+- New command to delete components (#35)
+- New command to grant access permission to SocialDB keys (#34)
+
+### Fixed
+- Trimmed extra space at the beginning of a line in interactive queries (#39) (#40)
+- fixed consts
+
+### Other
+- Added test and release-plz workflows to CI (#41)
+- Fixed the link in the GitHub Actions snippet to point to `master` branch
+- Merge pull request #33 from FroVolod/update-near-library
+- rustup update: 1.68.2
+- updated near-cli-rs
+- Updated reusable GitHub Actions Workflow to use bos-cli 0.3.1 version by default
+
 ## [0.3.1] - 2023-04-28
 
 Fixes:

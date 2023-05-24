@@ -3,8 +3,6 @@ use std::str::FromStr;
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use near_cli_rs::common::{CallResultExt, JsonRpcClientExt};
 
-mod sign_as;
-
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = crate::GlobalContext)]
 #[interactive_clap(output_context = DeleteContext)]
@@ -12,12 +10,12 @@ pub struct Delete {
     /// For which key do you want to delete information?
     key: String,
     #[interactive_clap(named_arg)]
-    /// Select network
-    sign_as: self::sign_as::Signer,
+    /// Specify signer account ID
+    sign_as: super::sign_as::Signer,
 }
 
 #[derive(Clone)]
-pub struct DeleteContext(self::sign_as::PreparedSignerContext);
+pub struct DeleteContext(super::sign_as::PreparedSignerContext);
 
 impl DeleteContext {
     pub fn from_previous_context(
@@ -27,7 +25,7 @@ impl DeleteContext {
         let account_id = near_cli_rs::types::account_id::AccountId::from_str(
             scope.key.split('/').map(|s| s.trim()).collect::<Vec<_>>()[0],
         )?;
-        
+
         let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = std::sync::Arc::new({
             let signer_id = account_id.clone();
             let key = scope.key.clone();
@@ -93,10 +91,7 @@ impl DeleteContext {
             }
         });
 
-
-
-
-        Ok(Self(sign_as::PreparedSignerContext {
+        Ok(Self(super::sign_as::PreparedSignerContext {
             config: previous_context.0,
             account_id,
             on_after_getting_network_callback,
@@ -111,7 +106,7 @@ impl DeleteContext {
     }
 }
 
-impl From<DeleteContext> for sign_as::PreparedSignerContext {
+impl From<DeleteContext> for super::sign_as::PreparedSignerContext {
     fn from(item: DeleteContext) -> Self {
         item.0
     }

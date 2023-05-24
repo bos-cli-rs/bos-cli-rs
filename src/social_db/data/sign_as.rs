@@ -1,8 +1,4 @@
-use std::str::FromStr;
-
-use color_eyre::eyre::{ContextCompat, WrapErr};
 use inquire::{CustomType, Select};
-use near_cli_rs::common::{CallResultExt, JsonRpcClientExt};
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = PreparedSignerContext)]
@@ -25,26 +21,23 @@ impl SignerContext {
         scope: &<Signer as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         let signer_account_id = scope.signer_account_id.clone();
-        let on_refine_prepopulated_transaction_callback: near_cli_rs::commands::OnRefinePrepopulatedTransactionCallback =
-            std::sync::Arc::new({
-                move |prepopulated_transaction, _network_config| {
-                    prepopulated_transaction.signer_id = signer_account_id.clone().into();
-                    Ok(())
-                }
+
+        let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = std::sync::Arc::new(
+            move |network_config| {
+                let mut prepopulated_transaction = (previous_context.on_after_getting_network_callback)(network_config)?;
+                prepopulated_transaction.signer_id = signer_account_id.clone().into();
+                Ok(prepopulated_transaction)
             });
-        
-        
+
         Ok(Self(near_cli_rs::commands::ActionContext {
             config: previous_context.config,
-            on_after_getting_network_callback: previous_context.on_after_getting_network_callback,
-            on_refine_prepopulated_transaction_callback,
-            on_before_signing_callback: std::sync::Arc::new(
-                |_transaction, _network_config| Ok(()),
-            ),
+            on_after_getting_network_callback,
+            on_before_signing_callback: std::sync::Arc::new(|_transaction, _network_config| Ok(())),
             on_before_sending_transaction_callback: std::sync::Arc::new(
                 |_signed_transaction, _network_config, _message| Ok(()),
             ),
-            on_after_sending_transaction_callback: previous_context.on_after_sending_transaction_callback,
+            on_after_sending_transaction_callback: previous_context
+                .on_after_sending_transaction_callback,
         }))
     }
 }

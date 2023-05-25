@@ -30,7 +30,7 @@ impl SignerContext {
         let set_to_account_id: near_primitives::types::AccountId =
             previous_context.set_to_account_id.clone().into();
         let signer_id: near_primitives::types::AccountId = scope.signer_account_id.clone().into();
-        let data_to_set = serde_json::Value::String(previous_context.function_args.clone());
+        // let mut data_to_set = serde_json::Value::String(previous_context.function_args.clone());
 
 
         let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = Arc::new({
@@ -49,6 +49,8 @@ impl SignerContext {
                     actions: vec![],
                 };
 
+                let mut data_to_set = serde_json::Value::String(function_args.clone());
+
                 let input_args = serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
                     keys: vec![format!("{key}")],
                 })
@@ -65,14 +67,15 @@ impl SignerContext {
                     .wrap_err("Failed to fetch the components from SocialDB")?
                     .parse_result_from_json()
                     .wrap_err("SocialDB `get` data response cannot be parsed")?;
-                if remote_social_db_data_to_set.as_object().map(|result| result.is_empty()).unwrap_or(true) { //XXX
-                    println!("No keys to remove. Goodbye.");
-                    return Ok(near_cli_rs::commands::PrepopulatedTransaction {
-                        signer_id: signer_id.clone().into(),
-                        receiver_id: near_social_account_id.clone(),
-                        actions: vec![],
-                    });
-                }
+                println!("*** remote_social_db_data_to_set: {:#?}", remote_social_db_data_to_set);
+                // if remote_social_db_data_to_set.as_object().map(|result| result.is_empty()).unwrap_or(true) { //XXX
+                //     println!("No keys to remove. Goodbye.");
+                //     return Ok(near_cli_rs::commands::PrepopulatedTransaction {
+                //         signer_id: signer_id.clone().into(),
+                //         receiver_id: near_social_account_id.clone(),
+                //         actions: vec![],
+                //     });
+                // }
 
 
 
@@ -82,13 +85,11 @@ impl SignerContext {
                 //     function_args_type.clone(),
                 // )?;
 
-                let mut data = serde_json::Map::new();
-                crate::common::social_db_data_from_key(&mut data, key.clone(), data_to_set.clone());
-
-                let social_db_data_to_set = serde_json::Value::Object(data);
+                crate::common::social_db_data_from_key(key.clone(), &mut data_to_set);
 
 
 
+                    println!("+++++ data_to_set: {:#?}", data_to_set);
                 
                 // let data_to_set_value: serde_json::Value = serde_json::from_slice(&data_to_set).wrap_err_with(|| {
                 //     format!(
@@ -172,12 +173,14 @@ impl SignerContext {
                     near_primitives::transaction::Action::FunctionCall(
                         near_primitives::transaction::FunctionCallAction {
                             method_name: "set".to_string(),
-                            args: vec![],
+                            args: serde_json::json!({
+                                "data": data_to_set
+                            }).to_string().into_bytes(),
                             gas: near_cli_rs::common::NearGas::from_str("300 TeraGas")
                                 .unwrap()
                                 .inner,
                             // deposit: deposit.to_yoctonear(),
-                            deposit: near_cli_rs::common::NearBalance::from_yoctonear(0).to_yoctonear()
+                            deposit: near_cli_rs::common::NearBalance::from_yoctonear(1).to_yoctonear()
                         },
                     )
                 ];

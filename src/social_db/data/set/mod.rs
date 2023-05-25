@@ -9,7 +9,7 @@ mod sign_as;
 #[interactive_clap(input_context = crate::GlobalContext)]
 #[interactive_clap(output_context = SetContext)]
 pub struct Set {
-    /// For which key do you want to delete information?
+    /// For which key do you want to set information?
     key: String,
     #[interactive_clap(value_enum)]
     #[interactive_clap(skip_default_input_arg)]
@@ -70,10 +70,8 @@ impl SetContext {
                 // })?;
                 
 
-                let mut data = serde_json::Map::new();
-                crate::common::social_db_data_from_key(&mut data, key.clone(), data_to_set.clone());
+                crate::common::social_db_data_from_key(key.clone(), &mut data_to_set.clone());
 
-                let social_db_data_to_set = serde_json::Value::Object(data);
 
                 Ok(near_cli_rs::commands::PrepopulatedTransaction {
                     signer_id: signer_id.clone().into(),
@@ -82,7 +80,7 @@ impl SetContext {
                         near_primitives::transaction::FunctionCallAction {
                             method_name: "set".to_string(),
                             args: serde_json::json!({
-                                "data": social_db_data_to_set
+                                "data": data_to_set
                             }).to_string().into_bytes(),
                             gas: near_cli_rs::common::NearGas::from_str("300 TeraGas")
                                 .unwrap()

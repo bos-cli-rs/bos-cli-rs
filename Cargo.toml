@@ -44,7 +44,8 @@ interactive-clap-derive = "0.2.1"
 
 console = "0.15.5"
 
-near-cli-rs = "0.4.1"
+# near-cli-rs = "0.4.1"
+near-cli-rs = { path = "../near-cli-rs-15/near-cli-rs" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 security-framework = "2.7.0"

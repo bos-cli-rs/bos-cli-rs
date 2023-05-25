@@ -320,3 +320,15 @@ pub fn mark_leaf_values_as_null(data: &mut serde_json::Value) {
         }
     }
 }
+
+pub fn social_db_data_from_key(data: &mut serde_json::Map<String, serde_json::Value>, key: String, data_to_set: serde_json::Value) {
+    if let Some(k) = key.rsplit_once('/') {
+        data.insert(k.0.to_string().clone(), data_to_set);
+        let data_to_set = data[k.0].clone();
+        let key = k.1.to_string();
+        social_db_data_from_key(data, key, data_to_set)
+    } else {
+        data.insert(key, data_to_set);
+    }
+    println!("**** data: {:#?}", data);
+}

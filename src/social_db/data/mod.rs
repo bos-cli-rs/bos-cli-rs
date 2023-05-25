@@ -1,6 +1,7 @@
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
 mod delete;
+mod set;
 mod sign_as;
 mod view;
 
@@ -23,7 +24,7 @@ pub enum DataCommand {
         message = "set      -   Adding or updating information by a given key"
     ))]
     /// Adding or updating information by a given key
-    Set,
+    Set(self::set::Set),
     #[strum_discriminants(strum(message = "delete   -   Deleting information by a given key"))]
     /// Deleting information by a given key
     Delete(self::delete::Delete),

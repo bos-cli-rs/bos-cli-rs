@@ -34,6 +34,8 @@ glob = "0.3.1"
 lazy_static = "1.4.0"
 linked-hash-map = "0.5.6"
 
+base64 = "0.13"
+
 near-crypto = "0.16.1"
 near-primitives = "0.16.1"
 near-jsonrpc-client = "0.5.1"
@@ -44,8 +46,7 @@ interactive-clap-derive = "0.2.1"
 
 console = "0.15.5"
 
-# near-cli-rs = "0.4.1"
-near-cli-rs = { path = "../near-cli-rs-15/near-cli-rs" }
+near-cli-rs = "0.4.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 security-framework = "2.7.0"

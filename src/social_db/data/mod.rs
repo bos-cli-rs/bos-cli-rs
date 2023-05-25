@@ -2,7 +2,6 @@ use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
 mod delete;
 mod set;
-mod sign_as;
 mod view;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]

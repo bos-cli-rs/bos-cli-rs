@@ -1,6 +1,6 @@
 use inquire::{CustomType, Select};
 
-mod deploy_args;
+mod sign_as;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TransactionFunctionArgs {
@@ -16,7 +16,7 @@ pub struct DeployToAccount {
     deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
     #[interactive_clap(named_arg)]
     /// Specify signer account ID
-    sign_as: self::deploy_args::Signer,
+    sign_as: self::sign_as::Signer,
 }
 
 #[derive(Clone)]

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::str::FromStr;
 
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use console::{style, Style};
@@ -195,6 +196,77 @@ pub fn get_access_key_permission(
     Ok(permission)
 }
 
+pub fn get_deposit(
+    network_config: &near_cli_rs::config::NetworkConfig,
+    signer_account_id: &near_primitives::types::AccountId,
+    signer_public_key: &near_crypto::PublicKey,
+    deploy_to_account_id: &near_primitives::types::AccountId,
+    key: &str,
+    near_social_account_id: &near_primitives::types::AccountId,
+    required_deposit: near_cli_rs::common::NearBalance,
+) -> color_eyre::eyre::Result<near_cli_rs::common::NearBalance> {
+    let signer_access_key_permission = crate::common::get_access_key_permission(
+        network_config,
+        signer_account_id,
+        signer_public_key,
+    )?;
+
+    let is_signer_access_key_full_access = matches!(
+        signer_access_key_permission,
+        near_primitives::views::AccessKeyPermissionView::FullAccess
+    );
+
+    let is_write_permission_granted_to_public_key = crate::common::is_write_permission_granted(
+        network_config,
+        near_social_account_id,
+        signer_public_key.clone(),
+        format!("{deploy_to_account_id}/{key}"),
+    )?;
+
+    let is_write_permission_granted_to_signer = crate::common::is_write_permission_granted(
+        network_config,
+        near_social_account_id,
+        signer_account_id.clone(),
+        format!("{deploy_to_account_id}/{key}"),
+    )?;
+
+    let deposit = if is_signer_access_key_full_access
+        || crate::common::is_signer_access_key_function_call_access_can_call_set_on_social_db_account(
+            near_social_account_id,
+            &signer_access_key_permission
+        )?
+    {
+        if is_write_permission_granted_to_public_key || is_write_permission_granted_to_signer {
+            if required_deposit.is_zero()
+            {
+                near_cli_rs::common::NearBalance::from_str("0 NEAR").unwrap()
+            } else if is_signer_access_key_full_access {
+                required_deposit
+            } else {
+                color_eyre::eyre::bail!("ERROR: Social DB requires more storage deposit, but we cannot cover it when signing transaction with a Function Call only access key")
+            }
+        } else if signer_account_id == deploy_to_account_id {
+            if is_signer_access_key_full_access {
+                if required_deposit.is_zero()
+                {
+                    near_cli_rs::common::NearBalance::from_str("1 yoctoNEAR").unwrap()
+                } else {
+                    required_deposit
+                }
+            } else {
+                color_eyre::eyre::bail!("ERROR: Social DB requires more storage deposit, but we cannot cover it when signing transaction with a Function Call only access key")
+            }
+        } else {
+            color_eyre::eyre::bail!(
+                "ERROR: the signer is not allowed to modify the components of this account_id."
+            )
+        }
+    } else {
+        color_eyre::eyre::bail!("ERROR: signer access key cannot be used to sign a transaction to update components in Social DB.")
+    };
+    Ok(deposit)
+}
+
 pub fn required_deposit(
     network_config: &near_cli_rs::config::NetworkConfig,
     near_social_account_id: &near_primitives::types::AccountId,
@@ -321,16 +393,12 @@ pub fn mark_leaf_values_as_null(data: &mut serde_json::Value) {
     }
 }
 
-pub fn social_db_data_from_key(key: String, data_to_set: &mut serde_json::Value) {
-    if let Some(k) = key.rsplit_once('/') {
-        *data_to_set = serde_json::json!({
-            k.1.to_string(): data_to_set
-        });
-        let key = k.0.to_string();
-        social_db_data_from_key(key, data_to_set)
+pub fn social_db_data_from_key(full_key: &str, data_to_set: &mut serde_json::Value) {
+    if let Some((prefix, key)) = full_key.rsplit_once('/') {
+        *data_to_set = serde_json::json!({ key.to_string(): data_to_set });
+        let full_key = prefix;
+        social_db_data_from_key(full_key, data_to_set)
     } else {
-        *data_to_set = serde_json::json!({
-            key: data_to_set
-        });
+        *data_to_set = serde_json::json!({ full_key: data_to_set });
     }
 }

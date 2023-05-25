@@ -171,11 +171,12 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     if let near_primitives::transaction::Action::FunctionCall(action) =
                         &mut prepopulated_unsigned_transaction.actions[0]
                     {
-                        action.deposit = get_deposit(
+                        action.deposit = crate::common::get_deposit(
                             network_config,
                             &signer_account_id,
                             &prepopulated_unsigned_transaction.public_key,
                             &deploy_to_account_id,
+                            "widget",
                             &prepopulated_unsigned_transaction.receiver_id,
                             near_cli_rs::common::NearBalance::from_yoctonear(action.deposit),
                         )?
@@ -265,76 +266,6 @@ impl Signer {
             }
         }
     }
-}
-
-fn get_deposit(
-    network_config: &near_cli_rs::config::NetworkConfig,
-    signer_account_id: &near_primitives::types::AccountId,
-    signer_public_key: &near_crypto::PublicKey,
-    deploy_to_account_id: &near_primitives::types::AccountId,
-    near_social_account_id: &near_primitives::types::AccountId,
-    required_deposit: near_cli_rs::common::NearBalance,
-) -> color_eyre::eyre::Result<near_cli_rs::common::NearBalance> {
-    let signer_access_key_permission = crate::common::get_access_key_permission(
-        network_config,
-        signer_account_id,
-        signer_public_key,
-    )?;
-
-    let is_signer_access_key_full_access = matches!(
-        signer_access_key_permission,
-        near_primitives::views::AccessKeyPermissionView::FullAccess
-    );
-
-    let is_write_permission_granted_to_public_key = crate::common::is_write_permission_granted(
-        network_config,
-        near_social_account_id,
-        signer_public_key.clone(),
-        format!("{deploy_to_account_id}/widget"),
-    )?;
-
-    let is_write_permission_granted_to_signer = crate::common::is_write_permission_granted(
-        network_config,
-        near_social_account_id,
-        signer_account_id.clone(),
-        format!("{deploy_to_account_id}/widget"),
-    )?;
-
-    let deposit = if is_signer_access_key_full_access
-        || crate::common::is_signer_access_key_function_call_access_can_call_set_on_social_db_account(
-            near_social_account_id,
-            &signer_access_key_permission
-        )?
-    {
-        if is_write_permission_granted_to_public_key || is_write_permission_granted_to_signer {
-            if required_deposit.is_zero()
-            {
-                near_cli_rs::common::NearBalance::from_str("0 NEAR").unwrap()
-            } else if is_signer_access_key_full_access {
-                required_deposit
-            } else {
-                color_eyre::eyre::bail!("ERROR: Social DB requires more storage deposit, but we cannot cover it when signing transaction with a Function Call only access key")
-            }
-        } else if signer_account_id == deploy_to_account_id {
-            if is_signer_access_key_full_access {
-                if required_deposit.is_zero()
-                {
-                    near_cli_rs::common::NearBalance::from_str("1 yoctoNEAR").unwrap()
-                } else {
-                    required_deposit
-                }
-            } else {
-                color_eyre::eyre::bail!("ERROR: Social DB requires more storage deposit, but we cannot cover it when signing transaction with a Function Call only access key")
-            }
-        } else {
-            color_eyre::eyre::bail!(
-                "ERROR: signer is not allowed to modify deploy_to_account_id components."
-            )
-        }
-    } else {
-        color_eyre::eyre::bail!("ERROR: signer access key cannot be used to sign a transaction to update components in Social DB.")
-    };
-    Ok(deposit)
 }
 
 async fn get_components(

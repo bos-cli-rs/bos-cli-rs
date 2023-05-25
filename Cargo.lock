@@ -301,6 +301,7 @@ dependencies = [
 name = "bos-cli"
 version = "0.3.1"
 dependencies = [
+ "base64 0.13.1",
  "clap 4.1.1",
  "color-eyre",
  "console",
@@ -1827,6 +1828,8 @@ dependencies = [
 [[package]]
 name = "near-cli-rs"
 version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00603bb7f00787674318e85ad4087b15d8099a0383007162f937997bc52fe173"
 dependencies = [
  "base64 0.13.1",
  "bip39",

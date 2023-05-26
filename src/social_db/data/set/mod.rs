@@ -2,7 +2,6 @@ use std::str::FromStr;
 
 use color_eyre::eyre::ContextCompat;
 
-mod call_function_args_type;
 mod function_args;
 mod sign_as;
 
@@ -13,7 +12,7 @@ pub struct Set {
     /// For which key do you want to set information?
     key: String,
     #[interactive_clap(subcommand)]
-    function_args_type: self::call_function_args_type::FunctionArgsType,
+    function_args_type: self::function_args::FunctionArgsType,
 }
 
 #[derive(Clone)]

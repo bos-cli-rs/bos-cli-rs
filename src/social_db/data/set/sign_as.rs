@@ -6,7 +6,7 @@ use near_cli_rs::common::{CallResultExt, JsonRpcClientExt};
 use std::sync::Arc;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = super::SetContext)]
+#[interactive_clap(input_context = super::function_args::FunctionArgsContext)]
 #[interactive_clap(output_context = SignerContext)]
 pub struct Signer {
     #[interactive_clap(skip_default_input_arg)]
@@ -22,7 +22,7 @@ pub struct SignerContext(near_cli_rs::commands::ActionContext);
 
 impl SignerContext {
     pub fn from_previous_context(
-        previous_context: super::SetContext,
+        previous_context: super::function_args::FunctionArgsContext,
         scope: &<Signer as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         let set_to_account_id: near_primitives::types::AccountId =
@@ -34,7 +34,7 @@ impl SignerContext {
             let signer_id = signer_id.clone();
             let set_to_account_id = set_to_account_id.clone();
             let function_args = previous_context.function_args.clone();
-            let function_args_type = previous_context.function_args_type.clone();
+            let function_args_type = previous_context.function_args_type;
 
             move |network_config| {
                 let near_social_account_id = crate::consts::NEAR_SOCIAL_ACCOUNT_ID.get(network_config.network_name.as_str())
@@ -64,9 +64,9 @@ impl SignerContext {
                         Some(&remote_social_db_data_for_key)
                     };
 
-                let mut social_db_data_to_set = super::call_function_args_type::function_args(
+                let mut social_db_data_to_set = super::call_function_args_type::get_value_from_function_args(
                     function_args.clone(),
-                    function_args_type.clone(),
+                    function_args_type,
                 )?;
 
                 crate::common::social_db_data_from_key(&key, &mut social_db_data_to_set);
@@ -155,7 +155,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
 impl Signer {
     fn input_signer_account_id(
-        context: &super::SetContext,
+        context: &super::function_args::FunctionArgsContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {
         loop {
             let signer_account_id: near_cli_rs::types::account_id::AccountId =

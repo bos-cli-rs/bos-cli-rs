@@ -1,10 +1,11 @@
 use std::str::FromStr;
 
 use color_eyre::eyre::Context;
-use inquire::Select;
-use strum::{EnumDiscriminants, EnumIter, EnumMessage, IntoEnumIterator};
+use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
-#[derive(Debug, EnumDiscriminants, Clone, clap::ValueEnum)]
+#[derive(Debug, EnumDiscriminants, Clone, interactive_clap::InteractiveClap)]
+#[interactive_clap(input_context = super::SetContext)]
+#[interactive_clap(output_context = FunctionArgsTypeContext)]
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
 /// How do you want to pass the function call arguments?
 pub enum FunctionArgsType {
@@ -12,90 +13,60 @@ pub enum FunctionArgsType {
         message = "with-json        - Valid JSON arguments (e.g. {\"token_id\": \"42\"})"
     ))]
     /// Valid JSON arguments (e.g. {"token_id": "42"})
-    WithJson,
+    WithJson(super::function_args::FunctionArgs),
     #[strum_discriminants(strum(message = "text-args        - Arbitrary text arguments"))]
     /// Arbitrary text arguments
-    WithText,
+    WithText(super::function_args::FunctionArgs),
     #[strum_discriminants(strum(
         message = "with-json-file   - Reading from a reusable text file"
     ))]
     /// Reading from a reusable text file
-    WithJsonFile,
+    WithJsonFile(super::function_args::FunctionArgs),
     #[strum_discriminants(strum(
         message = "with-text-file   - Reading from a reusable JSON file"
     ))]
     /// Reading from a reusable JSON file
-    WithTextFile,
+    WithTextFile(super::function_args::FunctionArgs),
 }
 
-impl interactive_clap::ToCli for FunctionArgsType {
-    type CliVariant = FunctionArgsType;
+#[derive(Clone)]
+pub struct FunctionArgsTypeContext {
+    pub config: near_cli_rs::config::Config,
+    pub set_to_account_id: near_cli_rs::types::account_id::AccountId,
+    pub key: String,
+    pub function_args_type: FunctionArgsTypeDiscriminants,
 }
 
-impl std::str::FromStr for FunctionArgsType {
-    type Err = String;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "with-json" => Ok(Self::WithJson),
-            "with-text" => Ok(Self::WithText),
-            "with-json-file" => Ok(Self::WithJsonFile),
-            "with-text-file" => Ok(Self::WithTextFile),
-            _ => Err("FunctionArgsType: incorrect value entered".to_string()),
-        }
+impl FunctionArgsTypeContext {
+    pub fn from_previous_context(
+        previous_context: super::SetContext,
+        scope: &<FunctionArgsType as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
+    ) -> color_eyre::eyre::Result<Self> {
+        Ok(Self {
+            config: previous_context.config,
+            set_to_account_id: previous_context.set_to_account_id,
+            key: previous_context.key,
+            function_args_type: *scope,
+        })
     }
 }
 
-impl std::fmt::Display for FunctionArgsType {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Self::WithJson => write!(f, "with-json"),
-            Self::WithText => write!(f, "with-text"),
-            Self::WithJsonFile => write!(f, "with-json-file"),
-            Self::WithTextFile => write!(f, "with-text-file"),
-        }
-    }
-}
-
-impl std::fmt::Display for FunctionArgsTypeDiscriminants {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Self::WithJson => write!(f, "with-json"),
-            Self::WithText => write!(f, "with-text"),
-            Self::WithJsonFile => write!(f, "with-json-file"),
-            Self::WithTextFile => write!(f, "with-text-file"),
-        }
-    }
-}
-
-pub fn input_function_args_type() -> color_eyre::eyre::Result<Option<FunctionArgsType>> {
-    let variants = FunctionArgsTypeDiscriminants::iter().collect::<Vec<_>>();
-    let selected = Select::new("How would you like to proceed?", variants).prompt()?;
-    match selected {
-        FunctionArgsTypeDiscriminants::WithJson => Ok(Some(FunctionArgsType::WithJson)),
-        FunctionArgsTypeDiscriminants::WithText => Ok(Some(FunctionArgsType::WithText)),
-        FunctionArgsTypeDiscriminants::WithJsonFile => Ok(Some(FunctionArgsType::WithJsonFile)),
-        FunctionArgsTypeDiscriminants::WithTextFile => Ok(Some(FunctionArgsType::WithTextFile)),
-    }
-}
-
-pub fn function_args(
+pub fn get_value_from_function_args(
     args: String,
-    function_args_type: FunctionArgsType,
+    function_args_type: FunctionArgsTypeDiscriminants,
 ) -> color_eyre::eyre::Result<serde_json::Value> {
     match function_args_type {
-        super::call_function_args_type::FunctionArgsType::WithJson => {
+        FunctionArgsTypeDiscriminants::WithJson => {
             Ok(serde_json::Value::from_str(&args).wrap_err("Data not in JSON format!")?)
         }
-        super::call_function_args_type::FunctionArgsType::WithText => {
-            Ok(serde_json::Value::String(args))
-        }
-        super::call_function_args_type::FunctionArgsType::WithJsonFile => {
+        FunctionArgsTypeDiscriminants::WithText => Ok(serde_json::Value::String(args)),
+        FunctionArgsTypeDiscriminants::WithJsonFile => {
             let data_path = std::path::PathBuf::from(args);
             let data = std::fs::read(&data_path)
                 .wrap_err_with(|| format!("Access to data file <{:?}> not found!", &data_path))?;
             Ok(serde_json::from_slice(&data).wrap_err("Data not in JSON format!")?)
         }
-        super::call_function_args_type::FunctionArgsType::WithTextFile => {
+        FunctionArgsTypeDiscriminants::WithTextFile => {
             let data_path = std::path::PathBuf::from(args);
             let data = std::fs::read_to_string(&data_path)
                 .wrap_err_with(|| format!("Access to data file <{:?}> not found!", &data_path))?;

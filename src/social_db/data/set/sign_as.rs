@@ -6,7 +6,7 @@ use near_cli_rs::common::{CallResultExt, JsonRpcClientExt};
 use std::sync::Arc;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = super::function_args::ArgsContext)]
+#[interactive_clap(input_context = super::data::DataContext)]
 #[interactive_clap(output_context = SignerContext)]
 pub struct Signer {
     #[interactive_clap(skip_default_input_arg)]
@@ -22,7 +22,7 @@ pub struct SignerContext(near_cli_rs::commands::ActionContext);
 
 impl SignerContext {
     pub fn from_previous_context(
-        previous_context: super::function_args::ArgsContext,
+        previous_context: super::data::DataContext,
         scope: &<Signer as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         let set_to_account_id: near_primitives::types::AccountId =
@@ -150,7 +150,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
 impl Signer {
     fn input_signer_account_id(
-        context: &super::function_args::ArgsContext,
+        context: &super::data::DataContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {
         loop {
             let signer_account_id: near_cli_rs::types::account_id::AccountId =

@@ -1,8 +1,8 @@
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = super::super::SetContext)]
-#[interactive_clap(output_context = FunctionArgsContext)]
-pub struct FunctionArgs {
-    /// Enter the arguments to this function:
+#[interactive_clap(output_context = JsonDataContext)]
+pub struct JsonData {
+    /// Enter the data to set to the key (e.g. {\"token_id\": \"42\"}):
     args: near_cli_rs::types::json::Json,
     #[interactive_clap(named_arg)]
     /// Specify signer account ID
@@ -10,14 +10,14 @@ pub struct FunctionArgs {
 }
 
 #[derive(Clone)]
-pub struct FunctionArgsContext(super::ArgsContext);
+pub struct JsonDataContext(super::DataContext);
 
-impl FunctionArgsContext {
+impl JsonDataContext {
     pub fn from_previous_context(
         previous_context: super::super::SetContext,
-        scope: &<FunctionArgs as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
+        scope: &<JsonData as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
-        Ok(Self(super::ArgsContext {
+        Ok(Self(super::DataContext {
             config: previous_context.config,
             set_to_account_id: previous_context.set_to_account_id,
             key: previous_context.key,
@@ -26,8 +26,8 @@ impl FunctionArgsContext {
     }
 }
 
-impl From<FunctionArgsContext> for super::ArgsContext {
-    fn from(item: FunctionArgsContext) -> Self {
+impl From<JsonDataContext> for super::DataContext {
+    fn from(item: JsonDataContext) -> Self {
         item.0
     }
 }

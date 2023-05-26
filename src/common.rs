@@ -395,9 +395,8 @@ pub fn mark_leaf_values_as_null(data: &mut serde_json::Value) {
 
 pub fn social_db_data_from_key(full_key: &str, data_to_set: &mut serde_json::Value) {
     if let Some((prefix, key)) = full_key.rsplit_once('/') {
-        *data_to_set = serde_json::json!({ key.to_string(): data_to_set });
-        let full_key = prefix;
-        social_db_data_from_key(full_key, data_to_set)
+        *data_to_set = serde_json::json!({ key: data_to_set });
+        social_db_data_from_key(prefix, data_to_set)
     } else {
         *data_to_set = serde_json::json!({ full_key: data_to_set });
     }

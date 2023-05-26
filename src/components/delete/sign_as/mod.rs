@@ -82,7 +82,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         actions: vec![],
                     });
                 }
-                mark_leaf_values_as_null(&mut social_db_data_to_remove);
+                crate::common::mark_leaf_values_as_null(&mut social_db_data_to_remove);
 
                 Ok(near_cli_rs::commands::PrepopulatedTransaction {
                     signer_id: signer_id.clone(),
@@ -162,20 +162,6 @@ impl Signer {
             } else {
                 return Ok(Some(signer_account_id));
             }
-        }
-    }
-}
-
-/// Helper function that marks SocialDB values to be deleted by setting `null` to the values
-fn mark_leaf_values_as_null(data: &mut serde_json::Value) {
-    match data {
-        serde_json::Value::Object(object_data) => {
-            for value in object_data.values_mut() {
-                mark_leaf_values_as_null(value);
-            }
-        }
-        data => {
-            *data = serde_json::Value::Null;
         }
     }
 }

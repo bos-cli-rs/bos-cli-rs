@@ -21,10 +21,11 @@ impl FunctionArgsContext {
         previous_context: super::super::SetContext,
         scope: &<FunctionArgs as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
-        let data = std::fs::read(&scope.path.0)
+        let file = std::fs::File::open(&scope.path.0)
             .wrap_err_with(|| format!("Access to data file <{:?}> not found!", scope.path))?;
+        let reader = std::io::BufReader::new(file);
         let value: serde_json::Value =
-            serde_json::from_slice(&data).wrap_err("File data is not in JSON format!")?;
+            serde_json::from_reader(reader).wrap_err("File data is not in JSON format!")?;
         Ok(Self(super::ArgsContext {
             config: previous_context.config,
             set_to_account_id: previous_context.set_to_account_id,
@@ -47,9 +48,14 @@ impl FunctionArgs {
         loop {
             let path: near_cli_rs::types::path_buf::PathBuf =
                 CustomType::new("Enter the path to the arguments file:").prompt()?;
-            let data = std::fs::read(&path.0);
-            if let Ok(result) = data {
-                if serde_json::from_slice::<serde_json::Value>(&result).is_err() {
+            let file_result = std::fs::File::open(&path.0);
+            if let Ok(file) = file_result {
+                let reader = std::io::BufReader::new(file);
+                if serde_json::from_reader::<std::io::BufReader<std::fs::File>, serde_json::Value>(
+                    reader,
+                )
+                .is_err()
+                {
                     println!("File data is not in JSON format!");
                 } else {
                     return Ok(Some(path));

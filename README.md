@@ -15,6 +15,12 @@ Currently, only two groups of commands are implemented:
 
 ### socialdb    -   SocialDb management
 
+#### data              -   Data management: viewing, adding, updating, deleting information by a given key
+
+- `view` allows you to view information by a given key.
+- `set` allows you to add or update information by a given key.
+- `delete` allows you to delete information by the specified key.
+
 #### prepaid-storage   -   Storage management: deposit, withdrawal, balance review
 
 - `view-balance` allows you to view the storage balance for an account.

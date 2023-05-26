@@ -25,7 +25,12 @@ impl DeleteContext {
         scope: &<Delete as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         let account_id = near_cli_rs::types::account_id::AccountId::from_str(
-            scope.key.split('/').map(|s| s.trim()).collect::<Vec<_>>()[0],
+            scope
+                .key
+                .split_once('/')
+                .wrap_err("Failed to parse account_id from this key")?
+                .0
+                .trim(),
         )?;
 
         let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = std::sync::Arc::new({

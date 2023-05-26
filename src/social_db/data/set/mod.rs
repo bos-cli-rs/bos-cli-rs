@@ -1,5 +1,7 @@
 use std::str::FromStr;
 
+use color_eyre::eyre::ContextCompat;
+
 mod call_function_args_type;
 mod function_args;
 mod sign_as;
@@ -29,7 +31,12 @@ impl SetContext {
         Ok(Self {
             config: previous_context.0,
             set_to_account_id: near_cli_rs::types::account_id::AccountId::from_str(
-                scope.key.split('/').map(|s| s.trim()).collect::<Vec<_>>()[0],
+                scope
+                    .key
+                    .split_once('/')
+                    .wrap_err("Failed to parse account_id from this key")?
+                    .0
+                    .trim(),
             )?,
             key: scope.key.clone(),
         })

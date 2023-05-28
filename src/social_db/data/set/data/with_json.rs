@@ -1,7 +1,10 @@
+use inquire::CustomType;
+
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = super::super::SetContext)]
 #[interactive_clap(output_context = JsonDataContext)]
 pub struct JsonData {
+    #[interactive_clap(skip_default_input_arg)]
     /// Enter the data to set to the key (e.g. {\"token_id\": \"42\"}):
     args: near_cli_rs::types::json::Json,
     #[interactive_clap(named_arg)]
@@ -29,5 +32,16 @@ impl JsonDataContext {
 impl From<JsonDataContext> for super::DataContext {
     fn from(item: JsonDataContext) -> Self {
         item.0
+    }
+}
+
+impl JsonData {
+    fn input_args(
+        _context: &super::super::SetContext,
+    ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::json::Json>> {
+        let args: near_cli_rs::types::json::Json =
+            CustomType::new("Enter the data to set to the key (e.g. {\"token_id\": \"42\"}):")
+                .prompt()?;
+        Ok(Some(args))
     }
 }

@@ -9,7 +9,7 @@ mod sign_as;
 #[interactive_clap(input_context = crate::GlobalContext)]
 #[interactive_clap(output_context = SetContext)]
 pub struct Set {
-    /// For which key do you want to set information?
+    /// Enter SocialDB key path to set the value (e.g. root.near/profile/name):
     key: String,
     #[interactive_clap(subcommand)]
     data_type: self::data::DataType,

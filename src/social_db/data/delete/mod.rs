@@ -9,7 +9,7 @@ mod sign_as;
 #[interactive_clap(input_context = crate::GlobalContext)]
 #[interactive_clap(output_context = DeleteContext)]
 pub struct Delete {
-    /// For which key do you want to delete information?
+    /// Enter SocialDB key path to delete data (e.g. root.near/profile/image):
     key: String,
     #[interactive_clap(named_arg)]
     /// Specify signer account ID

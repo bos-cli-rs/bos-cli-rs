@@ -5,7 +5,7 @@ use near_cli_rs::common::{CallResultExt, JsonRpcClientExt};
 #[interactive_clap(input_context = crate::GlobalContext)]
 #[interactive_clap(output_context = ViewContext)]
 pub struct View {
-    /// For which key do you want to view information?
+    /// Enter SocialDB key path to view (e.g. root.near/profile/**):
     key: String,
     #[interactive_clap(named_arg)]
     /// Select network

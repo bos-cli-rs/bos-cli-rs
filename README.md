@@ -57,7 +57,7 @@ This repo contains a reusable workflow which you can directly leverage from your
 
    It is recommended to use a dedicated function-call-only access key, so you need to:
 
-   1.1. Add a new access key to your account. Here is [near CLI](https://near.cli.rs) command to do that:
+   1.1. Add a new access key to your account, explicitly adding permissions to call the `set` method. Here is [near CLI](https://near.cli.rs) command to do that:
 
    ```bash
    near account add-key "ACCOUNT_ID" grant-function-call-access --allowance '1 NEAR' --receiver-account-id social.near --method-names 'set' autogenerate-new-keypair print-to-terminal network-config mainnet
@@ -68,7 +68,10 @@ This repo contains a reusable workflow which you can directly leverage from your
    near contract call-function as-transaction social.near grant_write_permission json-args '{"public_key": "PUBLIC_KEY", "keys": ["ACCOUNT_ID/widget"]}' prepaid-gas '100.000 TeraGas' attached-deposit '1 NEAR' sign-as "ACCOUNT_ID" network-config mainnet
    ```
 
-   Note: the attached deposit is going to be used to cover the storage costs associated with the data you store on BOS, 1 NEAR is enough to store 100kb of data (components code, metadata, etc).
+   > Note: The attached deposit is going to be used to cover the storage costs associated with the data you store on BOS, 1 NEAR is enough to store 100kb of data (components code, metadata, etc).
+   
+   > Note: If you do not explicitly add permissions for calling the `set` method an `ERROR: signer access key cannot be used to sign a transaction to update widgets in Social DB` will be raised.
+   
 2. In your repo, go to _Settings > Secrets and Variables > Actions_ and create a new repository secret named `SIGNER_PRIVATE_KEY` with the private key in `ed25519:<private_key>` format (if you followed (1.1), it is be printed in your terminal)
 3. Create a file at `.github/workflows/deploy-mainnet.yml` in your component repo with the following contents.
    See the [workflow definition](./github/workflows/deploy-mainnet.yml) for explanations of the inputs

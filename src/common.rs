@@ -172,7 +172,7 @@ pub fn is_signer_access_key_function_call_access_can_call_set_on_social_db_accou
     } = access_key_permission
     {
         Ok(receiver_id == &near_social_account_id.to_string()
-            && method_names.contains(&"set".to_string()))
+            && (method_names.contains(&"set".to_string()) || method_names.is_empty()))
     } else {
         Ok(false)
     }

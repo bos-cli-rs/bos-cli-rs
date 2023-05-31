@@ -70,8 +70,6 @@ This repo contains a reusable workflow which you can directly leverage from your
 
    > Note: The attached deposit is going to be used to cover the storage costs associated with the data you store on BOS, 1 NEAR is enough to store 100kb of data (components code, metadata, etc).
    
-   > Note: If you do not explicitly add permissions for calling the `set` method an `ERROR: signer access key cannot be used to sign a transaction to update widgets in Social DB` will be raised.
-   
 2. In your repo, go to _Settings > Secrets and Variables > Actions_ and create a new repository secret named `SIGNER_PRIVATE_KEY` with the private key in `ed25519:<private_key>` format (if you followed (1.1), it is be printed in your terminal)
 3. Create a file at `.github/workflows/deploy-mainnet.yml` in your component repo with the following contents.
    See the [workflow definition](./github/workflows/deploy-mainnet.yml) for explanations of the inputs

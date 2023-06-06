@@ -18,7 +18,7 @@ impl AccessToAccountContext {
         scope: &<AccessToAccount as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self(super::storage_deposit::AccessToPermissionKeyContext {
-            config: previous_context.config,
+            global_context: previous_context.global_context,
             social_db_key: previous_context.social_db_key,
             permission_key: scope.account_id.0.clone().into(),
         }))

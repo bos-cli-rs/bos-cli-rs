@@ -18,7 +18,7 @@ pub struct Signer {
 
 #[derive(Clone)]
 pub struct SignerContext {
-    config: near_cli_rs::config::Config,
+    global_context: near_cli_rs::GlobalContext,
     components: Vec<String>,
     account_id: near_cli_rs::types::account_id::AccountId,
     signer_account_id: near_primitives::types::AccountId,
@@ -30,7 +30,7 @@ impl SignerContext {
         scope: &<Signer as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
-            config: previous_context.config,
+            global_context: previous_context.global_context,
             components: previous_context.components,
             account_id: previous_context.account_id,
             signer_account_id: scope.signer_account_id.clone().into(),
@@ -117,7 +117,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
         });
 
         Self {
-            config: item.config,
+            global_context: item.global_context,
             on_after_getting_network_callback,
             on_before_signing_callback: std::sync::Arc::new(
                 |_prepolulated_unsinged_transaction, _network_config| Ok(()),
@@ -140,7 +140,7 @@ impl Signer {
                     .with_default(context.account_id.clone())
                     .prompt()?;
             if !near_cli_rs::common::is_account_exist(
-                &context.config.network_connection,
+                &context.global_context.config.network_connection,
                 signer_account_id.clone().into(),
             ) {
                 println!("\nThe account <{signer_account_id}> does not yet exist.");

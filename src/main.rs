@@ -9,17 +9,17 @@ mod social_db;
 pub mod socialdb_types;
 
 /// near-cli is a toolbox for interacting with NEAR protocol
-pub type GlobalContext = (near_cli_rs::config::Config,);
+// pub type GlobalContext = (near_cli_rs::config::Config,);
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(context = crate::GlobalContext)]
+#[interactive_clap(context = near_cli_rs::GlobalContext)]
 struct Cmd {
     #[interactive_clap(subcommand)]
     command: self::Command,
 }
 
 #[derive(Debug, EnumDiscriminants, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(context = crate::GlobalContext)]
+#[interactive_clap(context = near_cli_rs::GlobalContext)]
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
 #[interactive_clap(disable_back)]
 /// What are you up to? (select one of the options with the up-down arrows on your keyboard and press Enter)
@@ -44,8 +44,16 @@ fn main() -> CliResult {
         Err(error) => error.exit(),
     };
 
+    let global_context = near_cli_rs::GlobalContext {
+        config,
+        offline: false,
+    };
+
     loop {
-        match <Cmd as interactive_clap::FromCli>::from_cli(Some(cli.clone()), (config.clone(),)) {
+        match <Cmd as interactive_clap::FromCli>::from_cli(
+            Some(cli.clone()),
+            global_context.clone(),
+        ) {
             interactive_clap::ResultFromCli::Ok(cli_cmd)
             | interactive_clap::ResultFromCli::Cancel(Some(cli_cmd)) => {
                 println!(

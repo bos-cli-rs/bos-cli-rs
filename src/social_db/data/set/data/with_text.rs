@@ -19,7 +19,7 @@ impl TextDataContext {
     ) -> color_eyre::eyre::Result<Self> {
         let value = serde_json::Value::String(scope.args.clone());
         Ok(Self(super::DataContext {
-            config: previous_context.config,
+            global_context: previous_context.global_context,
             set_to_account_id: previous_context.set_to_account_id,
             key: previous_context.key,
             value,

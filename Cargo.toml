@@ -39,12 +39,12 @@ near-primitives = "0.16.1"
 near-jsonrpc-client = "0.5.1"
 near-jsonrpc-primitives = "0.16.1"
 
-interactive-clap = "0.2.2"
-interactive-clap-derive = "0.2.2"
+interactive-clap = "0.2.4"
+interactive-clap-derive = "0.2.4"
 
 console = "0.15.5"
 
-near-cli-rs = { version = "0.4.2", default-features = false }
+near-cli-rs = { version = "0.5.0", default-features = false }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 security-framework = "2.7.0"

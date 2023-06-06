@@ -5,14 +5,14 @@ mod permissions;
 mod prepaid_storage;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(context = crate::GlobalContext)]
+#[interactive_clap(context = near_cli_rs::GlobalContext)]
 pub struct SocialDb {
     #[interactive_clap(subcommand)]
     social_db_command: SocialDbCommand,
 }
 
 #[derive(Debug, EnumDiscriminants, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(context = crate::GlobalContext)]
+#[interactive_clap(context = near_cli_rs::GlobalContext)]
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
 /// What are you up to? (select one of the options with the up-down arrows on your keyboard and press Enter)
 pub enum SocialDbCommand {

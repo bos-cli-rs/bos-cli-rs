@@ -2,7 +2,7 @@ use color_eyre::eyre::WrapErr;
 use near_cli_rs::common::{CallResultExt, JsonRpcClientExt};
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = crate::GlobalContext)]
+#[interactive_clap(input_context = near_cli_rs::GlobalContext)]
 #[interactive_clap(output_context = ViewContext)]
 pub struct View {
     /// Enter SocialDB key path to view (e.g. root.near/profile/**):
@@ -17,7 +17,7 @@ pub struct ViewContext(near_cli_rs::network::NetworkContext);
 
 impl ViewContext {
     pub fn from_previous_context(
-        previous_context: crate::GlobalContext,
+        previous_context: near_cli_rs::GlobalContext,
         scope: &<View as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         let on_after_getting_network_callback: near_cli_rs::network::OnAfterGettingNetworkCallback =
@@ -66,7 +66,7 @@ impl ViewContext {
                 }
             });
         Ok(Self(near_cli_rs::network::NetworkContext {
-            config: previous_context.0,
+            config: previous_context.config,
             on_after_getting_network_callback,
         }))
     }

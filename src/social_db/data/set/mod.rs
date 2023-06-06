@@ -6,7 +6,7 @@ mod data;
 mod sign_as;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = crate::GlobalContext)]
+#[interactive_clap(input_context = near_cli_rs::GlobalContext)]
 #[interactive_clap(output_context = SetContext)]
 pub struct Set {
     /// Enter SocialDB key path to set the value (e.g. root.near/profile/name):
@@ -17,18 +17,18 @@ pub struct Set {
 
 #[derive(Clone)]
 pub struct SetContext {
-    pub config: near_cli_rs::config::Config,
+    pub global_context: near_cli_rs::GlobalContext,
     pub set_to_account_id: near_cli_rs::types::account_id::AccountId,
     pub key: String,
 }
 
 impl SetContext {
     pub fn from_previous_context(
-        previous_context: crate::GlobalContext,
+        previous_context: near_cli_rs::GlobalContext,
         scope: &<Set as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
-            config: previous_context.0,
+            global_context: previous_context,
             set_to_account_id: near_cli_rs::types::account_id::AccountId::from_str(
                 scope
                     .key

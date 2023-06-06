@@ -1,7 +1,7 @@
 use color_eyre::eyre::ContextCompat;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = crate::GlobalContext)]
+#[interactive_clap(input_context = near_cli_rs::GlobalContext)]
 #[interactive_clap(output_context = PrepaidStorageContext)]
 pub struct PrepaidStorage {
     #[interactive_clap(subcommand)]
@@ -15,7 +15,7 @@ pub struct PrepaidStorageContext(
 
 impl PrepaidStorageContext {
     pub fn from_previous_context(
-        previous_context: crate::GlobalContext,
+        previous_context: near_cli_rs::GlobalContext,
         _scope: &<PrepaidStorage as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         let get_contract_account_id: near_cli_rs::commands::account::storage_management::GetContractAccountId = std::sync::Arc::new(
@@ -30,7 +30,7 @@ impl PrepaidStorageContext {
         );
         Ok(Self(
             near_cli_rs::commands::account::storage_management::ContractContext {
-                config: previous_context.0,
+                global_context: previous_context,
                 get_contract_account_id,
             },
         ))

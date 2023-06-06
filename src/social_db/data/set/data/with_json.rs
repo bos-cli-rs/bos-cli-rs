@@ -18,7 +18,7 @@ impl JsonDataContext {
         scope: &<JsonData as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self(super::DataContext {
-            config: previous_context.config,
+            global_context: previous_context.global_context,
             set_to_account_id: previous_context.set_to_account_id,
             key: previous_context.key,
             value: scope.args.clone().into(),

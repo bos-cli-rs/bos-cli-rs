@@ -3,14 +3,14 @@ use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 mod grant_write_access;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(context = crate::GlobalContext)]
+#[interactive_clap(context = near_cli_rs::GlobalContext)]
 pub struct Permissions {
     #[interactive_clap(subcommand)]
     permissions_command: PermissionsCommand,
 }
 
 #[derive(Debug, EnumDiscriminants, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(context = crate::GlobalContext)]
+#[interactive_clap(context = near_cli_rs::GlobalContext)]
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
 /// Select the permissions command:
 pub enum PermissionsCommand {

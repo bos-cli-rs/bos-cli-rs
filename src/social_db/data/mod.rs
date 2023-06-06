@@ -5,14 +5,14 @@ mod set;
 mod view;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(context = crate::GlobalContext)]
+#[interactive_clap(context = near_cli_rs::GlobalContext)]
 pub struct Data {
     #[interactive_clap(subcommand)]
     data_command: DataCommand,
 }
 
 #[derive(Debug, EnumDiscriminants, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(context = crate::GlobalContext)]
+#[interactive_clap(context = near_cli_rs::GlobalContext)]
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
 /// Select the data command:
 pub enum DataCommand {

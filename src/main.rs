@@ -9,7 +9,6 @@ mod social_db;
 pub mod socialdb_types;
 
 /// near-cli is a toolbox for interacting with NEAR protocol
-// pub type GlobalContext = (near_cli_rs::config::Config,);
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = near_cli_rs::GlobalContext)]

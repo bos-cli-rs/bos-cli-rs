@@ -7,7 +7,7 @@ mod sign_as;
 mod storage_deposit;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = crate::GlobalContext)]
+#[interactive_clap(input_context = near_cli_rs::GlobalContext)]
 #[interactive_clap(output_context = SocialDbKeyContext)]
 pub struct SocialDbKey {
     #[interactive_clap(skip_default_input_arg)]
@@ -19,7 +19,7 @@ pub struct SocialDbKey {
 
 #[derive(Clone)]
 pub struct SocialDbKeyContext {
-    pub config: near_cli_rs::config::Config,
+    pub global_context: near_cli_rs::GlobalContext,
     pub social_db_key: String,
 }
 
@@ -29,9 +29,21 @@ impl SocialDbKeyContext {
         scope: &<SocialDbKey as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
-            config: previous_context.0,
+            global_context: previous_context,
             social_db_key: scope.social_db_key.clone(),
         })
+    }
+}
+
+impl SocialDbKey {
+    fn input_social_db_key(
+        _context: &near_cli_rs::GlobalContext,
+    ) -> color_eyre::eyre::Result<Option<String>> {
+        Ok(Some(
+            Text::new("Enter the prefix of the social_db key that you will grant permission to (default value: 'widget'):")
+                .with_default("widget")
+                .prompt()?,
+        ))
     }
 }
 
@@ -50,16 +62,4 @@ pub enum Access {
     ))]
     /// Granting access to a different account
     ToAccount(self::account_id::AccessToAccount),
-}
-
-impl SocialDbKey {
-    fn input_social_db_key(
-        _context: &crate::GlobalContext,
-    ) -> color_eyre::eyre::Result<Option<String>> {
-        Ok(Some(
-            Text::new("Enter the prefix of the social_db key that you will grant permission to (default value: 'widget'):")
-                .with_default("widget")
-                .prompt()?,
-        ))
-    }
 }

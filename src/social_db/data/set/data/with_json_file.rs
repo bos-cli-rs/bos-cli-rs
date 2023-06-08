@@ -27,7 +27,7 @@ impl JsonDataFileContext {
         let value: serde_json::Value =
             serde_json::from_reader(reader).wrap_err("File data is not in JSON format!")?;
         Ok(Self(super::DataContext {
-            config: previous_context.config,
+            global_context: previous_context.global_context,
             set_to_account_id: previous_context.set_to_account_id,
             key: previous_context.key,
             value,

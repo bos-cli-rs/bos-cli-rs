@@ -131,7 +131,7 @@ impl SignerContext {
             });
 
         Ok(Self(near_cli_rs::commands::ActionContext {
-            config: previous_context.config,
+            global_context: previous_context.global_context,
             on_after_getting_network_callback,
             on_before_signing_callback,
             on_before_sending_transaction_callback: std::sync::Arc::new(
@@ -158,7 +158,7 @@ impl Signer {
                     .with_default(context.set_to_account_id.clone())
                     .prompt()?;
             if !near_cli_rs::common::is_account_exist(
-                &context.config.network_connection,
+                &context.global_context.config.network_connection,
                 signer_account_id.clone().into(),
             ) {
                 println!("\nThe account <{signer_account_id}> does not yet exist.");

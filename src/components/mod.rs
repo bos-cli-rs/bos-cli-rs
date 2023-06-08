@@ -5,14 +5,14 @@ mod deploy;
 mod download;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(context = crate::GlobalContext)]
+#[interactive_clap(context = near_cli_rs::GlobalContext)]
 pub struct Components {
     #[interactive_clap(subcommand)]
     command: self::ComponentsCommand,
 }
 
 #[derive(Debug, EnumDiscriminants, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(context = crate::GlobalContext)]
+#[interactive_clap(context = near_cli_rs::GlobalContext)]
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
 /// What are you up to?
 pub enum ComponentsCommand {

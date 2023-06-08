@@ -6,7 +6,7 @@ use near_cli_rs::common::{CallResultExt, JsonRpcClientExt};
 mod sign_as;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = crate::GlobalContext)]
+#[interactive_clap(input_context = near_cli_rs::GlobalContext)]
 #[interactive_clap(output_context = DeleteContext)]
 pub struct Delete {
     /// Enter SocialDB key path to delete data (e.g. root.near/profile/image):
@@ -21,7 +21,7 @@ pub struct DeleteContext(self::sign_as::PreparedSignerContext);
 
 impl DeleteContext {
     pub fn from_previous_context(
-        previous_context: crate::GlobalContext,
+        previous_context: near_cli_rs::GlobalContext,
         scope: &<Delete as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         let account_id = near_cli_rs::types::account_id::AccountId::from_str(
@@ -99,7 +99,7 @@ impl DeleteContext {
         });
 
         Ok(Self(self::sign_as::PreparedSignerContext {
-            config: previous_context.0,
+            global_context: previous_context,
             account_id,
             on_after_getting_network_callback,
             on_before_signing_callback: std::sync::Arc::new(

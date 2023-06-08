@@ -8,7 +8,7 @@ pub struct TransactionFunctionArgs {
 }
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = crate::GlobalContext)]
+#[interactive_clap(input_context = near_cli_rs::GlobalContext)]
 #[interactive_clap(output_context = DeployToAccountContext)]
 pub struct DeployToAccount {
     #[interactive_clap(skip_default_input_arg)]
@@ -21,7 +21,7 @@ pub struct DeployToAccount {
 
 #[derive(Clone)]
 pub struct DeployToAccountContext {
-    pub config: near_cli_rs::config::Config,
+    pub global_context: near_cli_rs::GlobalContext,
     pub deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
 }
 
@@ -31,7 +31,7 @@ impl DeployToAccountContext {
         scope: &<DeployToAccount as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
-            config: previous_context.0,
+            global_context: previous_context,
             deploy_to_account_id: scope.deploy_to_account_id.clone(),
         })
     }
@@ -39,7 +39,7 @@ impl DeployToAccountContext {
 
 impl DeployToAccount {
     fn input_deploy_to_account_id(
-        context: &crate::GlobalContext,
+        context: &near_cli_rs::GlobalContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {
         let components = crate::common::get_local_components()?;
         println!(
@@ -54,7 +54,7 @@ impl DeployToAccount {
                 CustomType::new("Which account do you want to deploy the components to?")
                     .prompt()?;
             if !near_cli_rs::common::is_account_exist(
-                &context.0.network_connection,
+                &context.config.network_connection,
                 deploy_to_account_id.clone().into(),
             ) {
                 println!(

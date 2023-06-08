@@ -32,7 +32,7 @@ pub enum DataType {
 
 #[derive(Clone)]
 pub struct DataContext {
-    pub config: near_cli_rs::config::Config,
+    pub global_context: near_cli_rs::GlobalContext,
     pub set_to_account_id: near_cli_rs::types::account_id::AccountId,
     pub key: String,
     pub value: serde_json::Value,

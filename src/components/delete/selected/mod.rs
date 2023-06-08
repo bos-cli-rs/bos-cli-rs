@@ -13,7 +13,7 @@ pub struct Selected {
 
 #[derive(Clone)]
 pub struct ComponentContext {
-    pub config: near_cli_rs::config::Config,
+    pub global_context: near_cli_rs::GlobalContext,
     pub account_id: near_cli_rs::types::account_id::AccountId,
     pub components: Vec<String>,
 }
@@ -24,7 +24,7 @@ impl ComponentContext {
         scope: &<Selected as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
-            config: previous_context.0.config,
+            global_context: previous_context.0.global_context,
             account_id: previous_context.0.account_id,
             components: scope.components.clone().into(),
         })

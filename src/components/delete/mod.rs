@@ -4,7 +4,7 @@ mod selected;
 mod sign_as;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = crate::GlobalContext)]
+#[interactive_clap(input_context = near_cli_rs::GlobalContext)]
 #[interactive_clap(output_context = DeleteComponentsFromAccountContext)]
 pub struct DeleteComponentsFromAccount {
     /// Which account do you want to delete the components from?
@@ -18,11 +18,11 @@ pub struct DeleteComponentsFromAccountContext(self::selected::ComponentContext);
 
 impl DeleteComponentsFromAccountContext {
     pub fn from_previous_context(
-        previous_context: crate::GlobalContext,
+        previous_context: near_cli_rs::GlobalContext,
         scope: &<DeleteComponentsFromAccount as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self(self::selected::ComponentContext {
-            config: previous_context.0,
+            global_context: previous_context,
             account_id: scope.account_id.clone(),
             components: vec![],
         }))

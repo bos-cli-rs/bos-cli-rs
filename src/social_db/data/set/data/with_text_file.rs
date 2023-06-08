@@ -23,7 +23,7 @@ impl TextDataFileContext {
             .wrap_err_with(|| format!("Access to data file <{:?}> not found!", scope.path))?;
         let value = serde_json::Value::String(data);
         Ok(Self(super::DataContext {
-            config: previous_context.config,
+            global_context: previous_context.global_context,
             set_to_account_id: previous_context.set_to_account_id,
             key: previous_context.key,
             value,

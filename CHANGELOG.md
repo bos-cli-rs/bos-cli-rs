@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.2...v0.3.3) - 2023-06-27
+
+### Added
+- Create deploy-testnet.yml for BOS apps to use in their CI pipelines ([#50](https://github.com/bos-cli-rs/bos-cli-rs/pull/50))
+- New commands to manage data in SocialDB ([#38](https://github.com/bos-cli-rs/bos-cli-rs/pull/38))
+
+### Fixed
+- Fixed funcion key permission check to be less restrictive ([#48](https://github.com/bos-cli-rs/bos-cli-rs/pull/48))
+
+### Other
+- Feature community-maintained homebrew installation ([#52](https://github.com/bos-cli-rs/bos-cli-rs/pull/52))
+- Update "near-cli-rs" dependency to version 0.5 ([#49](https://github.com/bos-cli-rs/bos-cli-rs/pull/49))
+- Clarify the function-call-only access keys usage for restricted components deployment ([#47](https://github.com/bos-cli-rs/bos-cli-rs/pull/47))
+- Added release-plz.toml to let cargo-dist to create GitHub releases
+
 ## [0.3.2](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.1...v0.3.2) - 2023-05-24
 
 ### Added

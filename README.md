@@ -35,6 +35,12 @@ More commands are still on the way, see the [issues tracker](https://github.com/
 
 ## Install
 
+### From Community Maintain Homebrew (Mac)
+
+```bash
+brew tap empeje/bos-cli && brew install bos-cli
+```
+
 ### From Binaries
 
 The [release page](https://github.com/FroVolod/bos-cli-rs/releases) includes precompiled binaries for Linux, macOS and Windows.

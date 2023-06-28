@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.4](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.3...v0.3.4) - 2023-06-27
+
+### Other
+- update Rust to 1.70.0 on release binaries pipeline ([#53](https://github.com/bos-cli-rs/bos-cli-rs/pull/53))
+
 ## [0.3.3](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.2...v0.3.3) - 2023-06-27
 
 ### Added

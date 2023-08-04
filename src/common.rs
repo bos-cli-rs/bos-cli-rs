@@ -110,9 +110,9 @@ pub fn get_local_components(
 
 pub fn get_remote_components(
     network_config: &near_cli_rs::config::NetworkConfig,
-    local_components: &HashMap<String, crate::socialdb_types::SocialDbComponent>,
+    component_name_list: Vec<&String>,
     near_social_account_id: &near_primitives::types::AccountId,
-    deploy_to_account_id: &near_primitives::types::AccountId,
+    account_id: &near_primitives::types::AccountId,
 ) -> color_eyre::eyre::Result<
     HashMap<crate::socialdb_types::ComponentName, crate::socialdb_types::SocialDbComponent>,
 > {
@@ -124,23 +124,18 @@ pub fn get_remote_components(
 
     runtime
         .block_on(
-            futures::stream::iter(
-                local_components
-                    .keys()
-                    .collect::<Vec<_>>()
-                    .chunks(chunk_size),
-            )
-            .map(|local_components_name_batch| async {
-                get_components(
-                    network_config,
-                    near_social_account_id,
-                    deploy_to_account_id,
-                    local_components_name_batch,
-                )
-                .await
-            })
-            .buffer_unordered(concurrency)
-            .collect::<Vec<Result<_, _>>>(),
+            futures::stream::iter(component_name_list.chunks(chunk_size))
+                .map(|components_name_batch| async {
+                    get_components(
+                        network_config,
+                        near_social_account_id,
+                        account_id,
+                        components_name_batch,
+                    )
+                    .await
+                })
+                .buffer_unordered(concurrency)
+                .collect::<Vec<Result<_, _>>>(),
         )
         .into_iter()
         .try_fold(HashMap::new(), |mut acc, x| {
@@ -152,15 +147,15 @@ pub fn get_remote_components(
 async fn get_components(
     network_config: &near_cli_rs::config::NetworkConfig,
     near_social_account_id: &near_primitives::types::AccountId,
-    deploy_to_account_id: &near_primitives::types::AccountId,
-    local_components_names_batch: &[&crate::socialdb_types::ComponentName],
+    account_id: &near_primitives::types::AccountId,
+    components_names_batch: &[&crate::socialdb_types::ComponentName],
 ) -> color_eyre::Result<
     HashMap<crate::socialdb_types::ComponentName, crate::socialdb_types::SocialDbComponent>,
 > {
     let args = serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
-        keys: local_components_names_batch
+        keys: components_names_batch
             .iter()
-            .map(|name| format!("{deploy_to_account_id}/widget/{name}/**"))
+            .map(|name| format!("{account_id}/widget/{name}/**"))
             .collect(),
     })
     .wrap_err("Internal error: could not serialize SocialDB input args")?
@@ -185,7 +180,7 @@ async fn get_components(
                 .parse_result_from_json::<crate::socialdb_types::SocialDb>()
                 .wrap_err("ERROR: failed to parse Social DB response")?
                 .accounts
-                .remove(deploy_to_account_id)
+                .remove(account_id)
                 .map(|crate::socialdb_types::SocialDbAccountMetadata { components }| components)
                 .unwrap_or_default())
         }

@@ -37,11 +37,10 @@ impl AccountIdContext {
                         }
                     };
 
-                    let input_args =
-                        serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
-                            keys: vec![format!("{account_id}/widget/*")],
-                        })
-                        .wrap_err("Internal error: could not serialize SocialDB input args")?;
+                    let input_args = serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
+                        keys: vec![format!("{account_id}/widget/*")],
+                    })
+                    .wrap_err("Internal error: could not serialize SocialDB input args")?;
 
                     let call_result = network_config
                         .json_rpc_client()

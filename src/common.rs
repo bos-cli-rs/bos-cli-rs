@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use console::{style, Style};
+use futures::StreamExt;
 use glob::glob;
 use near_cli_rs::common::{CallResultExt, JsonRpcClientExt, RpcQueryResponseExt};
 use serde::de::{Deserialize, Deserializer};
@@ -63,9 +64,8 @@ pub fn diff_code(old_code: &str, new_code: &str) -> Result<(), DiffCodeError> {
     Err(DiffCodeError)
 }
 
-pub fn get_local_components() -> color_eyre::eyre::Result<
-    std::collections::HashMap<String, crate::socialdb_types::SocialDbComponent>,
-> {
+pub fn get_local_components(
+) -> color_eyre::eyre::Result<HashMap<String, crate::socialdb_types::SocialDbComponent>> {
     let mut components = HashMap::new();
 
     for component_filepath in glob("./src/**/*.jsx")?.filter_map(Result::ok) {
@@ -106,6 +106,124 @@ pub fn get_local_components() -> color_eyre::eyre::Result<
         );
     }
     Ok(components)
+}
+
+pub fn get_remote_components(
+    network_config: &near_cli_rs::config::NetworkConfig,
+    local_components: &HashMap<String, crate::socialdb_types::SocialDbComponent>,
+    near_social_account_id: &near_primitives::types::AccountId,
+    deploy_to_account_id: &near_primitives::types::AccountId,
+) -> color_eyre::eyre::Result<
+    HashMap<crate::socialdb_types::ComponentName, crate::socialdb_types::SocialDbComponent>,
+> {
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?;
+    let chunk_size = 15;
+    let concurrency = 10;
+
+    runtime
+        .block_on(
+            futures::stream::iter(
+                local_components
+                    .keys()
+                    .collect::<Vec<_>>()
+                    .chunks(chunk_size),
+            )
+            .map(|local_components_name_batch| async {
+                get_components(
+                    network_config,
+                    near_social_account_id,
+                    deploy_to_account_id,
+                    local_components_name_batch,
+                )
+                .await
+            })
+            .buffer_unordered(concurrency)
+            .collect::<Vec<Result<_, _>>>(),
+        )
+        .into_iter()
+        .try_fold(HashMap::new(), |mut acc, x| {
+            acc.extend(x?);
+            Ok::<_, color_eyre::eyre::Error>(acc)
+        })
+}
+
+async fn get_components(
+    network_config: &near_cli_rs::config::NetworkConfig,
+    near_social_account_id: &near_primitives::types::AccountId,
+    deploy_to_account_id: &near_primitives::types::AccountId,
+    local_components_names_batch: &[&crate::socialdb_types::ComponentName],
+) -> color_eyre::Result<
+    HashMap<crate::socialdb_types::ComponentName, crate::socialdb_types::SocialDbComponent>,
+> {
+    let args = serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
+        keys: local_components_names_batch
+            .iter()
+            .map(|name| format!("{deploy_to_account_id}/widget/{name}/**"))
+            .collect(),
+    })
+    .wrap_err("Internal error: could not serialize SocialDB input args")?
+    .into_bytes();
+
+    match network_config
+        .json_rpc_client()
+        .call(near_jsonrpc_client::methods::query::RpcQueryRequest {
+            block_reference: near_primitives::types::Finality::Final.into(),
+            request: near_primitives::views::QueryRequest::CallFunction {
+                account_id: near_social_account_id.clone(),
+                method_name: "get".to_string(),
+                args: near_primitives::types::FunctionArgs::from(args),
+            },
+        })
+        .await
+        .wrap_err("Failed to query batch of components from Social DB")?
+        .kind
+    {
+        near_jsonrpc_primitives::types::query::QueryResponseKind::CallResult(call_result) => {
+            Ok(call_result
+                .parse_result_from_json::<crate::socialdb_types::SocialDb>()
+                .wrap_err("ERROR: failed to parse Social DB response")?
+                .accounts
+                .remove(deploy_to_account_id)
+                .map(|crate::socialdb_types::SocialDbAccountMetadata { components }| components)
+                .unwrap_or_default())
+        }
+        _ => unreachable!("ERROR: unexpected response type from JSON RPC client"),
+    }
+}
+
+pub fn get_updated_components(
+    local_components: HashMap<String, crate::socialdb_types::SocialDbComponent>,
+    remote_components: &HashMap<
+        crate::socialdb_types::ComponentName,
+        crate::socialdb_types::SocialDbComponent,
+    >,
+) -> HashMap<String, crate::socialdb_types::SocialDbComponent> {
+    local_components
+        .into_iter()
+        .filter(|(component_name, new_component)| {
+            if let Some(old_component) = remote_components.get(component_name) {
+                let has_code_changed = crate::common::diff_code(old_component.code(), new_component.code()).is_err();
+                let has_metadata_changed = old_component.metadata() != new_component.metadata() && new_component.metadata().is_some();
+                if !has_code_changed {
+                    println!("Code for component <{component_name}> has not changed");
+                }
+                if has_metadata_changed {
+                    println!(
+                        "Metadata for component <{component_name}> changed:\n - old metadata: {:?}\n - new metadata: {:?}",
+                        old_component.metadata(), new_component.metadata()
+                    );
+                } else {
+                    println!("Metadata for component <{component_name}> has not changed");
+                }
+                has_code_changed || has_metadata_changed
+            } else {
+                println!("Found new component <{component_name}> to deploy");
+                true
+            }
+        })
+        .collect()
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

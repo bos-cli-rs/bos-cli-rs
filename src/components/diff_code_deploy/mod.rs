@@ -38,10 +38,11 @@ impl DiffCodeDeployContext {
                         println!("There are no components in the current ./src folder. Goodbye.");
                         return Ok(());
                     }
+                    let local_component_name_list = local_components.keys().collect::<Vec<_>>();
 
                     let remote_components = crate::common::get_remote_components(
                         network_config,
-                        &local_components,
+                        local_component_name_list,
                         near_social_account_id,
                         &account_id,
                     )?;

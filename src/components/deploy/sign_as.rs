@@ -56,8 +56,8 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     println!("There are no components in the current ./src folder. Goodbye.");
                     return Ok(prepopulated_transaction);
                 }
-
-                let remote_components = crate::common::get_remote_components(network_config, &local_components, near_social_account_id, &deploy_to_account_id)?;
+                let local_component_name_list = local_components.keys().collect::<Vec<_>>();
+                let remote_components = crate::common::get_remote_components(network_config, local_component_name_list, near_social_account_id, &deploy_to_account_id)?;
 
                 let components_to_deploy =
                     if !remote_components.is_empty() {

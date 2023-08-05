@@ -51,8 +51,7 @@ impl AccountIdContext {
                             near_primitives::types::Finality::Final.into(),
                         )
                         .wrap_err("Failed to fetch the components state from SocialDB")?;
-                    let keys: SocialDbKeys = serde_json::from_slice(&call_result.result)
-                        .wrap_err("Failed to parse the components state from SocialDB")?;
+                    let keys: SocialDbKeys = call_result.parse_result_from_json()?;
 
                     let remote_social_account_components =
                         if let Some(account_components) = keys.accounts.get(&account_id) {

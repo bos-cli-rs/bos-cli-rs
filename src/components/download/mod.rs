@@ -1,5 +1,5 @@
 use color_eyre::eyre::{ContextCompat, WrapErr};
-use near_cli_rs::common::JsonRpcClientExt;
+use near_cli_rs::common::{CallResultExt, JsonRpcClientExt};
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = near_cli_rs::GlobalContext)]

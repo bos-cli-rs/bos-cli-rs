@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.4...v0.3.5) - 2023-08-05
+
+### Fixed
+- Fixed `components download` command for accounts with 30+ components ([#59](https://github.com/bos-cli-rs/bos-cli-rs/pull/59))
+
 ## [0.3.4](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.3...v0.3.4) - 2023-06-27
 
 ### Other

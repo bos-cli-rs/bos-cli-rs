@@ -19,7 +19,7 @@ pub struct Signer {
 pub struct SignerContext {
     global_context: near_cli_rs::GlobalContext,
     social_db_keys: Vec<String>,
-    permission_key: crate::common::PermissionKey,
+    permission_key: near_cli_rs::common::PermissionKey,
     extra_storage_deposit: near_cli_rs::common::NearBalance,
     signer_account_id: near_primitives::types::AccountId,
 }
@@ -54,13 +54,13 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 let near_social_account_id = crate::consts::NEAR_SOCIAL_ACCOUNT_ID.get(network_config.network_name.as_str())
                     .wrap_err_with(|| format!("The <{}> network does not have a near-social contract.", network_config.network_name))?;
                 let args = match &permission_key {
-                    crate::common::PermissionKey::PredecessorId(account_id) => {
+                    near_cli_rs::common::PermissionKey::PredecessorId(account_id) => {
                         serde_json::json!({
                             "predecessor_id": account_id.to_string(),
                             "keys": social_db_keys
                         }).to_string().into_bytes()
                     }
-                    crate::common::PermissionKey::PublicKey(public_key) => {
+                    near_cli_rs::common::PermissionKey::PublicKey(public_key) => {
                         serde_json::json!({
                             "public_key": public_key.to_string(),
                             "keys": social_db_keys
@@ -96,10 +96,10 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         &transaction_info.transaction.actions[0]
                     {
                         match &permission_key {
-                        crate::common::PermissionKey::PredecessorId(account_id) => {
+                        near_cli_rs::common::PermissionKey::PredecessorId(account_id) => {
                             eprintln!("<{signer_id}> has granted <{account_id}> permission to edit their social_db keys");
                         }
-                        crate::common::PermissionKey::PublicKey(public_key) => {
+                        near_cli_rs::common::PermissionKey::PublicKey(public_key) => {
                             eprintln!("<{signer_id}> has granted public key <{public_key}> permission to edit their social_db keys");
                         }
                     }
@@ -110,10 +110,10 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     }
                 } else {
                     match &permission_key {
-                        crate::common::PermissionKey::PredecessorId(account_id) => {
+                        near_cli_rs::common::PermissionKey::PredecessorId(account_id) => {
                             color_eyre::eyre::bail!("Could not grant permission to <{}>", account_id);
                         }
-                        crate::common::PermissionKey::PublicKey(public_key) => {
+                        near_cli_rs::common::PermissionKey::PublicKey(public_key) => {
                             color_eyre::eyre::bail!("Could not grant permission to <{}>", public_key);
                         }
                     }

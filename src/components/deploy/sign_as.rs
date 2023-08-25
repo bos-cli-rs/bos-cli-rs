@@ -95,7 +95,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 })?
                 .into_bytes();
 
-                let deposit = crate::common::required_deposit(
+                let deposit = near_cli_rs::common::required_deposit(
                     network_config,
                     near_social_account_id,
                     &deploy_to_account_id,
@@ -128,7 +128,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     if let near_primitives::transaction::Action::FunctionCall(action) =
                         &mut prepopulated_unsigned_transaction.actions[0]
                     {
-                        action.deposit = crate::common::get_deposit(
+                        action.deposit = near_cli_rs::common::get_deposit(
                             network_config,
                             &signer_account_id,
                             &prepopulated_unsigned_transaction.public_key,

@@ -53,6 +53,14 @@ With Rust's package manager cargo, you can install `bos` via:
 cargo install --git https://github.com/FroVolod/bos-cli-rs
 ```
 
+#### Linux (Fedora)
+
+You will need to install these dependencies:
+
+```bash
+dnf install openssl-devel pkg-config perl libudev-devel
+```
+
 ### GitHub Actions
 
 #### Reusable Workflow

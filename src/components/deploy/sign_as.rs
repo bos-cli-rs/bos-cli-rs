@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::str::FromStr;
 use std::sync::Arc;
 
 use color_eyre::eyre::{ContextCompat, WrapErr};
@@ -95,12 +94,16 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 })?
                 .into_bytes();
 
-                let deposit = near_cli_rs::common::required_deposit(
-                    network_config,
-                    near_social_account_id,
-                    &deploy_to_account_id,
-                    &new_social_db_state_json,
-                    Some(&remote_social_db_state_json),
+                let json_rpc_client = network_config.json_rpc_client();
+
+                let deposit = tokio::runtime::Runtime::new().unwrap().block_on(
+                    near_socialdb_client::required_deposit(
+                        &json_rpc_client,
+                        near_social_account_id,
+                        &deploy_to_account_id,
+                        &new_social_db_state_json,
+                        Some(&remote_social_db_state_json),
+                    )
                 )?;
 
                 prepopulated_transaction.actions = vec![
@@ -108,9 +111,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         near_primitives::transaction::FunctionCallAction {
                             method_name: "set".to_string(),
                             args,
-                            gas: near_cli_rs::common::NearGas::from_str("300 TeraGas")
-                                .unwrap()
-                                .inner,
+                            gas: near_cli_rs::common::NearGas::from_tgas(300).as_gas(),
                             deposit: deposit.to_yoctonear(),
                         },
                     )
@@ -125,19 +126,22 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 let signer_account_id = item.signer_account_id.clone();
                 let deploy_to_account_id = item.deploy_to_account_id.clone();
                 move |prepopulated_unsigned_transaction, network_config| {
+                    let json_rpc_client = network_config.json_rpc_client();
                     if let near_primitives::transaction::Action::FunctionCall(action) =
                         &mut prepopulated_unsigned_transaction.actions[0]
                     {
-                        action.deposit = near_cli_rs::common::get_deposit(
-                            network_config,
-                            &signer_account_id,
-                            &prepopulated_unsigned_transaction.public_key,
-                            &deploy_to_account_id,
-                            "widget",
-                            &prepopulated_unsigned_transaction.receiver_id,
-                            near_cli_rs::common::NearBalance::from_yoctonear(action.deposit),
-                        )?
-                        .to_yoctonear();
+                        action.deposit = tokio::runtime::Runtime::new()
+                            .unwrap()
+                            .block_on(near_socialdb_client::get_deposit(
+                                &json_rpc_client,
+                                &signer_account_id,
+                                &prepopulated_unsigned_transaction.public_key,
+                                &deploy_to_account_id,
+                                "widget",
+                                &prepopulated_unsigned_transaction.receiver_id,
+                                near_cli_rs::common::NearBalance::from_yoctonear(action.deposit),
+                            ))?
+                            .to_yoctonear();
                         Ok(())
                     } else {
                         color_eyre::eyre::bail!("Unexpected action to change components",);
@@ -179,6 +183,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
         Self {
             global_context: item.global_context,
+            interacting_with_account_ids: vec![item.signer_account_id],
             on_after_getting_network_callback,
             on_before_signing_callback,
             on_before_sending_transaction_callback: std::sync::Arc::new(

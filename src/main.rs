@@ -1,3 +1,8 @@
+#![allow(
+    clippy::enum_variant_names,
+    clippy::large_enum_variant,
+    clippy::arc_with_non_send_sync
+)]
 use interactive_clap::ToCliArgs;
 pub use near_cli_rs::CliResult;
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};

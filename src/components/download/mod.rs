@@ -20,10 +20,10 @@ impl AccountIdContext {
         previous_context: near_cli_rs::GlobalContext,
         scope: &<AccountId as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
+        let account_id: near_primitives::types::AccountId = scope.account_id.clone().into();
+
         let on_after_getting_network_callback: near_cli_rs::network::OnAfterGettingNetworkCallback =
             std::sync::Arc::new({
-                let account_id: near_primitives::types::AccountId = scope.account_id.clone().into();
-
                 move |network_config| {
                     let near_social_account_id = match crate::consts::NEAR_SOCIAL_ACCOUNT_ID
                         .get(&network_config.network_name.as_str())
@@ -119,6 +119,7 @@ impl AccountIdContext {
             });
         Ok(Self(near_cli_rs::network::NetworkContext {
             config: previous_context.config,
+            interacting_with_account_ids: vec![scope.account_id.clone().into()],
             on_after_getting_network_callback,
         }))
     }

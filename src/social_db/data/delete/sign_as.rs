@@ -31,6 +31,7 @@ impl SignerContext {
 
         Ok(Self(near_cli_rs::commands::ActionContext {
             global_context: previous_context.global_context,
+            interacting_with_account_ids: vec![previous_context.account_id.into()],
             on_after_getting_network_callback,
             on_before_signing_callback: std::sync::Arc::new(|_transaction, _network_config| Ok(())),
             on_before_sending_transaction_callback: std::sync::Arc::new(

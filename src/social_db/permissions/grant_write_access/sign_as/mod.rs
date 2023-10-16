@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use color_eyre::eyre::ContextCompat;
 use inquire::{CustomType, Select};
 
@@ -19,7 +17,7 @@ pub struct Signer {
 pub struct SignerContext {
     global_context: near_cli_rs::GlobalContext,
     social_db_keys: Vec<String>,
-    permission_key: near_cli_rs::common::PermissionKey,
+    permission_key: near_socialdb_client::PermissionKey,
     extra_storage_deposit: near_cli_rs::common::NearBalance,
     signer_account_id: near_primitives::types::AccountId,
 }
@@ -54,13 +52,13 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 let near_social_account_id = crate::consts::NEAR_SOCIAL_ACCOUNT_ID.get(network_config.network_name.as_str())
                     .wrap_err_with(|| format!("The <{}> network does not have a near-social contract.", network_config.network_name))?;
                 let args = match &permission_key {
-                    near_cli_rs::common::PermissionKey::PredecessorId(account_id) => {
+                    near_socialdb_client::PermissionKey::PredecessorId(account_id) => {
                         serde_json::json!({
                             "predecessor_id": account_id.to_string(),
                             "keys": social_db_keys
                         }).to_string().into_bytes()
                     }
-                    near_cli_rs::common::PermissionKey::PublicKey(public_key) => {
+                    near_socialdb_client::PermissionKey::PublicKey(public_key) => {
                         serde_json::json!({
                             "public_key": public_key.to_string(),
                             "keys": social_db_keys
@@ -68,16 +66,14 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     }
                 };
                 let prepopulated_transaction = near_cli_rs::commands::PrepopulatedTransaction {
-                    signer_id: item.signer_account_id.clone(),
+                    signer_id: signer_id.clone(),
                     receiver_id: near_social_account_id.clone(),
                     actions: vec![
                     near_primitives::transaction::Action::FunctionCall(
                         near_primitives::transaction::FunctionCallAction {
                             method_name: "grant_write_permission".to_string(),
                             args,
-                            gas: near_cli_rs::common::NearGas::from_str("100 TeraGas")
-                                .unwrap()
-                                .inner,
+                            gas: near_cli_rs::common::NearGas::from_tgas(100).as_gas(),
                             deposit: extra_storage_deposit.to_yoctonear(),
                         },
                     )
@@ -88,6 +84,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
             }
         });
 
+        let signer_id = item.signer_account_id.clone();
         let on_after_sending_transaction_callback: near_cli_rs::transaction_signature_options::OnAfterSendingTransactionCallback = std::sync::Arc::new({
             let permission_key = item.permission_key.clone();
             move |transaction_info, _network_config| {
@@ -96,10 +93,10 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         &transaction_info.transaction.actions[0]
                     {
                         match &permission_key {
-                        near_cli_rs::common::PermissionKey::PredecessorId(account_id) => {
+                        near_socialdb_client::PermissionKey::PredecessorId(account_id) => {
                             eprintln!("<{signer_id}> has granted <{account_id}> permission to edit their social_db keys");
                         }
-                        near_cli_rs::common::PermissionKey::PublicKey(public_key) => {
+                        near_socialdb_client::PermissionKey::PublicKey(public_key) => {
                             eprintln!("<{signer_id}> has granted public key <{public_key}> permission to edit their social_db keys");
                         }
                     }
@@ -110,10 +107,10 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     }
                 } else {
                     match &permission_key {
-                        near_cli_rs::common::PermissionKey::PredecessorId(account_id) => {
+                        near_socialdb_client::PermissionKey::PredecessorId(account_id) => {
                             color_eyre::eyre::bail!("Could not grant permission to <{}>", account_id);
                         }
-                        near_cli_rs::common::PermissionKey::PublicKey(public_key) => {
+                        near_socialdb_client::PermissionKey::PublicKey(public_key) => {
                             color_eyre::eyre::bail!("Could not grant permission to <{}>", public_key);
                         }
                     }
@@ -125,6 +122,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
         Self {
             global_context: item.global_context,
+            interacting_with_account_ids: vec![item.signer_account_id],
             on_after_getting_network_callback,
             on_before_signing_callback: std::sync::Arc::new(
                 |_prepolulated_unsinged_transaction, _network_config| Ok(()),

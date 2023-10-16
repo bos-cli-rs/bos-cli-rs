@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use inquire::{CustomType, Select};
 use near_cli_rs::common::{CallResultExt, JsonRpcClientExt};
@@ -66,12 +64,16 @@ impl SignerContext {
 
                 crate::common::social_db_data_from_key(&key, &mut social_db_data_to_set);
 
-                let deposit = near_cli_rs::common::required_deposit(
-                    network_config,
-                    near_social_account_id,
-                    &set_to_account_id,
-                    &social_db_data_to_set,
-                    optional_remote_social_db_data_for_key,
+                let json_rpc_client = network_config.json_rpc_client();
+
+                let deposit = tokio::runtime::Runtime::new().unwrap().block_on(
+                    near_socialdb_client::required_deposit(
+                        &json_rpc_client,
+                        near_social_account_id,
+                        &set_to_account_id,
+                        &social_db_data_to_set,
+                        optional_remote_social_db_data_for_key,
+                    ),
                 )?;
 
                 Ok(near_cli_rs::commands::PrepopulatedTransaction {
@@ -84,9 +86,7 @@ impl SignerContext {
                             args: serde_json::json!({
                                 "data": social_db_data_to_set
                             }).to_string().into_bytes(),
-                            gas: near_cli_rs::common::NearGas::from_str("300 TeraGas")
-                                .unwrap()
-                                .inner,
+                            gas: near_cli_rs::common::NearGas::from_tgas(300).as_gas(),
                             deposit: deposit.to_yoctonear(),
                         },
                     )
@@ -99,19 +99,22 @@ impl SignerContext {
                 let set_to_account_id = set_to_account_id.clone();
 
                 move |prepopulated_unsigned_transaction, network_config| {
+                    let json_rpc_client = network_config.json_rpc_client();
                     if let near_primitives::transaction::Action::FunctionCall(action) =
                         &mut prepopulated_unsigned_transaction.actions[0]
                     {
-                        action.deposit = near_cli_rs::common::get_deposit(
-                            network_config,
-                            &signer_id,
-                            &prepopulated_unsigned_transaction.public_key,
-                            &set_to_account_id,
-                            &key,
-                            &prepopulated_unsigned_transaction.receiver_id,
-                            near_cli_rs::common::NearBalance::from_yoctonear(action.deposit),
-                        )?
-                        .to_yoctonear();
+                        action.deposit = tokio::runtime::Runtime::new()
+                            .unwrap()
+                            .block_on(near_socialdb_client::get_deposit(
+                                &json_rpc_client,
+                                &signer_id,
+                                &prepopulated_unsigned_transaction.public_key,
+                                &set_to_account_id,
+                                &key,
+                                &prepopulated_unsigned_transaction.receiver_id,
+                                near_cli_rs::common::NearBalance::from_yoctonear(action.deposit),
+                            ))?
+                            .to_yoctonear();
                         Ok(())
                     } else {
                         color_eyre::eyre::bail!("Unexpected action to change components",);
@@ -132,6 +135,7 @@ impl SignerContext {
 
         Ok(Self(near_cli_rs::commands::ActionContext {
             global_context: previous_context.global_context,
+            interacting_with_account_ids: vec![previous_context.set_to_account_id.into()],
             on_after_getting_network_callback,
             on_before_signing_callback,
             on_before_sending_transaction_callback: std::sync::Arc::new(

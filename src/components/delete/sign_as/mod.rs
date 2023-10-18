@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use inquire::{CustomType, Select};
 use near_cli_rs::common::{CallResultExt, JsonRpcClientExt};
@@ -93,9 +91,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                             args: serde_json::json!({
                                 "data": social_db_data_to_remove
                             }).to_string().into_bytes(),
-                            gas: near_cli_rs::common::NearGas::from_str("300 TeraGas")
-                                .unwrap()
-                                .inner,
+                            gas: near_cli_rs::common::NearGas::from_tgas(300).as_gas(),
                             deposit: near_cli_rs::common::NearBalance::from_yoctonear(0).to_yoctonear(),
                         },
                     )]
@@ -118,6 +114,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
         Self {
             global_context: item.global_context,
+            interacting_with_account_ids: vec![item.signer_account_id],
             on_after_getting_network_callback,
             on_before_signing_callback: std::sync::Arc::new(
                 |_prepolulated_unsinged_transaction, _network_config| Ok(()),

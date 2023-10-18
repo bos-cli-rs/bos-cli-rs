@@ -21,6 +21,11 @@ Currently, only two groups of commands are implemented:
 - `set` allows you to add or update information by a given key.
 - `delete` allows you to delete information by the specified key.
 
+#### manage-profile    -   Profile management: view, update
+
+- `view-profile` allows you to view the profile for an account.
+- `update-profile` allows you to update profile for the account.
+
 #### prepaid-storage   -   Storage management: deposit, withdrawal, balance review
 
 - `view-balance` allows you to view the storage balance for an account.

@@ -3,6 +3,7 @@ use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 mod data;
 mod permissions;
 mod prepaid_storage;
+mod profile_management;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = near_cli_rs::GlobalContext)]
@@ -21,6 +22,11 @@ pub enum SocialDbCommand {
     ))]
     /// Data management: viewing, adding, updating, deleting information by a given key
     Data(self::data::Data),
+    #[strum_discriminants(strum(
+        message = "manage-profile    -   Profile management: view, update"
+    ))]
+    /// Profile management: view, update
+    ManageProfile(self::profile_management::ManageProfile),
     #[strum_discriminants(strum(
         message = "prepaid-storage   -   Storage management: deposit, withdrawal, balance review"
     ))]

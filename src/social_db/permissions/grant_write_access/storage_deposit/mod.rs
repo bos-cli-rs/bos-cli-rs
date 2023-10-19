@@ -17,7 +17,7 @@ pub struct ExtraStorageDeposit {
 pub struct ExtraStorageDepositContext {
     pub global_context: near_cli_rs::GlobalContext,
     pub social_db_key: String,
-    pub permission_key: crate::common::PermissionKey,
+    pub permission_key: near_socialdb_client::PermissionKey,
     pub extra_storage_deposit: near_cli_rs::common::NearBalance,
 }
 
@@ -55,5 +55,5 @@ impl ExtraStorageDeposit {
 pub struct AccessToPermissionKeyContext {
     pub global_context: near_cli_rs::GlobalContext,
     pub social_db_key: String,
-    pub permission_key: crate::common::PermissionKey,
+    pub permission_key: near_socialdb_client::PermissionKey,
 }

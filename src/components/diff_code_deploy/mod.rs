@@ -4,6 +4,7 @@ use color_eyre::eyre::ContextCompat;
 #[interactive_clap(input_context = near_cli_rs::GlobalContext)]
 #[interactive_clap(output_context = DiffCodeDeployContext)]
 pub struct DiffCodeDeploy {
+    #[interactive_clap(skip_default_input_arg)]
     /// On which account do you want to compare local components?
     account_id: near_cli_rs::types::account_id::AccountId,
     #[interactive_clap(named_arg)]
@@ -19,10 +20,10 @@ impl DiffCodeDeployContext {
         previous_context: near_cli_rs::GlobalContext,
         scope: &<DiffCodeDeploy as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
+        let account_id: near_primitives::types::AccountId = scope.account_id.clone().into();
         let on_after_getting_network_callback: near_cli_rs::network::OnAfterGettingNetworkCallback =
             std::sync::Arc::new({
-                let account_id: near_primitives::types::AccountId = scope.account_id.clone().into();
-
+                let account_id = account_id.clone();
                 move |network_config| {
                     let near_social_account_id = crate::consts::NEAR_SOCIAL_ACCOUNT_ID
                         .get(network_config.network_name.as_str())
@@ -64,6 +65,7 @@ impl DiffCodeDeployContext {
             });
         Ok(Self(near_cli_rs::network::NetworkContext {
             config: previous_context.config,
+            interacting_with_account_ids: vec![account_id],
             on_after_getting_network_callback,
         }))
     }
@@ -72,5 +74,16 @@ impl DiffCodeDeployContext {
 impl From<DiffCodeDeployContext> for near_cli_rs::network::NetworkContext {
     fn from(item: DiffCodeDeployContext) -> Self {
         item.0
+    }
+}
+
+impl DiffCodeDeploy {
+    pub fn input_account_id(
+        context: &near_cli_rs::GlobalContext,
+    ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {
+        near_cli_rs::common::input_non_signer_account_id_from_used_account_list(
+            &context.config.credentials_home_dir,
+            "On which account do you want to compare local components?",
+        )
     }
 }

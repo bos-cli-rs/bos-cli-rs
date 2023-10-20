@@ -7,6 +7,7 @@ mod sign_as;
 #[interactive_clap(input_context = near_cli_rs::GlobalContext)]
 #[interactive_clap(output_context = DeleteComponentsFromAccountContext)]
 pub struct DeleteComponentsFromAccount {
+    #[interactive_clap(skip_default_input_arg)]
     /// Which account do you want to delete the components from?
     account_id: near_cli_rs::types::account_id::AccountId,
     #[interactive_clap(subcommand)]
@@ -26,6 +27,17 @@ impl DeleteComponentsFromAccountContext {
             account_id: scope.account_id.clone(),
             components: vec![],
         }))
+    }
+}
+
+impl DeleteComponentsFromAccount {
+    pub fn input_account_id(
+        context: &near_cli_rs::GlobalContext,
+    ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {
+        near_cli_rs::common::input_signer_account_id_from_used_account_list(
+            &context.config.credentials_home_dir,
+            "Which account do you want to delete the components from?",
+        )
     }
 }
 

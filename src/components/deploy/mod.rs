@@ -10,8 +10,8 @@ pub struct TransactionFunctionArgs {
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = near_cli_rs::GlobalContext)]
-#[interactive_clap(output_context = DeployToAccountContext)]
-pub struct DeployToAccount {
+#[interactive_clap(output_context = DeployCmdContext)]
+pub struct DeployCmd {
     #[interactive_clap(skip_default_input_arg)]
     /// Which account do you want to deploy the components to?
     deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
@@ -21,15 +21,15 @@ pub struct DeployToAccount {
 }
 
 #[derive(Clone)]
-pub struct DeployToAccountContext {
+pub struct DeployCmdContext {
     pub global_context: near_cli_rs::GlobalContext,
     pub deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
 }
 
-impl DeployToAccountContext {
+impl DeployCmdContext {
     pub fn from_previous_context(
         previous_context: near_cli_rs::GlobalContext,
-        scope: &<DeployToAccount as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
+        scope: &<DeployCmd as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
             global_context: previous_context,
@@ -38,7 +38,7 @@ impl DeployToAccountContext {
     }
 }
 
-impl DeployToAccount {
+impl DeployCmd {
     fn input_deploy_to_account_id(
         context: &near_cli_rs::GlobalContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {

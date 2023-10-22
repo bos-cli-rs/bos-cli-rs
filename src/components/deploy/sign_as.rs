@@ -5,7 +5,7 @@ use color_eyre::eyre::{ContextCompat, WrapErr};
 use inquire::{CustomType, Select};
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = super::DeployToAccountContext)]
+#[interactive_clap(input_context = super::DeployCmdContext)]
 #[interactive_clap(output_context = SignerContext)]
 pub struct Signer {
     #[interactive_clap(skip_default_input_arg)]
@@ -25,7 +25,7 @@ pub struct SignerContext {
 
 impl SignerContext {
     pub fn from_previous_context(
-        previous_context: super::DeployToAccountContext,
+        previous_context: super::DeployCmdContext,
         scope: &<Signer as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
@@ -196,7 +196,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
 impl Signer {
     fn input_signer_account_id(
-        context: &super::DeployToAccountContext,
+        context: &super::DeployCmdContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {
         loop {
             let signer_account_id: near_cli_rs::types::account_id::AccountId =

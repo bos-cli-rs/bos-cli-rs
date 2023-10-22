@@ -2,8 +2,8 @@ use color_eyre::eyre::ContextCompat;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = near_cli_rs::GlobalContext)]
-#[interactive_clap(output_context = DiffCodeDeployContext)]
-pub struct DiffCodeDeploy {
+#[interactive_clap(output_context = DiffContext)]
+pub struct Diff {
     #[interactive_clap(skip_default_input_arg)]
     /// On which account do you want to compare local components?
     account_id: near_cli_rs::types::account_id::AccountId,
@@ -13,12 +13,12 @@ pub struct DiffCodeDeploy {
 }
 
 #[derive(Clone)]
-pub struct DiffCodeDeployContext(near_cli_rs::network::NetworkContext);
+pub struct DiffContext(near_cli_rs::network::NetworkContext);
 
-impl DiffCodeDeployContext {
+impl DiffContext {
     pub fn from_previous_context(
         previous_context: near_cli_rs::GlobalContext,
-        scope: &<DiffCodeDeploy as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
+        scope: &<Diff as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         let account_id: near_primitives::types::AccountId = scope.account_id.clone().into();
         let on_after_getting_network_callback: near_cli_rs::network::OnAfterGettingNetworkCallback =
@@ -71,13 +71,13 @@ impl DiffCodeDeployContext {
     }
 }
 
-impl From<DiffCodeDeployContext> for near_cli_rs::network::NetworkContext {
-    fn from(item: DiffCodeDeployContext) -> Self {
+impl From<DiffContext> for near_cli_rs::network::NetworkContext {
+    fn from(item: DiffContext) -> Self {
         item.0
     }
 }
 
-impl DiffCodeDeploy {
+impl Diff {
     pub fn input_account_id(
         context: &near_cli_rs::GlobalContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {

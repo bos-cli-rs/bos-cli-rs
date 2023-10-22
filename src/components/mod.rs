@@ -2,7 +2,7 @@ use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
 mod delete;
 mod deploy;
-mod diff_code_deploy;
+mod diff;
 mod download;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
@@ -24,7 +24,7 @@ pub enum ComponentsCommand {
         message = "diff        -   Differences between component code for deployment"
     ))]
     /// Differences between component code for deployment
-    Diff(self::diff_code_deploy::DiffCodeDeploy),
+    Diff(self::diff::Diff),
     #[strum_discriminants(strum(
         message = "deploy      -   Deploy components if code has changed"
     ))]

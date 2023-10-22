@@ -2,6 +2,7 @@ use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
 mod delete;
 mod deploy;
+mod diff;
 mod download;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
@@ -16,15 +17,20 @@ pub struct Components {
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
 /// What are you up to?
 pub enum ComponentsCommand {
-    #[strum_discriminants(strum(message = "download   -   Download components from account"))]
+    #[strum_discriminants(strum(message = "download    -   Download components from account"))]
     /// Download components from account
     Download(self::download::AccountId),
     #[strum_discriminants(strum(
-        message = "deploy     -   Deploy components if code has changed"
+        message = "diff        -   Differences between component code for deployment"
+    ))]
+    /// Differences between component code for deployment
+    Diff(self::diff::Diff),
+    #[strum_discriminants(strum(
+        message = "deploy      -   Deploy components if code has changed"
     ))]
     /// Deploy сomponents if code has changed
     Deploy(self::deploy::DeployToAccount),
-    #[strum_discriminants(strum(message = "delete     -   Delete components from account"))]
+    #[strum_discriminants(strum(message = "delete      -   Delete components from account"))]
     /// Delete components from account
     Delete(self::delete::DeleteComponentsFromAccount),
 }

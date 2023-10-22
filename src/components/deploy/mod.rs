@@ -1,4 +1,5 @@
-use inquire::{CustomType, Select};
+use color_eyre::eyre::ContextCompat;
+use inquire::Select;
 
 mod sign_as;
 
@@ -50,9 +51,12 @@ impl DeployToAccount {
             println!(" * {component}")
         }
         loop {
-            let deploy_to_account_id: near_cli_rs::types::account_id::AccountId =
-                CustomType::new("Which account do you want to deploy the components to?")
-                    .prompt()?;
+            let deploy_to_account_id =
+                near_cli_rs::common::input_signer_account_id_from_used_account_list(
+                    &context.config.credentials_home_dir,
+                    "Which account do you want to deploy the components to?",
+                )?
+                .wrap_err("Internal error!")?;
             if !near_cli_rs::common::is_account_exist(
                 &context.config.network_connection,
                 deploy_to_account_id.clone().into(),

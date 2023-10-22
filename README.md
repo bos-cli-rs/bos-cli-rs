@@ -10,6 +10,7 @@ Currently, only two groups of commands are implemented:
 ### components  -   Working with components (Download, Deploy, etc.)
 
 - `deploy` allows you to upload/publish components from your local `./src` folder to near.social account.
+- `diff` shows changes between deployed and local components.
 - `download` allows you to download the existing components from any near.social account to the local `./src` folder.
 - `delete` allows you to delete the existing components from any near.social account.
 

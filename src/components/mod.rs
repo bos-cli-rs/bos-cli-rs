@@ -19,18 +19,18 @@ pub struct Components {
 pub enum ComponentsCommand {
     #[strum_discriminants(strum(message = "download    -   Download components from account"))]
     /// Download components from account
-    Download(self::download::AccountId),
+    Download(self::download::DownloadCmd),
     #[strum_discriminants(strum(
         message = "diff        -   Differences between component code for deployment"
     ))]
     /// Differences between component code for deployment
-    Diff(self::diff::Diff),
+    Diff(self::diff::DiffCmd),
     #[strum_discriminants(strum(
         message = "deploy      -   Deploy components if code has changed"
     ))]
     /// Deploy сomponents if code has changed
-    Deploy(self::deploy::DeployToAccount),
+    Deploy(self::deploy::DeployCmd),
     #[strum_discriminants(strum(message = "delete      -   Delete components from account"))]
     /// Delete components from account
-    Delete(self::delete::DeleteComponentsFromAccount),
+    Delete(self::delete::DeleteCmd),
 }

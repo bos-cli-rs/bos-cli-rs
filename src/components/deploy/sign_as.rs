@@ -2,10 +2,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use color_eyre::eyre::{ContextCompat, WrapErr};
-use inquire::{CustomType, Select};
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = super::DeployToAccountContext)]
+#[interactive_clap(input_context = super::DeployCmdContext)]
 #[interactive_clap(output_context = SignerContext)]
 pub struct Signer {
     #[interactive_clap(skip_default_input_arg)]
@@ -25,7 +24,7 @@ pub struct SignerContext {
 
 impl SignerContext {
     pub fn from_previous_context(
-        previous_context: super::DeployToAccountContext,
+        previous_context: super::DeployCmdContext,
         scope: &<Signer as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
@@ -196,36 +195,11 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
 impl Signer {
     fn input_signer_account_id(
-        context: &super::DeployToAccountContext,
+        context: &super::DeployCmdContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {
-        loop {
-            let signer_account_id: near_cli_rs::types::account_id::AccountId =
-                CustomType::new("What is the signer account ID?")
-                    .with_default(context.deploy_to_account_id.clone())
-                    .prompt()?;
-            if !near_cli_rs::common::is_account_exist(
-                &context.global_context.config.network_connection,
-                signer_account_id.clone().into(),
-            ) {
-                println!("\nThe account <{signer_account_id}> does not yet exist.");
-                #[derive(strum_macros::Display)]
-                enum ConfirmOptions {
-                    #[strum(to_string = "Yes, I want to enter a new account name.")]
-                    Yes,
-                    #[strum(to_string = "No, I want to use this account name.")]
-                    No,
-                }
-                let select_choose_input = Select::new(
-                    "Do you want to enter another signer account id?",
-                    vec![ConfirmOptions::Yes, ConfirmOptions::No],
-                )
-                .prompt()?;
-                if let ConfirmOptions::No = select_choose_input {
-                    return Ok(Some(signer_account_id));
-                }
-            } else {
-                return Ok(Some(signer_account_id));
-            }
-        }
+        near_cli_rs::common::input_signer_account_id_from_used_account_list(
+            &context.global_context.config.credentials_home_dir,
+            "What is the signer account ID?",
+        )
     }
 }

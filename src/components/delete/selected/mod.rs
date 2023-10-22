@@ -1,7 +1,7 @@
 use inquire::CustomType;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = super::DeleteComponentsFromAccountContext)]
+#[interactive_clap(input_context = super::DeleteCmdContext)]
 #[interactive_clap(output_context = ComponentContext)]
 pub struct Selected {
     #[interactive_clap(skip_default_input_arg)]
@@ -20,7 +20,7 @@ pub struct ComponentContext {
 
 impl ComponentContext {
     pub fn from_previous_context(
-        previous_context: super::DeleteComponentsFromAccountContext,
+        previous_context: super::DeleteCmdContext,
         scope: &<Selected as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
@@ -33,7 +33,7 @@ impl ComponentContext {
 
 impl Selected {
     pub fn input_components(
-        _context: &super::DeleteComponentsFromAccountContext,
+        _context: &super::DeleteCmdContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::vec_string::VecString>> {
         loop {
             let input_components: near_cli_rs::types::vec_string::VecString =

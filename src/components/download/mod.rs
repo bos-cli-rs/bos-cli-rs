@@ -3,8 +3,8 @@ use near_cli_rs::common::{CallResultExt, JsonRpcClientExt};
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(input_context = near_cli_rs::GlobalContext)]
-#[interactive_clap(output_context = AccountIdContext)]
-pub struct AccountId {
+#[interactive_clap(output_context = DownloadCmdContext)]
+pub struct DownloadCmd {
     #[interactive_clap(skip_default_input_arg)]
     /// Which account do you want to download components from?
     account_id: near_cli_rs::types::account_id::AccountId,
@@ -14,12 +14,12 @@ pub struct AccountId {
 }
 
 #[derive(Clone)]
-pub struct AccountIdContext(near_cli_rs::network::NetworkContext);
+pub struct DownloadCmdContext(near_cli_rs::network::NetworkContext);
 
-impl AccountIdContext {
+impl DownloadCmdContext {
     pub fn from_previous_context(
         previous_context: near_cli_rs::GlobalContext,
-        scope: &<AccountId as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
+        scope: &<DownloadCmd as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         let account_id: near_primitives::types::AccountId = scope.account_id.clone().into();
 
@@ -126,13 +126,13 @@ impl AccountIdContext {
     }
 }
 
-impl From<AccountIdContext> for near_cli_rs::network::NetworkContext {
-    fn from(item: AccountIdContext) -> Self {
+impl From<DownloadCmdContext> for near_cli_rs::network::NetworkContext {
+    fn from(item: DownloadCmdContext) -> Self {
         item.0
     }
 }
 
-impl AccountId {
+impl DownloadCmd {
     pub fn input_account_id(
         context: &near_cli_rs::GlobalContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {

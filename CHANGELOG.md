@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.6](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.5...v0.3.6) - 2023-10-22
+
+### Added
+- A new command for diff-ing the widgets code ([#56](https://github.com/bos-cli-rs/bos-cli-rs/pull/56))
+- New command to manage BOS profile in SocialDB ([#61](https://github.com/bos-cli-rs/bos-cli-rs/pull/61))
+
+### Other
+- Updating components commands ([#66](https://github.com/bos-cli-rs/bos-cli-rs/pull/66))
+- Update input_account_id() ([#65](https://github.com/bos-cli-rs/bos-cli-rs/pull/65))
+- Adds dependencies for compiling from source on Fedora Linux to the README ([#63](https://github.com/bos-cli-rs/bos-cli-rs/pull/63))
+
 ## [0.3.5](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.4...v0.3.5) - 2023-08-05
 
 ### Fixed

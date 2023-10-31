@@ -10,6 +10,7 @@ use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 pub mod common;
 mod components;
 pub mod consts;
+pub mod extensions;
 mod social_db;
 pub mod socialdb_types;
 
@@ -36,6 +37,9 @@ pub enum Command {
     #[strum_discriminants(strum(message = "socialdb     -   SocialDb management"))]
     /// Storage management: deposit, withdrawal, balance review
     SocialDb(self::social_db::SocialDb),
+    #[strum_discriminants(strum(message = "extension    -   Manage bos CLI and extensions"))]
+    /// Use this to manage bos CLI and extensions
+    Extensions(self::extensions::ExtensionsCommands),
 }
 
 fn main() -> CliResult {

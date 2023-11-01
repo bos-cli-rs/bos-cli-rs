@@ -4,7 +4,7 @@ pub mod self_update;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = near_cli_rs::GlobalContext)]
-pub struct ExtensionsCommands {
+pub struct Extensions {
     #[interactive_clap(subcommand)]
     pub extensions_actions: ExtensionsActions,
 }

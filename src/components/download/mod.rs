@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use near_cli_rs::common::{CallResultExt, JsonRpcClientExt};
 
@@ -75,6 +77,7 @@ impl DownloadCmdContext {
                     )?;
 
                     let components_src_folder = std::path::PathBuf::from("./src");
+                    let mut components_paths: HashMap<&str, String> = HashMap::new();
                     for (component_name, component) in remote_components.iter() {
                         let mut component_path = components_src_folder.clone();
                         component_path.extend(component_name.split('.'));
@@ -92,6 +95,8 @@ impl DownloadCmdContext {
                                     component_code_path.display()
                                 )
                             })?;
+                        let near_path = format!("{}/widget/{}", account_id, component_name);
+                        components_paths.insert(component_name, near_path);
                         if let Some(metadata) = component.metadata() {
                             let metadata =
                                 serde_json::to_string_pretty(metadata).wrap_err_with(|| {
@@ -108,6 +113,13 @@ impl DownloadCmdContext {
                                 })?;
                         }
                     }
+
+                    let meta_file_path = std::path::PathBuf::from("./src/.bos");
+                    let meta_file_content: String = components_paths
+                                                .iter()
+                                                .map(|(key, value)| format!("{}={}\n", key, value))
+                                                .collect();
+                    std::fs::write(meta_file_path.clone(), meta_file_content.as_bytes())?;
 
                     println!(
                         "Components for account <{}> were downloaded into <{}> successfully",

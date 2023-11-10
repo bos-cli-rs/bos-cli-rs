@@ -50,7 +50,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     receiver_id: near_social_account_id.clone(),
                     actions: vec![],
                 };
-                let local_components = crate::common::get_local_components()?;
+                let local_components = crate::common::get_local_components(Some(deploy_to_account_id.clone()))?;
                 if local_components.is_empty() {
                     println!("There are no components in the current ./src folder. Goodbye.");
                     return Ok(prepopulated_transaction);

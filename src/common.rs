@@ -4,9 +4,12 @@ use color_eyre::eyre::{ContextCompat, WrapErr};
 use console::{style, Style};
 use futures::StreamExt;
 use glob::glob;
-use near_cli_rs::common::CallResultExt;
+use near_cli_rs::{common::CallResultExt};
+use near_primitives::types::AccountId;
 use serde::de::{Deserialize, Deserializer};
 use similar::{ChangeTag, TextDiff};
+
+use crate::socialdb_types::SocialDbComponentMetadata;
 
 struct Line(Option<usize>);
 
@@ -63,7 +66,7 @@ pub fn diff_code(old_code: &str, new_code: &str) -> Result<(), DiffCodeError> {
     Err(DiffCodeError)
 }
 
-pub fn get_local_components(
+pub fn get_local_components(account_id: Option<AccountId>
 ) -> color_eyre::eyre::Result<HashMap<String, crate::socialdb_types::SocialDbComponent>> {
     let mut components = HashMap::new();
 
@@ -88,6 +91,60 @@ pub fn get_local_components(
         })?;
 
         let metadata_filepath = component_filepath.with_extension("metadata.json");
+        let components_original_sources = read_bos_file().unwrap();
+        if account_id.is_some() && components_original_sources.contains_key(&component_name) {
+            // check if account and source are the same
+            let source = components_original_sources.get(&component_name).unwrap();
+            let source_parts = source.split_once("/").unwrap();
+            if source_parts.0 != account_id.clone().unwrap().trim() {
+                if metadata_filepath.is_file() {
+                    let metadata_content = std::fs::read_to_string(&metadata_filepath).wrap_err_with(|| {
+                        format!(
+                            "Failed to parse component metadata from {}",
+                            metadata_filepath.display()
+                        )
+                    })?;
+                    
+                    let mut metadata_content_json: SocialDbComponentMetadata = serde_json::from_str(&metadata_content).wrap_err_with(|| {
+                        format!(
+                            "Failed to parse component metadata from {}",
+                            metadata_filepath.display()
+                        )})?;
+                    metadata_content_json.fork_of = Some(source.clone());
+
+                    let metadata =
+                        serde_json::to_string_pretty(&metadata_content_json).wrap_err_with(|| {
+                            format!("Failed to serialize component metadata for {component_name}")
+                        })?;
+                    let component_metadata_path =
+                    component_filepath.with_extension("metadata.json");
+                    std::fs::write(&component_metadata_path, metadata.as_bytes())
+                                .wrap_err_with(|| {
+                                    format!(
+                                        "Failed to save component metadata into {}",
+                                        component_metadata_path.display()
+                                    )
+                                })?;
+                    
+                } else {
+                    let metadata_content_json = SocialDbComponentMetadata {description: None, image: None, name: None, tags: None, fork_of: Some(source.to_string())};
+                    let metadata =
+                        serde_json::to_string_pretty(&metadata_content_json).wrap_err_with(|| {
+                            format!("Failed to serialize component metadata for {component_name}")
+                        })?;
+                    let component_metadata_path =
+                    component_filepath.with_extension("metadata.json");
+                    std::fs::write(&component_metadata_path, metadata.as_bytes())
+                                .wrap_err_with(|| {
+                                    format!(
+                                        "Failed to save component metadata into {}",
+                                        component_metadata_path.display()
+                                    )
+                                })?;
+                }
+            }
+        }
+        
         let metadata = if let Ok(metadata_json) = std::fs::read_to_string(&metadata_filepath) {
             Some(serde_json::from_str(&metadata_json).wrap_err_with(|| {
                 format!(
@@ -105,6 +162,28 @@ pub fn get_local_components(
         );
     }
     Ok(components)
+}
+
+pub fn read_bos_file() -> color_eyre::eyre::Result<HashMap<String, String>> {
+    let bos_path = std::path::PathBuf::from("./src/.bos");
+    if bos_path.is_file() {
+        Some(HashMap::<std::string::String, std::string::String>::new());
+    }
+    let file_content = std::fs::read_to_string(bos_path)?;
+
+    let result: HashMap<String, String> = file_content
+        .lines()
+        .map(|line| {
+            let parts: Vec<&str> = line.splitn(2, '=').collect();
+            if parts.len() != 2 {
+                Err(color_eyre::Report::msg(format!("Failed to read .bos file. Invalid line format: {}", line)))
+            } else {
+                Ok((parts[0].trim().to_string(), parts[1].trim().to_string()))
+            }
+        })
+        .collect::<Result<_, _>>()?;
+
+    Ok(result)
 }
 
 pub fn get_remote_components(

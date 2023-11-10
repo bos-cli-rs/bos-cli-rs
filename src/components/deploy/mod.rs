@@ -42,7 +42,7 @@ impl DeployCmd {
     fn input_deploy_to_account_id(
         context: &near_cli_rs::GlobalContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {
-        let components = crate::common::get_local_components()?;
+        let components = crate::common::get_local_components(None)?;
         println!(
             "\nThere are <{}> components in the current folder ready for deployment:",
             components.len()

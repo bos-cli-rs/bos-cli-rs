@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use console::{style, Style};
@@ -93,55 +93,17 @@ pub fn get_local_components(account_id: Option<AccountId>
         let metadata_filepath = component_filepath.with_extension("metadata.json");
         let components_original_sources = read_bos_file().unwrap();
         if account_id.is_some() && components_original_sources.contains_key(&component_name) {
-            // check if account and source are the same
             let source = components_original_sources.get(&component_name).unwrap();
             let source_parts = source.split_once("/").unwrap();
             if source_parts.0 != account_id.clone().unwrap().trim() {
-                if metadata_filepath.is_file() {
-                    let metadata_content = std::fs::read_to_string(&metadata_filepath).wrap_err_with(|| {
-                        format!(
-                            "Failed to parse component metadata from {}",
-                            metadata_filepath.display()
-                        )
-                    })?;
-                    
-                    let mut metadata_content_json: SocialDbComponentMetadata = serde_json::from_str(&metadata_content).wrap_err_with(|| {
-                        format!(
-                            "Failed to parse component metadata from {}",
-                            metadata_filepath.display()
-                        )})?;
-                    metadata_content_json.fork_of = Some(source.clone());
-
-                    let metadata =
-                        serde_json::to_string_pretty(&metadata_content_json).wrap_err_with(|| {
-                            format!("Failed to serialize component metadata for {component_name}")
-                        })?;
-                    let component_metadata_path =
-                    component_filepath.with_extension("metadata.json");
-                    std::fs::write(&component_metadata_path, metadata.as_bytes())
-                                .wrap_err_with(|| {
-                                    format!(
-                                        "Failed to save component metadata into {}",
-                                        component_metadata_path.display()
-                                    )
-                                })?;
-                    
-                } else {
-                    let metadata_content_json = SocialDbComponentMetadata {description: None, image: None, name: None, tags: None, fork_of: Some(source.to_string())};
-                    let metadata =
-                        serde_json::to_string_pretty(&metadata_content_json).wrap_err_with(|| {
-                            format!("Failed to serialize component metadata for {component_name}")
-                        })?;
-                    let component_metadata_path =
-                    component_filepath.with_extension("metadata.json");
-                    std::fs::write(&component_metadata_path, metadata.as_bytes())
-                                .wrap_err_with(|| {
-                                    format!(
-                                        "Failed to save component metadata into {}",
-                                        component_metadata_path.display()
-                                    )
-                                })?;
-                }
+                let mut metadata_content_json = read_metadata_file(metadata_filepath.clone())?;
+                metadata_content_json.fork_of = Some(source.clone());
+                save_metadata_file(component_filepath, metadata_content_json).wrap_err_with(|| {
+                    format!(
+                        "Failed to update component metadata {}",
+                        metadata_filepath.display()
+                    )
+                })?;      
             }
         }
         
@@ -162,6 +124,43 @@ pub fn get_local_components(account_id: Option<AccountId>
         );
     }
     Ok(components)
+}
+
+pub fn save_metadata_file(component_filepath: PathBuf, metadata_content_json: SocialDbComponentMetadata) -> color_eyre::eyre::Result<()> {
+    let metadata = serde_json::to_string_pretty(&metadata_content_json).wrap_err_with(|| {
+                            format!("Failed to serialize component metadata for {}", component_filepath.display())
+                        })?;
+    let component_metadata_path =
+                    component_filepath.with_extension("metadata.json");
+    std::fs::write(&component_metadata_path, metadata.as_bytes())
+                .wrap_err_with(|| {
+                    format!(
+                        "Failed to save component metadata into {}",
+                        component_metadata_path.display()
+                    )
+    })?;
+    
+    Ok(())
+}
+
+pub fn read_metadata_file(metadata_filepath: PathBuf) -> color_eyre::eyre::Result<SocialDbComponentMetadata> {
+    if metadata_filepath.is_file() {
+        let metadata_content = std::fs::read_to_string(&metadata_filepath).wrap_err_with(|| {
+            format!(
+                "Failed to parse component metadata from {}",
+                metadata_filepath.display()
+            )
+        })?;
+        
+        let metadata_content_json: SocialDbComponentMetadata = serde_json::from_str(&metadata_content).wrap_err_with(|| {
+            format!(
+                "Failed to parse component metadata from {}",
+                metadata_filepath.display()
+            )})?;
+        Ok(metadata_content_json)
+    } else {
+        Ok(SocialDbComponentMetadata {description: None, image: None, name: None, tags: None, fork_of: None})
+    }
 }
 
 pub fn read_bos_file() -> color_eyre::eyre::Result<HashMap<String, String>> {

@@ -40,8 +40,9 @@ impl DownloadCmdContext {
                         }
                     };
 
-                    let input_args = serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
+                    let input_args = serde_json::to_string(&crate::socialdb_types::SocialDbQueryWithOptions {
                         keys: vec![format!("{account_id}/widget/*")],
+                        options: Some(crate::socialdb_types::SocialDbQueryOptions{return_type: "BlockHeight".to_string() }),
                     })
                     .wrap_err("Internal error: could not serialize SocialDB input args")?;
 
@@ -54,7 +55,7 @@ impl DownloadCmdContext {
                             near_primitives::types::Finality::Final.into(),
                         )
                         .wrap_err("Failed to fetch the components state from SocialDB")?;
-                    let keys: SocialDbKeys = call_result.parse_result_from_json()?;
+                    let keys: SocialDbKeysWithBlockHeights = call_result.parse_result_from_json()?;
 
                     let remote_social_account_components =
                         if let Some(account_components) = keys.accounts.get(&account_id) {
@@ -95,7 +96,8 @@ impl DownloadCmdContext {
                                     component_code_path.display()
                                 )
                             })?;
-                        let near_path = format!("{}/widget/{}", account_id, component_name);
+                        let block_height = remote_social_account_components.components.get(component_name);
+                        let near_path = format!("{}/widget/{}@{}", account_id, component_name, block_height.unwrap());
                         components_paths.insert(component_name, near_path);
                         if let Some(metadata) = component.metadata() {
                             let metadata =
@@ -166,4 +168,17 @@ pub struct SocialDbKeys {
 pub struct SocialDbAccountComponents {
     #[serde(rename = "widget")]
     pub components: std::collections::HashMap<crate::socialdb_types::ComponentName, bool>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SocialDbKeysWithBlockHeights {
+    #[serde(flatten)]
+    pub accounts:
+        std::collections::HashMap<near_primitives::types::AccountId, SocialDbAccountComponentsWithBlockHeights>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SocialDbAccountComponentsWithBlockHeights {
+    #[serde(rename = "widget")]
+    pub components: std::collections::HashMap<crate::socialdb_types::ComponentName, i32>,
 }

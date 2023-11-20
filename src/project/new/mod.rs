@@ -34,6 +34,12 @@ impl NewContext {
             .output()
             .wrap_err("Failed to execute process: `git init`")?;
 
+        println!("New project is created at '{}'\n", project_dir.display());
+        println!("Now you can build and deploy your project:");
+        println!("1. Install dependencies: `npm install`");
+        println!("2. Edit components");
+        println!("3. Deploy: `npm run deploy`");
+
         Ok(Self)
     }
 }

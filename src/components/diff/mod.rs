@@ -34,7 +34,8 @@ impl DiffCmdContext {
                             )
                         })?;
 
-                    let local_components = crate::common::get_local_components(Some(account_id.clone()))?;
+                    let local_components =
+                        crate::common::get_local_components(Some(account_id.clone()))?;
                     if local_components.is_empty() {
                         println!("There are no components in the current ./src folder. Goodbye.");
                         return Ok(());

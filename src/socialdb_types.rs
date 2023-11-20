@@ -11,7 +11,7 @@ pub struct SocialDbQueryOptions {
 pub struct SocialDbQueryWithOptions {
     pub keys: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub options: Option<SocialDbQueryOptions>
+    pub options: Option<SocialDbQueryOptions>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]

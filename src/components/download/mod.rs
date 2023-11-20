@@ -40,11 +40,14 @@ impl DownloadCmdContext {
                         }
                     };
 
-                    let input_args = serde_json::to_string(&crate::socialdb_types::SocialDbQueryWithOptions {
-                        keys: vec![format!("{account_id}/widget/*")],
-                        options: Some(crate::socialdb_types::SocialDbQueryOptions{return_type: "BlockHeight".to_string() }),
-                    })
-                    .wrap_err("Internal error: could not serialize SocialDB input args")?;
+                    let input_args =
+                        serde_json::to_string(&crate::socialdb_types::SocialDbQueryWithOptions {
+                            keys: vec![format!("{account_id}/widget/*")],
+                            options: Some(crate::socialdb_types::SocialDbQueryOptions {
+                                return_type: "BlockHeight".to_string(),
+                            }),
+                        })
+                        .wrap_err("Internal error: could not serialize SocialDB input args")?;
 
                     let call_result = network_config
                         .json_rpc_client()
@@ -55,7 +58,8 @@ impl DownloadCmdContext {
                             near_primitives::types::Finality::Final.into(),
                         )
                         .wrap_err("Failed to fetch the components state from SocialDB")?;
-                    let keys: SocialDbKeysWithBlockHeights = call_result.parse_result_from_json()?;
+                    let keys: SocialDbKeysWithBlockHeights =
+                        call_result.parse_result_from_json()?;
 
                     let remote_social_account_components =
                         if let Some(account_components) = keys.accounts.get(&account_id) {
@@ -96,8 +100,15 @@ impl DownloadCmdContext {
                                     component_code_path.display()
                                 )
                             })?;
-                        let block_height = remote_social_account_components.components.get(component_name);
-                        let near_path = format!("{}/widget/{}@{}", account_id, component_name, block_height.unwrap());
+                        let block_height = remote_social_account_components
+                            .components
+                            .get(component_name);
+                        let near_path = format!(
+                            "{}/widget/{}@{}",
+                            account_id,
+                            component_name,
+                            block_height.unwrap()
+                        );
                         components_paths.insert(component_name, near_path);
                         if let Some(metadata) = component.metadata() {
                             let metadata =
@@ -118,9 +129,9 @@ impl DownloadCmdContext {
 
                     let meta_file_path = std::path::PathBuf::from("./src/.bos");
                     let meta_file_content: String = components_paths
-                                                .iter()
-                                                .map(|(key, value)| format!("{}={}\n", key, value))
-                                                .collect();
+                        .iter()
+                        .map(|(key, value)| format!("{}={}\n", key, value))
+                        .collect();
                     std::fs::write(meta_file_path.clone(), meta_file_content.as_bytes())?;
 
                     println!(
@@ -173,8 +184,10 @@ pub struct SocialDbAccountComponents {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SocialDbKeysWithBlockHeights {
     #[serde(flatten)]
-    pub accounts:
-        std::collections::HashMap<near_primitives::types::AccountId, SocialDbAccountComponentsWithBlockHeights>,
+    pub accounts: std::collections::HashMap<
+        near_primitives::types::AccountId,
+        SocialDbAccountComponentsWithBlockHeights,
+    >,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

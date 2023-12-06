@@ -12,6 +12,7 @@ pub mod common;
 mod components;
 pub mod consts;
 mod extensions;
+mod project;
 mod social_db;
 pub mod socialdb_types;
 
@@ -30,6 +31,9 @@ struct Cmd {
 #[interactive_clap(disable_back)]
 /// What are you up to? (select one of the options with the up-down arrows on your keyboard and press Enter)
 pub enum Command {
+    #[strum_discriminants(strum(message = "project      -   Project management"))]
+    /// Project management
+    Project(self::project::Project),
     #[strum_discriminants(strum(
         message = "components   -   Working with components (Download, Deploy, etc.)"
     ))]

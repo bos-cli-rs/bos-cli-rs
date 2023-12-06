@@ -2,10 +2,19 @@
 
 Command line utility helps to develop components for [NEAR Blockchain Operating System](https://near.org/blog/near-announces-the-blockchain-operating-system/) by allowing developers to use standard developer tools like their best code editor and standard tools for source code version control, and then deploy their components to SocialDB in one command.
 
-Currently, only two groups of commands are implemented:
+<p>
+  <img src="docs/media/new-project.svg" alt="" width="1200">
+</p>
 
+## Command groups
+
+- `project`     -   Project management
 - `components`  -   Working with components (Download, Deploy, etc.)
 - `socialdb`    -   SocialDb management
+
+### project     -   Project management
+
+- `new` allows you to initialize, edit and then deploy a new component to your near.social account.
 
 ### components  -   Working with components (Download, Deploy, etc.)
 

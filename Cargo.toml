@@ -44,8 +44,8 @@ interactive-clap-derive = "0.2.7"
 
 console = "0.15.5"
 
-near-cli-rs = { version = "0.6.2", default-features = false }
-near-socialdb-client = "0.1.0"
+near-cli-rs = { version = "0.7.5", default-features = false }
+near-socialdb-client = "0.2.1"
 semver = "1.0.4"
 self_update = { version = "0.37.0", features = [
     "archive-tar",

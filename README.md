@@ -78,7 +78,13 @@ npm install bos-cli
 
 ### Install from source code (Cargo)
 
-Install it with `cargo`, just make sure you have [Rust](https://rustup.rs) installed on your computer.
+Before getting to installation, make sure you have [Rust](https://rustup.rs) and system dependencies installed on your computer.
+
+To install system dependencies:
+* on Ubuntu Linux: `apt install pkg-config libudev-dev`
+* on Fedora Linux: `dnf install pkg-config libudev-devel`
+
+Once system dependencies and Rust are installed you can install the latest released `bos-cli` from sources by using the following command:
 
 ```bash
 cargo install bos-cli

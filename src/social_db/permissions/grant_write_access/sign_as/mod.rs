@@ -17,7 +17,7 @@ pub struct SignerContext {
     global_context: near_cli_rs::GlobalContext,
     social_db_keys: Vec<String>,
     permission_key: near_socialdb_client::PermissionKey,
-    extra_storage_deposit: near_cli_rs::common::NearBalance,
+    extra_storage_deposit: near_cli_rs::types::near_token::NearToken,
     signer_account_id: near_primitives::types::AccountId,
 }
 
@@ -43,7 +43,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
     fn from(item: SignerContext) -> Self {
         let social_db_keys = item.social_db_keys.clone();
         let permission_key = item.permission_key.clone();
-        let extra_storage_deposit = item.extra_storage_deposit.clone();
+        let extra_storage_deposit = item.extra_storage_deposit;
         let signer_id = item.signer_account_id.clone();
 
         let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = std::sync::Arc::new({
@@ -73,7 +73,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                             method_name: "grant_write_permission".to_string(),
                             args,
                             gas: near_cli_rs::common::NearGas::from_tgas(100).as_gas(),
-                            deposit: extra_storage_deposit.to_yoctonear(),
+                            deposit: extra_storage_deposit.as_yoctonear(),
                         },
                     )
                 ],

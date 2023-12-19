@@ -112,7 +112,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                             method_name: "set".to_string(),
                             args,
                             gas: near_cli_rs::common::NearGas::from_tgas(300).as_gas(),
-                            deposit: deposit.to_yoctonear(),
+                            deposit: deposit.as_yoctonear(),
                         },
                     )
                 ];
@@ -139,9 +139,12 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                                 &deploy_to_account_id,
                                 "widget",
                                 &prepopulated_unsigned_transaction.receiver_id,
-                                near_cli_rs::common::NearBalance::from_yoctonear(action.deposit),
+                                near_cli_rs::types::near_token::NearToken::from_yoctonear(
+                                    action.deposit,
+                                )
+                                .into(),
                             ))?
-                            .to_yoctonear();
+                            .as_yoctonear();
                         Ok(())
                     } else {
                         color_eyre::eyre::bail!("Unexpected action to change components",);

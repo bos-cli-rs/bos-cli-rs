@@ -87,7 +87,7 @@ impl SignerContext {
                                 "data": social_db_data_to_set
                             }).to_string().into_bytes(),
                             gas: near_cli_rs::common::NearGas::from_tgas(300).as_gas(),
-                            deposit: deposit.to_yoctonear(),
+                            deposit: deposit.as_yoctonear(),
                         },
                     )
                 ]})
@@ -112,9 +112,12 @@ impl SignerContext {
                                 &set_to_account_id,
                                 &key,
                                 &prepopulated_unsigned_transaction.receiver_id,
-                                near_cli_rs::common::NearBalance::from_yoctonear(action.deposit),
+                                near_cli_rs::types::near_token::NearToken::from_yoctonear(
+                                    action.deposit,
+                                )
+                                .into(),
                             ))?
-                            .to_yoctonear();
+                            .as_yoctonear();
                         Ok(())
                     } else {
                         color_eyre::eyre::bail!("Unexpected action to change components",);

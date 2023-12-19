@@ -50,30 +50,50 @@ More commands are still on the way, see the [issues tracker](https://github.com/
 
 ## Install
 
-### From Community Maintain Homebrew (Mac)
+You can find binary releases of `bos` CLI for your OS on the [Releases page](https://github.com/bos-cli-rs/bos-cli-rs/releases/).
+
+### Install prebuilt binaries via shell script (macOS, Linux, WSL)
+
+```sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/bos-cli-rs/bos-cli-rs/releases/latest/download/bos-cli-installer.sh | sh
+```
+
+### Install prebuilt binaries via powershell script (Windows)
+
+```sh
+irm https://github.com/bos-cli-rs/bos-cli-rs/releases/latest/download/bos-cli-installer.ps1 | iex
+```
+
+### Run prebuilt binaries with npx (Node.js)
+
+```sh
+npx bos-cli
+```
+
+### Install prebuilt binaries into your npm project (Node.js)
+
+```sh
+npm install bos-cli
+```
+
+### Install from source code (Cargo)
+
+Before getting to installation, make sure you have [Rust](https://rustup.rs) and system dependencies installed on your computer.
+
+To install system dependencies:
+* on Ubuntu Linux: `apt install pkg-config libudev-dev`
+* on Fedora Linux: `dnf install pkg-config libudev-devel`
+
+Once system dependencies and Rust are installed you can install the latest released `bos-cli` from sources by using the following command:
 
 ```bash
-brew tap empeje/bos-cli && brew install bos-cli
+cargo install bos-cli
 ```
 
-### From Binaries
-
-The [release page](https://github.com/FroVolod/bos-cli-rs/releases) includes precompiled binaries for Linux, macOS and Windows.
-
-### From Source
-
-With Rust's package manager cargo, you can install `bos` via:
-
-```
-cargo install --git https://github.com/FroVolod/bos-cli-rs
-```
-
-#### Linux (Fedora)
-
-You will need to install these dependencies:
+or, install the most recent version from git repository:
 
 ```bash
-dnf install openssl-devel pkg-config perl libudev-devel
+$ cargo install --git https://github.com/bos-cli-rs/bos-cli-rs
 ```
 
 ### GitHub Actions
@@ -110,7 +130,7 @@ This repo contains a reusable workflow which you can directly leverage from your
         branches: [main]
     jobs:
       deploy-mainnet:
-        uses: FroVolod/bos-cli-rs/.github/workflows/deploy-mainnet.yml@master
+        uses: bos-cli-rs/bos-cli-rs/.github/workflows/deploy-mainnet.yml@master
         with:
           deploy-account-address: <FILL>
           signer-account-address: <FILL>

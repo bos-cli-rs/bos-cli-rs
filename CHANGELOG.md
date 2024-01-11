@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.8](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.7...v0.3.8) - 2024-01-11
+
+### Other
+- Added automatic publishing to npmjs ([#81](https://github.com/bos-cli-rs/bos-cli-rs/pull/81))
+- Changed NearBalance to NearToken. ([#77](https://github.com/bos-cli-rs/bos-cli-rs/pull/77))
+
 ## [0.3.7](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.6...v0.3.7) - 2023-12-19
 
 ### Added

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use near_cli_rs::common::{CallResultExt, JsonRpcClientExt};
 
@@ -38,10 +40,14 @@ impl DownloadCmdContext {
                         }
                     };
 
-                    let input_args = serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
-                        keys: vec![format!("{account_id}/widget/*")],
-                    })
-                    .wrap_err("Internal error: could not serialize SocialDB input args")?;
+                    let input_args =
+                        serde_json::to_string(&crate::socialdb_types::SocialDbQueryWithOptions {
+                            keys: vec![format!("{account_id}/widget/*")],
+                            options: Some(crate::socialdb_types::SocialDbQueryOptions {
+                                return_type: "BlockHeight".to_string(),
+                            }),
+                        })
+                        .wrap_err("Internal error: could not serialize SocialDB input args")?;
 
                     let call_result = network_config
                         .json_rpc_client()
@@ -52,7 +58,8 @@ impl DownloadCmdContext {
                             near_primitives::types::Finality::Final.into(),
                         )
                         .wrap_err("Failed to fetch the components state from SocialDB")?;
-                    let keys: SocialDbKeys = call_result.parse_result_from_json()?;
+                    let keys: SocialDbKeysWithBlockHeights =
+                        call_result.parse_result_from_json()?;
 
                     let remote_social_account_components =
                         if let Some(account_components) = keys.accounts.get(&account_id) {
@@ -75,6 +82,7 @@ impl DownloadCmdContext {
                     )?;
 
                     let components_src_folder = std::path::PathBuf::from("./src");
+                    let mut components_paths: HashMap<&str, String> = HashMap::new();
                     for (component_name, component) in remote_components.iter() {
                         let mut component_path = components_src_folder.clone();
                         component_path.extend(component_name.split('.'));
@@ -92,6 +100,16 @@ impl DownloadCmdContext {
                                     component_code_path.display()
                                 )
                             })?;
+                        let block_height = remote_social_account_components
+                            .components
+                            .get(component_name);
+                        let near_path = format!(
+                            "{}/widget/{}@{}",
+                            account_id,
+                            component_name,
+                            block_height.unwrap()
+                        );
+                        components_paths.insert(component_name, near_path);
                         if let Some(metadata) = component.metadata() {
                             let metadata =
                                 serde_json::to_string_pretty(metadata).wrap_err_with(|| {
@@ -108,6 +126,13 @@ impl DownloadCmdContext {
                                 })?;
                         }
                     }
+
+                    let meta_file_path = std::path::PathBuf::from("./src/.bos");
+                    let meta_file_content: String = components_paths
+                        .iter()
+                        .map(|(key, value)| format!("{}={}\n", key, value))
+                        .collect();
+                    std::fs::write(meta_file_path.clone(), meta_file_content.as_bytes())?;
 
                     println!(
                         "Components for account <{}> were downloaded into <{}> successfully",
@@ -154,4 +179,19 @@ pub struct SocialDbKeys {
 pub struct SocialDbAccountComponents {
     #[serde(rename = "widget")]
     pub components: std::collections::HashMap<crate::socialdb_types::ComponentName, bool>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SocialDbKeysWithBlockHeights {
+    #[serde(flatten)]
+    pub accounts: std::collections::HashMap<
+        near_primitives::types::AccountId,
+        SocialDbAccountComponentsWithBlockHeights,
+    >,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SocialDbAccountComponentsWithBlockHeights {
+    #[serde(rename = "widget")]
+    pub components: std::collections::HashMap<crate::socialdb_types::ComponentName, i32>,
 }

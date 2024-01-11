@@ -3,6 +3,18 @@ use std::collections::HashMap;
 pub type ComponentName = String;
 
 #[derive(Debug, Clone, serde::Serialize)]
+pub struct SocialDbQueryOptions {
+    pub return_type: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SocialDbQueryWithOptions {
+    pub keys: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub options: Option<SocialDbQueryOptions>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct SocialDbQuery {
     pub keys: Vec<String>,
 }
@@ -57,6 +69,8 @@ pub struct SocialDbComponentMetadata {
     pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<HashMap<String, Option<String>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fork_of: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]

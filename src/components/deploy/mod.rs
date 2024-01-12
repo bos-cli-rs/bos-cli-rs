@@ -23,6 +23,7 @@ pub struct DeployCmd {
 #[derive(Clone)]
 pub struct DeployCmdContext {
     pub global_context: near_cli_rs::GlobalContext,
+    pub social_db_prefix: String,
     pub deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
 }
 
@@ -33,6 +34,7 @@ impl DeployCmdContext {
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
             global_context: previous_context.global_context,
+            social_db_prefix: previous_context.social_db_prefix,
             deploy_to_account_id: scope.deploy_to_account_id.clone(),
         })
     }

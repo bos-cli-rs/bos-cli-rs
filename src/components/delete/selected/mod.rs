@@ -14,6 +14,7 @@ pub struct Selected {
 #[derive(Clone)]
 pub struct ComponentContext {
     pub global_context: near_cli_rs::GlobalContext,
+    pub social_db_prefix: String,
     pub account_id: near_cli_rs::types::account_id::AccountId,
     pub components: Vec<String>,
 }
@@ -25,6 +26,7 @@ impl ComponentContext {
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
             global_context: previous_context.0.global_context,
+            social_db_prefix: previous_context.0.social_db_prefix,
             account_id: previous_context.0.account_id,
             components: scope.components.clone().into(),
         })

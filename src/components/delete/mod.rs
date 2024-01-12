@@ -24,6 +24,7 @@ impl DeleteCmdContext {
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self(self::selected::ComponentContext {
             global_context: previous_context.global_context,
+            social_db_prefix: previous_context.social_db_prefix,
             account_id: scope.account_id.clone(),
             components: vec![],
         }))

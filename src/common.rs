@@ -112,6 +112,7 @@ pub fn get_remote_components(
     component_name_list: Vec<&String>,
     near_social_account_id: &near_primitives::types::AccountId,
     account_id: &near_primitives::types::AccountId,
+    social_db_prefix: &str,
 ) -> color_eyre::eyre::Result<
     HashMap<crate::socialdb_types::ComponentName, crate::socialdb_types::SocialDbComponent>,
 > {
@@ -130,6 +131,7 @@ pub fn get_remote_components(
                         near_social_account_id,
                         account_id,
                         components_name_batch,
+                        social_db_prefix,
                     )
                     .await
                 })
@@ -148,13 +150,14 @@ async fn get_components(
     near_social_account_id: &near_primitives::types::AccountId,
     account_id: &near_primitives::types::AccountId,
     components_names_batch: &[&crate::socialdb_types::ComponentName],
+    social_db_prefix: &str,
 ) -> color_eyre::Result<
     HashMap<crate::socialdb_types::ComponentName, crate::socialdb_types::SocialDbComponent>,
 > {
     let args = serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
         keys: components_names_batch
             .iter()
-            .map(|name| format!("{account_id}/widget/{name}/**"))
+            .map(|name| format!("{account_id}/{social_db_prefix}/{name}/**"))
             .collect(),
     })
     .wrap_err("Internal error: could not serialize SocialDB input args")?
@@ -180,6 +183,9 @@ async fn get_components(
                 .wrap_err("ERROR: failed to parse Social DB response")?
                 .accounts
                 .remove(account_id)
+                .map(|crate::socialdb_types::SocialDbComponentKey { key }| key)
+                .unwrap_or_default()
+                .remove(social_db_prefix)
                 .map(|crate::socialdb_types::SocialDbAccountMetadata { components }| components)
                 .unwrap_or_default())
         }

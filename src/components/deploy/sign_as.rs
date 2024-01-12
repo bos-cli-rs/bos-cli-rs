@@ -19,6 +19,7 @@ pub struct Signer {
 #[derive(Clone)]
 pub struct SignerContext {
     global_context: near_cli_rs::GlobalContext,
+    social_db_prefix: String,
     deploy_to_account_id: near_primitives::types::AccountId,
     signer_account_id: near_primitives::types::AccountId,
 }
@@ -30,6 +31,7 @@ impl SignerContext {
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
             global_context: previous_context.global_context,
+            social_db_prefix: previous_context.social_db_prefix,
             deploy_to_account_id: previous_context.deploy_to_account_id.into(),
             signer_account_id: scope.signer_account_id.clone().into(),
         })
@@ -40,6 +42,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
     fn from(item: SignerContext) -> Self {
         let deploy_to_account_id = item.deploy_to_account_id.clone();
         let signer_id = item.signer_account_id.clone();
+        let social_db_prefix = item.social_db_prefix.clone();
 
         let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = Arc::new({
             move |network_config| {
@@ -56,7 +59,13 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     return Ok(prepopulated_transaction);
                 }
                 let local_component_name_list = local_components.keys().collect::<Vec<_>>();
-                let remote_components = crate::common::get_remote_components(network_config, local_component_name_list, near_social_account_id, &deploy_to_account_id)?;
+                let remote_components = crate::common::get_remote_components(
+                    network_config,
+                    local_component_name_list,
+                    near_social_account_id,
+                    &deploy_to_account_id,
+                    &item.social_db_prefix
+                )?;
 
                 let components_to_deploy =
                     if !remote_components.is_empty() {
@@ -74,17 +83,27 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 let new_social_db_state = crate::socialdb_types::SocialDb {
                     accounts: HashMap::from([(
                         deploy_to_account_id.clone(),
-                        crate::socialdb_types::SocialDbAccountMetadata {
-                            components: components_to_deploy
-                        },
+                        crate::socialdb_types::SocialDbComponentKey {
+                            key: HashMap::from([(
+                                item.social_db_prefix.clone(),
+                                crate::socialdb_types::SocialDbAccountMetadata {
+                                    components: components_to_deploy
+                                }
+                            )])
+                        }
                     )])
                 };
                 let new_social_db_state_json = serde_json::json!(&new_social_db_state);
                 let remote_social_db_state_json = serde_json::json!(&crate::socialdb_types::SocialDb {
                     accounts: HashMap::from([(
                         deploy_to_account_id.clone(),
-                        crate::socialdb_types::SocialDbAccountMetadata {
-                            components: remote_components
+                        crate::socialdb_types::SocialDbComponentKey {
+                            key: HashMap::from([(
+                                item.social_db_prefix.clone(),
+                                crate::socialdb_types::SocialDbAccountMetadata {
+                                    components: remote_components
+                                }
+                            )])
                         }
                     )])
                 });
@@ -121,6 +140,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
             }
         });
 
+        let db_prefix = social_db_prefix.clone();
         let on_before_signing_callback: near_cli_rs::commands::OnBeforeSigningCallback =
             Arc::new({
                 let signer_account_id = item.signer_account_id.clone();
@@ -137,7 +157,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                                 &signer_account_id,
                                 &prepopulated_unsigned_transaction.public_key,
                                 &deploy_to_account_id,
-                                "widget",
+                                &social_db_prefix,
                                 &prepopulated_unsigned_transaction.receiver_id,
                                 near_cli_rs::types::near_token::NearToken::from_yoctonear(
                                     action.deposit,
@@ -172,10 +192,13 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     serde_json::from_slice(args).wrap_err("Internal error: Could not parse SocialDB request that we just created.")?;
 
                 let social_account_metadata = transaction_function_args.data.accounts.get(item.deploy_to_account_id.as_ref())
+                    .wrap_err("Internal error: Could not get the key for the component from SocialDB request that we just created.")?
+                    .key
+                    .get(&db_prefix)
                     .wrap_err("Internal error: Could not get metadata from SocialDB request that we just created.")?;
                 let updated_components = &social_account_metadata.components;
 
-                println!("\n<{}> components were successfully deployed:", updated_components.len());
+                println!("\n<{}> components were successfully deployed to <{}>/{db_prefix}/:", updated_components.len(), item.deploy_to_account_id);
                 for component in updated_components.keys() {
                     println!(" * {component}")
                 }

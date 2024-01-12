@@ -46,6 +46,7 @@ impl DiffCmdContext {
                         local_component_name_list,
                         near_social_account_id,
                         &account_id,
+                        &previous_context.social_db_prefix,
                     )?;
 
                     if !remote_components.is_empty() {

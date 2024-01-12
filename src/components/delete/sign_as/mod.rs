@@ -18,6 +18,7 @@ pub struct Signer {
 pub struct SignerContext {
     global_context: near_cli_rs::GlobalContext,
     components: Vec<String>,
+    social_db_prefix: String,
     account_id: near_cli_rs::types::account_id::AccountId,
     signer_account_id: near_primitives::types::AccountId,
 }
@@ -30,6 +31,7 @@ impl SignerContext {
         Ok(Self {
             global_context: previous_context.global_context,
             components: previous_context.components,
+            social_db_prefix: previous_context.social_db_prefix,
             account_id: previous_context.account_id,
             signer_account_id: scope.signer_account_id.clone().into(),
         })
@@ -42,17 +44,18 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
             let components = item.components.clone();
             let account_id: near_primitives::types::AccountId = item.account_id.clone().into();
             let signer_id = item.signer_account_id.clone();
+            let social_db_prefix = item.social_db_prefix.clone();
 
             move |network_config| {
                 let near_social_account_id = crate::consts::NEAR_SOCIAL_ACCOUNT_ID.get(network_config.network_name.as_str())
                     .wrap_err_with(|| format!("The <{}> network does not have a near-social contract.", network_config.network_name))?;
 
                 let keys_components_to_remove = if components.is_empty() {
-                    vec![format!("{account_id}/widget/**")]
+                    vec![format!("{account_id}/{social_db_prefix}/**")]
                 } else {
                     components
                         .iter()
-                        .map(|component| format!("{account_id}/widget/{component}/**"))
+                        .map(|component| format!("{account_id}/{social_db_prefix}/{component}/**"))
                         .collect::<Vec<_>>()
                 };
 
@@ -104,9 +107,9 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
             move |transaction_info, _network_config| {
                 if let near_primitives::views::FinalExecutionStatus::SuccessValue(_) = transaction_info.status {
-                    println!("The components were deleted successfully from <{}>", &account_id);
+                    println!("The components were deleted successfully from <{}>/{}/", &account_id, item.social_db_prefix);
                 } else {
-                    color_eyre::eyre::bail!("The components were not successfully deleted from <{}>", &account_id);
+                    color_eyre::eyre::bail!("The components were not successfully deleted from <{}>/{}/", &account_id, item.social_db_prefix);
                 };
                 Ok(())
             }

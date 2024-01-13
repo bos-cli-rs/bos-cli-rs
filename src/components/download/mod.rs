@@ -57,15 +57,25 @@ impl DownloadCmdContext {
                         .wrap_err("Failed to fetch the components state from SocialDB")?;
                     let keys: SocialDbKeys = call_result.parse_result_from_json()?;
 
-                    let remote_social_account_components =
-                        if let Some(account_components) = keys.accounts.get(&account_id) {
+                    let remote_social_account_components = if let Some(component_key) =
+                        keys.accounts.get(&account_id)
+                    {
+                        if let Some(account_components) =
+                            component_key.key.get(&previous_context.social_db_prefix)
+                        {
                             account_components
                         } else {
                             println!(
+                                    "\nThere are currently no components in the account <{account_id}>.",
+                                );
+                            return Ok(());
+                        }
+                    } else {
+                        println!(
                             "\nThere are currently no components in the account <{account_id}>.",
                         );
-                            return Ok(());
-                        };
+                        return Ok(());
+                    };
                     let remote_component_name_list = remote_social_account_components
                         .components
                         .keys()
@@ -151,11 +161,17 @@ impl DownloadCmd {
 pub struct SocialDbKeys {
     #[serde(flatten)]
     pub accounts:
-        std::collections::HashMap<near_primitives::types::AccountId, SocialDbAccountComponents>,
+        std::collections::HashMap<near_primitives::types::AccountId, SocialDbComponentKey>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SocialDbComponentKey {
+    #[serde(flatten)]
+    pub key: std::collections::HashMap<crate::socialdb_types::KeyName, SocialDbAccountComponents>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SocialDbAccountComponents {
-    #[serde(rename = "widget")]
+    #[serde(flatten)]
     pub components: std::collections::HashMap<crate::socialdb_types::ComponentName, bool>,
 }

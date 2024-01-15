@@ -12,7 +12,7 @@ pub struct Components {
     /// Change SocialDb prefix (default: "widget")
     #[interactive_clap(long)]
     #[interactive_clap(skip_interactive_input)]
-    social_db_prefix: Option<String>,
+    social_db_folder: Option<String>,
     #[interactive_clap(subcommand)]
     command: self::ComponentsCommand,
 }
@@ -20,7 +20,7 @@ pub struct Components {
 #[derive(Clone)]
 pub struct ComponentsContext {
     pub global_context: near_cli_rs::GlobalContext,
-    pub social_db_prefix: String,
+    pub social_db_folder: String,
 }
 
 impl ComponentsContext {
@@ -30,8 +30,8 @@ impl ComponentsContext {
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
             global_context: previous_context,
-            social_db_prefix: scope
-                .social_db_prefix
+            social_db_folder: scope
+                .social_db_folder
                 .clone()
                 .unwrap_or("widget".to_owned()),
         })

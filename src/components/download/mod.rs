@@ -41,7 +41,7 @@ impl DownloadCmdContext {
                     let input_args = serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
                         keys: vec![format!(
                             "{account_id}/{}/*",
-                            previous_context.social_db_prefix
+                            previous_context.social_db_folder
                         )],
                     })
                     .wrap_err("Internal error: could not serialize SocialDB input args")?;
@@ -61,7 +61,7 @@ impl DownloadCmdContext {
                         keys.accounts.get(&account_id)
                     {
                         if let Some(account_components) =
-                            component_key.key.get(&previous_context.social_db_prefix)
+                            component_key.key.get(&previous_context.social_db_folder)
                         {
                             account_components
                         } else {
@@ -85,7 +85,7 @@ impl DownloadCmdContext {
                         remote_component_name_list,
                         near_social_account_id,
                         &account_id,
-                        &previous_context.social_db_prefix,
+                        &previous_context.social_db_folder,
                     )?;
 
                     let components_src_folder = std::path::PathBuf::from("./src");

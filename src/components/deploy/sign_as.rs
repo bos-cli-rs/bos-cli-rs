@@ -19,7 +19,7 @@ pub struct Signer {
 #[derive(Clone)]
 pub struct SignerContext {
     global_context: near_cli_rs::GlobalContext,
-    social_db_prefix: String,
+    social_db_folder: String,
     deploy_to_account_id: near_primitives::types::AccountId,
     signer_account_id: near_primitives::types::AccountId,
 }
@@ -31,7 +31,7 @@ impl SignerContext {
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
             global_context: previous_context.global_context,
-            social_db_prefix: previous_context.social_db_prefix,
+            social_db_folder: previous_context.social_db_folder,
             deploy_to_account_id: previous_context.deploy_to_account_id.into(),
             signer_account_id: scope.signer_account_id.clone().into(),
         })
@@ -42,7 +42,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
     fn from(item: SignerContext) -> Self {
         let deploy_to_account_id = item.deploy_to_account_id.clone();
         let signer_id = item.signer_account_id.clone();
-        let social_db_prefix = item.social_db_prefix.clone();
+        let social_db_folder = item.social_db_folder.clone();
 
         let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = Arc::new({
             move |network_config| {
@@ -64,7 +64,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     local_component_name_list,
                     near_social_account_id,
                     &deploy_to_account_id,
-                    &item.social_db_prefix
+                    &item.social_db_folder
                 )?;
 
                 let components_to_deploy =
@@ -85,7 +85,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         deploy_to_account_id.clone(),
                         crate::socialdb_types::SocialDbComponentKey {
                             key: HashMap::from([(
-                                item.social_db_prefix.clone(),
+                                item.social_db_folder.clone(),
                                 crate::socialdb_types::SocialDbAccountMetadata {
                                     components: components_to_deploy
                                 }
@@ -99,7 +99,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         deploy_to_account_id.clone(),
                         crate::socialdb_types::SocialDbComponentKey {
                             key: HashMap::from([(
-                                item.social_db_prefix.clone(),
+                                item.social_db_folder.clone(),
                                 crate::socialdb_types::SocialDbAccountMetadata {
                                     components: remote_components
                                 }
@@ -140,7 +140,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
             }
         });
 
-        let db_prefix = social_db_prefix.clone();
+        let db_prefix = social_db_folder.clone();
         let on_before_signing_callback: near_cli_rs::commands::OnBeforeSigningCallback =
             Arc::new({
                 let signer_account_id = item.signer_account_id.clone();
@@ -157,7 +157,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                                 &signer_account_id,
                                 &prepopulated_unsigned_transaction.public_key,
                                 &deploy_to_account_id,
-                                &social_db_prefix,
+                                &social_db_folder,
                                 &prepopulated_unsigned_transaction.receiver_id,
                                 near_cli_rs::types::near_token::NearToken::from_yoctonear(
                                     action.deposit,

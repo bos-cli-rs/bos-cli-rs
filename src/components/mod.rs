@@ -6,14 +6,40 @@ mod diff;
 mod download;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(context = near_cli_rs::GlobalContext)]
+#[interactive_clap(input_context = near_cli_rs::GlobalContext)]
+#[interactive_clap(output_context = ComponentsContext)]
 pub struct Components {
+    /// Change SocialDb prefix (default: "widget")
+    #[interactive_clap(long)]
+    #[interactive_clap(skip_interactive_input)]
+    social_db_folder: Option<String>,
     #[interactive_clap(subcommand)]
     command: self::ComponentsCommand,
 }
 
+#[derive(Clone)]
+pub struct ComponentsContext {
+    pub global_context: near_cli_rs::GlobalContext,
+    pub social_db_folder: String,
+}
+
+impl ComponentsContext {
+    pub fn from_previous_context(
+        previous_context: near_cli_rs::GlobalContext,
+        scope: &<Components as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
+    ) -> color_eyre::eyre::Result<Self> {
+        Ok(Self {
+            global_context: previous_context,
+            social_db_folder: scope
+                .social_db_folder
+                .clone()
+                .unwrap_or("widget".to_owned()),
+        })
+    }
+}
+
 #[derive(Debug, EnumDiscriminants, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(context = near_cli_rs::GlobalContext)]
+#[interactive_clap(context = ComponentsContext)]
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
 /// What are you up to?
 pub enum ComponentsCommand {

@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 pub type ComponentName = String;
 
+pub type KeyName = String;
+
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct SocialDbQuery {
     pub keys: Vec<String>,
@@ -10,12 +12,18 @@ pub struct SocialDbQuery {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SocialDb {
     #[serde(flatten)]
-    pub accounts: HashMap<near_primitives::types::AccountId, SocialDbAccountMetadata>,
+    pub accounts: HashMap<near_primitives::types::AccountId, SocialDbComponentKey>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SocialDbComponentKey {
+    #[serde(flatten)]
+    pub key: HashMap<KeyName, SocialDbAccountMetadata>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SocialDbAccountMetadata {
-    #[serde(rename = "widget")]
+    #[serde(flatten)]
     pub components: HashMap<ComponentName, SocialDbComponent>,
 }
 

@@ -9,7 +9,7 @@ pub struct TransactionFunctionArgs {
 }
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = near_cli_rs::GlobalContext)]
+#[interactive_clap(input_context = super::ComponentsContext)]
 #[interactive_clap(output_context = DeployCmdContext)]
 pub struct DeployCmd {
     #[interactive_clap(skip_default_input_arg)]
@@ -23,16 +23,18 @@ pub struct DeployCmd {
 #[derive(Clone)]
 pub struct DeployCmdContext {
     pub global_context: near_cli_rs::GlobalContext,
+    pub social_db_folder: String,
     pub deploy_to_account_id: near_cli_rs::types::account_id::AccountId,
 }
 
 impl DeployCmdContext {
     pub fn from_previous_context(
-        previous_context: near_cli_rs::GlobalContext,
+        previous_context: super::ComponentsContext,
         scope: &<DeployCmd as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self {
-            global_context: previous_context,
+            global_context: previous_context.global_context,
+            social_db_folder: previous_context.social_db_folder,
             deploy_to_account_id: scope.deploy_to_account_id.clone(),
         })
     }
@@ -40,7 +42,7 @@ impl DeployCmdContext {
 
 impl DeployCmd {
     fn input_deploy_to_account_id(
-        context: &near_cli_rs::GlobalContext,
+        context: &super::ComponentsContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {
         let components = crate::common::get_local_components()?;
         println!(
@@ -53,12 +55,12 @@ impl DeployCmd {
         loop {
             let deploy_to_account_id =
                 near_cli_rs::common::input_signer_account_id_from_used_account_list(
-                    &context.config.credentials_home_dir,
+                    &context.global_context.config.credentials_home_dir,
                     "Which account do you want to deploy the components to?",
                 )?
                 .wrap_err("Internal error!")?;
             if !near_cli_rs::common::is_account_exist(
-                &context.config.network_connection,
+                &context.global_context.config.network_connection,
                 deploy_to_account_id.clone().into(),
             ) {
                 println!(

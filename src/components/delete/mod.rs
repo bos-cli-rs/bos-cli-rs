@@ -4,7 +4,7 @@ mod selected;
 mod sign_as;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = near_cli_rs::GlobalContext)]
+#[interactive_clap(input_context = super::ComponentsContext)]
 #[interactive_clap(output_context = DeleteCmdContext)]
 pub struct DeleteCmd {
     #[interactive_clap(skip_default_input_arg)]
@@ -19,11 +19,12 @@ pub struct DeleteCmdContext(self::selected::ComponentContext);
 
 impl DeleteCmdContext {
     pub fn from_previous_context(
-        previous_context: near_cli_rs::GlobalContext,
+        previous_context: super::ComponentsContext,
         scope: &<DeleteCmd as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         Ok(Self(self::selected::ComponentContext {
-            global_context: previous_context,
+            global_context: previous_context.global_context,
+            social_db_folder: previous_context.social_db_folder,
             account_id: scope.account_id.clone(),
             components: vec![],
         }))
@@ -32,10 +33,10 @@ impl DeleteCmdContext {
 
 impl DeleteCmd {
     pub fn input_account_id(
-        context: &near_cli_rs::GlobalContext,
+        context: &super::ComponentsContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {
         near_cli_rs::common::input_signer_account_id_from_used_account_list(
-            &context.config.credentials_home_dir,
+            &context.global_context.config.credentials_home_dir,
             "Which account do you want to delete the components from?",
         )
     }

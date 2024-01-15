@@ -1,7 +1,7 @@
 use color_eyre::eyre::ContextCompat;
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = near_cli_rs::GlobalContext)]
+#[interactive_clap(input_context = super::ComponentsContext)]
 #[interactive_clap(output_context = DiffCmdContext)]
 pub struct DiffCmd {
     #[interactive_clap(skip_default_input_arg)]
@@ -17,7 +17,7 @@ pub struct DiffCmdContext(near_cli_rs::network::NetworkContext);
 
 impl DiffCmdContext {
     pub fn from_previous_context(
-        previous_context: near_cli_rs::GlobalContext,
+        previous_context: super::ComponentsContext,
         scope: &<DiffCmd as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         let account_id: near_primitives::types::AccountId = scope.account_id.clone().into();
@@ -46,6 +46,7 @@ impl DiffCmdContext {
                         local_component_name_list,
                         near_social_account_id,
                         &account_id,
+                        &previous_context.social_db_folder,
                     )?;
 
                     if !remote_components.is_empty() {
@@ -64,7 +65,7 @@ impl DiffCmdContext {
                 }
             });
         Ok(Self(near_cli_rs::network::NetworkContext {
-            config: previous_context.config,
+            config: previous_context.global_context.config,
             interacting_with_account_ids: vec![account_id],
             on_after_getting_network_callback,
         }))
@@ -79,10 +80,10 @@ impl From<DiffCmdContext> for near_cli_rs::network::NetworkContext {
 
 impl DiffCmd {
     pub fn input_account_id(
-        context: &near_cli_rs::GlobalContext,
+        context: &super::ComponentsContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {
         near_cli_rs::common::input_non_signer_account_id_from_used_account_list(
-            &context.config.credentials_home_dir,
+            &context.global_context.config.credentials_home_dir,
             "On which account do you want to compare local components?",
         )
     }

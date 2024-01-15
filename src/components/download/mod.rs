@@ -2,7 +2,7 @@ use color_eyre::eyre::{ContextCompat, WrapErr};
 use near_cli_rs::common::{CallResultExt, JsonRpcClientExt};
 
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
-#[interactive_clap(input_context = near_cli_rs::GlobalContext)]
+#[interactive_clap(input_context = super::ComponentsContext)]
 #[interactive_clap(output_context = DownloadCmdContext)]
 pub struct DownloadCmd {
     #[interactive_clap(skip_default_input_arg)]
@@ -18,7 +18,7 @@ pub struct DownloadCmdContext(near_cli_rs::network::NetworkContext);
 
 impl DownloadCmdContext {
     pub fn from_previous_context(
-        previous_context: near_cli_rs::GlobalContext,
+        previous_context: super::ComponentsContext,
         scope: &<DownloadCmd as interactive_clap::ToInteractiveClapContextScope>::InteractiveClapContextScope,
     ) -> color_eyre::eyre::Result<Self> {
         let account_id: near_primitives::types::AccountId = scope.account_id.clone().into();
@@ -39,7 +39,10 @@ impl DownloadCmdContext {
                     };
 
                     let input_args = serde_json::to_string(&crate::socialdb_types::SocialDbQuery {
-                        keys: vec![format!("{account_id}/widget/*")],
+                        keys: vec![format!(
+                            "{account_id}/{}/*",
+                            previous_context.social_db_folder
+                        )],
                     })
                     .wrap_err("Internal error: could not serialize SocialDB input args")?;
 
@@ -54,15 +57,25 @@ impl DownloadCmdContext {
                         .wrap_err("Failed to fetch the components state from SocialDB")?;
                     let keys: SocialDbKeys = call_result.parse_result_from_json()?;
 
-                    let remote_social_account_components =
-                        if let Some(account_components) = keys.accounts.get(&account_id) {
+                    let remote_social_account_components = if let Some(component_key) =
+                        keys.accounts.get(&account_id)
+                    {
+                        if let Some(account_components) =
+                            component_key.key.get(&previous_context.social_db_folder)
+                        {
                             account_components
                         } else {
                             println!(
+                                    "\nThere are currently no components in the account <{account_id}>.",
+                                );
+                            return Ok(());
+                        }
+                    } else {
+                        println!(
                             "\nThere are currently no components in the account <{account_id}>.",
                         );
-                            return Ok(());
-                        };
+                        return Ok(());
+                    };
                     let remote_component_name_list = remote_social_account_components
                         .components
                         .keys()
@@ -72,6 +85,7 @@ impl DownloadCmdContext {
                         remote_component_name_list,
                         near_social_account_id,
                         &account_id,
+                        &previous_context.social_db_folder,
                     )?;
 
                     let components_src_folder = std::path::PathBuf::from("./src");
@@ -119,7 +133,7 @@ impl DownloadCmdContext {
                 }
             });
         Ok(Self(near_cli_rs::network::NetworkContext {
-            config: previous_context.config,
+            config: previous_context.global_context.config,
             interacting_with_account_ids: vec![scope.account_id.clone().into()],
             on_after_getting_network_callback,
         }))
@@ -134,10 +148,10 @@ impl From<DownloadCmdContext> for near_cli_rs::network::NetworkContext {
 
 impl DownloadCmd {
     pub fn input_account_id(
-        context: &near_cli_rs::GlobalContext,
+        context: &super::ComponentsContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {
         near_cli_rs::common::input_non_signer_account_id_from_used_account_list(
-            &context.config.credentials_home_dir,
+            &context.global_context.config.credentials_home_dir,
             "Which account do you want to download components from?",
         )
     }
@@ -147,11 +161,17 @@ impl DownloadCmd {
 pub struct SocialDbKeys {
     #[serde(flatten)]
     pub accounts:
-        std::collections::HashMap<near_primitives::types::AccountId, SocialDbAccountComponents>,
+        std::collections::HashMap<near_primitives::types::AccountId, SocialDbComponentKey>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SocialDbComponentKey {
+    #[serde(flatten)]
+    pub key: std::collections::HashMap<crate::socialdb_types::KeyName, SocialDbAccountComponents>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SocialDbAccountComponents {
-    #[serde(rename = "widget")]
+    #[serde(flatten)]
     pub components: std::collections::HashMap<crate::socialdb_types::ComponentName, bool>,
 }

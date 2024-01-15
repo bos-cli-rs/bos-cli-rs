@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.9](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.8...v0.3.9) - 2024-01-15
+
+### Added
+- Added ability to change social-db folder where components are get and set ([#82](https://github.com/bos-cli-rs/bos-cli-rs/pull/82))
+
 ## [0.3.8](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.7...v0.3.8) - 2024-01-11
 
 ### Other

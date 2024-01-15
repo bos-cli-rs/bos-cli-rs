@@ -39,8 +39,8 @@ near-primitives = "0.17.0"
 near-jsonrpc-client = "0.6.0"
 near-jsonrpc-primitives = "0.17.0"
 
-interactive-clap = "0.2.7"
-interactive-clap-derive = "0.2.7"
+interactive-clap = "0.2.8"
+interactive-clap-derive = "0.2.8"
 
 console = "0.15.5"
 

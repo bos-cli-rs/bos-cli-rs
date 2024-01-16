@@ -1,3 +1,4 @@
 [submodule "src/project/new/new-project-template"]
 	path = src/project/new/new-project-template
 	url = https://github.com/frol/bos-component-ts-starter.git
+  branch = main

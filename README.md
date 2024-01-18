@@ -23,11 +23,13 @@ Command line utility helps to develop components for [NEAR Blockchain Operating 
 - `download` allows you to download the existing components from any near.social account to the local `./src` folder.
 - `delete` allows you to delete the existing components from any near.social account.  
 
-  In interactive mode, the default working directory is "widget/".
-If you wish, you can explicitly specify the folder using CLI arguments (use the option: _--social-db-folder_). For example:
-  ```txt
-  bos components --social-db-folder "component_beta" download ...
-  ```
+> *Note:*
+>
+> *By default, the Social DB prefix is computed as `<account-id>/widget/<component-folder>.<component-name>`.
+> If you wish, you can change the default folder (`widget`) using CLI option: `--social-db-folder`:*
+> ```sh
+> bos components --social-db-folder "component_beta" download ...
+> ```
   
 ### socialdb    -   SocialDb management
 

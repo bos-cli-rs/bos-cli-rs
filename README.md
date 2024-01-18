@@ -26,11 +26,7 @@ Command line utility helps to develop components for [NEAR Blockchain Operating 
   In interactive mode, the default working directory is "widget/".
 If you wish, you can explicitly specify the folder using CLI arguments (use the option: _--social-db-folder_). For example:
   ```txt
-  bos components --social-db-folder "component_beta/" download ...
-  ```
-  This could also be useful for regular NearVm to prefix all the components like:
-  ```txt
-  bos components --social-db-folder "widget/devhub." deploy ...
+  bos components --social-db-folder "component_beta" download ...
   ```
   
 ### socialdb    -   SocialDb management

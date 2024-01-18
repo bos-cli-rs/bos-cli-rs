@@ -21,8 +21,18 @@ Command line utility helps to develop components for [NEAR Blockchain Operating 
 - `deploy` allows you to upload/publish components from your local `./src` folder to near.social account.
 - `diff` shows changes between deployed and local components.
 - `download` allows you to download the existing components from any near.social account to the local `./src` folder.
-- `delete` allows you to delete the existing components from any near.social account.
+- `delete` allows you to delete the existing components from any near.social account.  
 
+  In interactive mode, the default working directory is "widget/".
+If you wish, you can explicitly specify the folder using CLI arguments (use the option: _--social-db-folder_). For example:
+  ```txt
+  bos components --social-db-folder "component_beta/" download ...
+  ```
+  This could also be useful for regular NearVm to prefix all the components like:
+  ```txt
+  bos components --social-db-folder "widget/devhub." deploy ...
+  ```
+  
 ### socialdb    -   SocialDb management
 
 #### data              -   Data management: viewing, adding, updating, deleting information by a given key

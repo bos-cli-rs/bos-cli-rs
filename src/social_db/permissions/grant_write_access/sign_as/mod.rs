@@ -69,12 +69,12 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     receiver_id: near_social_account_id.clone(),
                     actions: vec![
                     near_primitives::transaction::Action::FunctionCall(
-                        near_primitives::transaction::FunctionCallAction {
+                        Box::new(near_primitives::transaction::FunctionCallAction {
                             method_name: "grant_write_permission".to_string(),
                             args,
                             gas: near_cli_rs::common::NearGas::from_tgas(100).as_gas(),
                             deposit: extra_storage_deposit.as_yoctonear(),
-                        },
+                        }),
                     )
                 ],
                 };

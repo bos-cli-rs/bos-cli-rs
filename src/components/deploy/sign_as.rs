@@ -127,12 +127,12 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
                 prepopulated_transaction.actions = vec![
                     near_primitives::transaction::Action::FunctionCall(
-                        near_primitives::transaction::FunctionCallAction {
+                        Box::new(near_primitives::transaction::FunctionCallAction {
                             method_name: "set".to_string(),
                             args,
                             gas: near_cli_rs::common::NearGas::from_tgas(300).as_gas(),
                             deposit: deposit.as_yoctonear(),
-                        },
+                        }),
                     )
                 ];
 
@@ -191,7 +191,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 let transaction_function_args: super::TransactionFunctionArgs =
                     serde_json::from_slice(args).wrap_err("Internal error: Could not parse SocialDB request that we just created.")?;
 
-                let social_account_metadata = transaction_function_args.data.accounts.get(item.deploy_to_account_id.as_ref())
+                let social_account_metadata = transaction_function_args.data.accounts.get(&item.deploy_to_account_id)
                     .wrap_err("Internal error: Could not get the key for the component from SocialDB request that we just created.")?
                     .key
                     .get(&db_prefix)

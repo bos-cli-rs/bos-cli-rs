@@ -70,14 +70,14 @@ impl DeleteContext {
                     signer_id: signer_id.clone().into(),
                     receiver_id: near_social_account_id.clone(),
                     actions: vec![near_primitives::transaction::Action::FunctionCall(
-                        near_primitives::transaction::FunctionCallAction {
+                        Box::new(near_primitives::transaction::FunctionCallAction {
                             method_name: "set".to_string(),
                             args: serde_json::json!({
                                 "data": social_db_data_to_remove
                             }).to_string().into_bytes(),
                             gas: near_cli_rs::common::NearGas::from_tgas(300).as_gas(),
                             deposit: near_cli_rs::types::near_token::NearToken::from_yoctonear(0).as_yoctonear(),
-                        },
+                        }),
                     )]
                 })
             }

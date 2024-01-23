@@ -81,14 +81,14 @@ impl SignerContext {
                     receiver_id: near_social_account_id.clone(),
                     actions: vec![
                     near_primitives::transaction::Action::FunctionCall(
-                        near_primitives::transaction::FunctionCallAction {
+                        Box::new(near_primitives::transaction::FunctionCallAction {
                             method_name: "set".to_string(),
                             args: serde_json::json!({
                                 "data": social_db_data_to_set
                             }).to_string().into_bytes(),
                             gas: near_cli_rs::common::NearGas::from_tgas(300).as_gas(),
                             deposit: deposit.as_yoctonear(),
-                        },
+                        }),
                     )
                 ]})
             }

@@ -40,18 +40,18 @@ glob = "0.3.1"
 lazy_static = "1.4.0"
 linked-hash-map = "0.5.6"
 
-near-crypto = "0.17.0"
-near-primitives = "0.17.0"
-near-jsonrpc-client = "0.6.0"
-near-jsonrpc-primitives = "0.17.0"
+near-crypto = "0.20.0"
+near-primitives = "0.20.0"
+near-jsonrpc-client = "0.8.0"
+near-jsonrpc-primitives = "0.20.0"
 
 interactive-clap = "0.2.8"
 interactive-clap-derive = "0.2.8"
 
 console = "0.15.5"
 
-near-cli-rs = { version = "0.7.5", default-features = false }
-near-socialdb-client = "0.2.1"
+near-cli-rs = { version = "0.7.7", default-features = false }
+near-socialdb-client = "0.2.2"
 semver = "1.0.4"
 self_update = { version = "0.37.0", features = [
     "archive-tar",

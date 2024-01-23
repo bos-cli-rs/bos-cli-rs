@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.11](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.10...v0.3.11) - 2024-01-23
+
+### Other
+- Upgraded NEAR crates to 0.20.0 release ([#88](https://github.com/bos-cli-rs/bos-cli-rs/pull/88))
+- Updated binary releases pipeline to use cargo-dist v0.7.2 (previously v0.1.0-prerelease.3)  ([#87](https://github.com/bos-cli-rs/bos-cli-rs/pull/87))
+- Added the documentation for `--social-db-folder` option in components subcommand ([#85](https://github.com/bos-cli-rs/bos-cli-rs/pull/85))
+
 ## [0.3.10](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.9...v0.3.10) - 2024-01-16
 
 ### Added

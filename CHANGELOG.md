@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.12](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.11...v0.3.12) - 2024-01-30
+
+### Other
+- Create releases using a private access token to trigger downstream workflows (publish-to-npm)
+
 ## [0.3.11](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.10...v0.3.11) - 2024-01-23
 
 ### Other

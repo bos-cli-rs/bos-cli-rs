@@ -240,6 +240,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           submodules: recursive
       - name: "Download Github Artifacts"
         uses: actions/download-artifact@v3
@@ -258,3 +259,4 @@ jobs:
           body: ${{ fromJson(needs.host.outputs.val).announcement_github_body }}
           prerelease: ${{ fromJson(needs.host.outputs.val).announcement_is_prerelease }}
           artifacts: "artifacts/*"
+          token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}

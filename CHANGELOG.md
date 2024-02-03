@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.13](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.12...v0.3.13) - 2024-02-03
+
+### Other
+- Updated binary releases pipeline to use cargo-dist v0.9.0 (previously v0.7.2) ([#91](https://github.com/bos-cli-rs/bos-cli-rs/pull/91))
+- Fixed NPM_PACKAGE_NAME configuration in publish-to-npm.yml
+- Enable manual triggering for publish-to-npm.yml
+
 ## [0.3.12](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.11...v0.3.12) - 2024-01-30
 
 ### Other

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.14](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.13...v0.3.14) - 2024-05-28
+
+### Added
+- Upgraded the new project template to fix multiple imports and exports in a single file and introduce Continuous Deployment workflows
+
+### Fixed
+- Fixed a syntax error in CI (publish-to-npm.yml)
+
 ## [0.3.13](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.12...v0.3.13) - 2024-02-03
 
 ### Other

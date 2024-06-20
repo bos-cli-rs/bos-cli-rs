@@ -71,14 +71,18 @@ pub fn get_local_components(
         let component_name: crate::socialdb_types::ComponentName = component_filepath
             .strip_prefix("src")?
             .with_extension("")
-            .to_str()
-            .wrap_err_with(|| {
-                format!(
-                    "Component name cannot be presented as UTF-8: {}",
-                    component_filepath.display()
-                )
-            })?
-            .replace('/', ".");
+            .components()
+            .filter_map(|component| match component {
+                std::path::Component::Normal(text) => Some(text.to_str().wrap_err_with(|| {
+                    format!(
+                        "Component name cannot be presented as UTF-8: {}",
+                        component_filepath.display()
+                    )
+                }).ok()?),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+            .join(".");
 
         let code = std::fs::read_to_string(&component_filepath).wrap_err_with(|| {
             format!(

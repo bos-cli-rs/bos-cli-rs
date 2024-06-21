@@ -73,7 +73,7 @@ pub fn get_local_components(
             .with_extension("")
             .components()
             .filter_map(|component| match component {
-                std::path::Component::Normal(text) => Some(text.to_str()?),
+                std::path::Component::Normal(text) => text.to_str(),
                 _ => None,
             })
             .collect::<Vec<_>>()

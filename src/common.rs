@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use color_eyre::eyre::{ContextCompat, WrapErr};
+use color_eyre::eyre::WrapErr;
 use console::{style, Style};
 use futures::StreamExt;
 use glob::glob;

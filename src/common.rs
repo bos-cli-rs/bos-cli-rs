@@ -73,12 +73,7 @@ pub fn get_local_components(
             .with_extension("")
             .components()
             .filter_map(|component| match component {
-                std::path::Component::Normal(text) => Some(text.to_str().wrap_err_with(|| {
-                    format!(
-                        "Component name cannot be presented as UTF-8: {}",
-                        component_filepath.display()
-                    )
-                }).ok()?),
+                std::path::Component::Normal(text) => Some(text.to_str()?),
                 _ => None,
             })
             .collect::<Vec<_>>()

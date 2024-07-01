@@ -46,7 +46,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
         let extra_storage_deposit = item.extra_storage_deposit;
         let signer_id = item.signer_account_id.clone();
 
-        let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = std::sync::Arc::new({
+        let get_prepopulated_transaction_after_getting_network_callback: near_cli_rs::commands::GetPrepopulatedTransactionAfterGettingNetworkCallback = std::sync::Arc::new({
             move |network_config| {
                 let near_social_account_id = crate::consts::NEAR_SOCIAL_ACCOUNT_ID.get(network_config.network_name.as_str())
                     .wrap_err_with(|| format!("The <{}> network does not have a near-social contract.", network_config.network_name))?;
@@ -122,12 +122,12 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
         Self {
             global_context: item.global_context,
             interacting_with_account_ids: vec![item.signer_account_id],
-            on_after_getting_network_callback,
+            get_prepopulated_transaction_after_getting_network_callback,
             on_before_signing_callback: std::sync::Arc::new(
                 |_prepolulated_unsinged_transaction, _network_config| Ok(()),
             ),
             on_before_sending_transaction_callback: std::sync::Arc::new(
-                |_signed_transaction, _network_config, _message| Ok(()),
+                |_signed_transaction, _network_config| Ok(String::new()),
             ),
             on_after_sending_transaction_callback,
         }

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use color_eyre::eyre::{ContextCompat, WrapErr};
+use color_eyre::eyre::WrapErr;
 use console::{style, Style};
 use futures::StreamExt;
 use glob::glob;
@@ -71,14 +71,13 @@ pub fn get_local_components(
         let component_name: crate::socialdb_types::ComponentName = component_filepath
             .strip_prefix("src")?
             .with_extension("")
-            .to_str()
-            .wrap_err_with(|| {
-                format!(
-                    "Component name cannot be presented as UTF-8: {}",
-                    component_filepath.display()
-                )
-            })?
-            .replace('/', ".");
+            .components()
+            .filter_map(|component| match component {
+                std::path::Component::Normal(text) => text.to_str(),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+            .join(".");
 
         let code = std::fs::read_to_string(&component_filepath).wrap_err_with(|| {
             format!(

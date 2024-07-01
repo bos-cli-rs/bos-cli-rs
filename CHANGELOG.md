@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.15](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.14...v0.3.15) - 2024-06-21
+
+### Fixed
+- Brings support for deploying nested folders on Windows (account for \ path delimiter) ([#94](https://github.com/bos-cli-rs/bos-cli-rs/pull/94))
+- Updated the starter project template to fix links in `npm run dev`
+
 ## [0.3.14](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.13...v0.3.14) - 2024-05-28
 
 ### Added

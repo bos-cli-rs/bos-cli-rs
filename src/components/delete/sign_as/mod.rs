@@ -40,7 +40,7 @@ impl SignerContext {
 
 impl From<SignerContext> for near_cli_rs::commands::ActionContext {
     fn from(item: SignerContext) -> Self {
-        let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = std::sync::Arc::new({
+        let get_prepopulated_transaction_after_getting_network_callback: near_cli_rs::commands::GetPrepopulatedTransactionAfterGettingNetworkCallback = std::sync::Arc::new({
             let components = item.components.clone();
             let account_id: near_primitives::types::AccountId = item.account_id.clone().into();
             let signer_id = item.signer_account_id.clone();
@@ -118,12 +118,12 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
         Self {
             global_context: item.global_context,
             interacting_with_account_ids: vec![item.signer_account_id],
-            on_after_getting_network_callback,
+            get_prepopulated_transaction_after_getting_network_callback,
             on_before_signing_callback: std::sync::Arc::new(
                 |_prepolulated_unsinged_transaction, _network_config| Ok(()),
             ),
             on_before_sending_transaction_callback: std::sync::Arc::new(
-                |_signed_transaction, _network_config, _message| Ok(()),
+                |_signed_transaction, _network_config| Ok(String::new()),
             ),
             on_after_sending_transaction_callback,
         }

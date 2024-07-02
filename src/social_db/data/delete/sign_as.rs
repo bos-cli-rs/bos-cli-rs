@@ -22,9 +22,9 @@ impl SignerContext {
     ) -> color_eyre::eyre::Result<Self> {
         let signer_account_id = scope.signer_account_id.clone();
 
-        let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = std::sync::Arc::new(
+        let get_prepopulated_transaction_after_getting_network_callback: near_cli_rs::commands::GetPrepopulatedTransactionAfterGettingNetworkCallback = std::sync::Arc::new(
             move |network_config| {
-                let mut prepopulated_transaction = (previous_context.on_after_getting_network_callback)(network_config)?;
+                let mut prepopulated_transaction = (previous_context.get_prepopulated_transaction_after_getting_network_callback)(network_config)?;
                 prepopulated_transaction.signer_id = signer_account_id.clone().into();
                 Ok(prepopulated_transaction)
             });
@@ -32,10 +32,10 @@ impl SignerContext {
         Ok(Self(near_cli_rs::commands::ActionContext {
             global_context: previous_context.global_context,
             interacting_with_account_ids: vec![previous_context.account_id.into()],
-            on_after_getting_network_callback,
+            get_prepopulated_transaction_after_getting_network_callback,
             on_before_signing_callback: std::sync::Arc::new(|_transaction, _network_config| Ok(())),
             on_before_sending_transaction_callback: std::sync::Arc::new(
-                |_signed_transaction, _network_config, _message| Ok(()),
+                |_signed_transaction, _network_config| Ok(String::new()),
             ),
             on_after_sending_transaction_callback: previous_context
                 .on_after_sending_transaction_callback,
@@ -89,7 +89,8 @@ impl Signer {
 pub struct PreparedSignerContext {
     pub global_context: near_cli_rs::GlobalContext,
     pub account_id: near_cli_rs::types::account_id::AccountId,
-    pub on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback,
+    pub get_prepopulated_transaction_after_getting_network_callback:
+        near_cli_rs::commands::GetPrepopulatedTransactionAfterGettingNetworkCallback,
     pub on_before_signing_callback: near_cli_rs::commands::OnBeforeSigningCallback,
     pub on_before_sending_transaction_callback:
         near_cli_rs::transaction_signature_options::OnBeforeSendingTransactionCallback,

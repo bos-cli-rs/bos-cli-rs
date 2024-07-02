@@ -33,7 +33,7 @@ impl DeleteContext {
                 .trim(),
         )?;
 
-        let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = std::sync::Arc::new({
+        let get_prepopulated_transaction_after_getting_network_callback: near_cli_rs::commands::GetPrepopulatedTransactionAfterGettingNetworkCallback = std::sync::Arc::new({
             let signer_id = account_id.clone();
             let key = scope.key.clone();
 
@@ -99,12 +99,12 @@ impl DeleteContext {
         Ok(Self(self::sign_as::PreparedSignerContext {
             global_context: previous_context,
             account_id,
-            on_after_getting_network_callback,
+            get_prepopulated_transaction_after_getting_network_callback,
             on_before_signing_callback: std::sync::Arc::new(
                 |_prepolulated_unsinged_transaction, _network_config| Ok(()),
             ),
             on_before_sending_transaction_callback: std::sync::Arc::new(
-                |_signed_transaction, _network_config, _message| Ok(()),
+                |_signed_transaction, _network_config| Ok(String::new()),
             ),
             on_after_sending_transaction_callback,
         }))

@@ -28,7 +28,7 @@ impl SignerContext {
         let signer_id: near_primitives::types::AccountId = scope.signer_account_id.clone().into();
         let key = previous_context.key.clone();
 
-        let on_after_getting_network_callback: near_cli_rs::commands::OnAfterGettingNetworkCallback = Arc::new({
+        let get_prepopulated_transaction_after_getting_network_callback: near_cli_rs::commands::GetPrepopulatedTransactionAfterGettingNetworkCallback = Arc::new({
             let signer_id = signer_id.clone();
             let set_to_account_id = set_to_account_id.clone();
 
@@ -139,10 +139,10 @@ impl SignerContext {
         Ok(Self(near_cli_rs::commands::ActionContext {
             global_context: previous_context.global_context,
             interacting_with_account_ids: vec![previous_context.set_to_account_id.into()],
-            on_after_getting_network_callback,
+            get_prepopulated_transaction_after_getting_network_callback,
             on_before_signing_callback,
             on_before_sending_transaction_callback: std::sync::Arc::new(
-                |_signed_transaction, _network_config, _message| Ok(()),
+                |_signed_transaction: &near_cli_rs::transaction_signature_options::SignedTransactionOrSignedDelegateAction, _network_config| Ok(String::new())
             ),
             on_after_sending_transaction_callback,
         }))

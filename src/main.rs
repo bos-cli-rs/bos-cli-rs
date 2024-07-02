@@ -5,6 +5,7 @@
 )]
 use color_eyre::eyre::WrapErr;
 use interactive_clap::ToCliArgs;
+use near_cli_rs::config::Config;
 pub use near_cli_rs::CliResult;
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
@@ -48,7 +49,7 @@ pub enum Command {
 }
 
 fn main() -> CliResult {
-    let config = near_cli_rs::common::get_config_toml()?;
+    let config = Config::get_config_toml()?;
 
     color_eyre::install()?;
 

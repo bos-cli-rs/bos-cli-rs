@@ -3,7 +3,7 @@
     clippy::large_enum_variant,
     clippy::arc_with_non_send_sync
 )]
-use color_eyre::eyre::WrapErr;
+use color_eyre::{eyre::WrapErr, owo_colors::OwoColorize};
 use interactive_clap::ToCliArgs;
 use near_cli_rs::config::Config;
 pub use near_cli_rs::CliResult;
@@ -51,7 +51,13 @@ pub enum Command {
 fn main() -> CliResult {
     let config = Config::get_config_toml()?;
 
-    color_eyre::install()?;
+    #[cfg(not(debug_assertions))]
+    let display_env_section = false;
+    #[cfg(debug_assertions)]
+    let display_env_section = true;
+    color_eyre::config::HookBuilder::default()
+        .display_env_section(display_env_section)
+        .install()?;
 
     let cli = match Cmd::try_parse() {
         Ok(cli) => cli,
@@ -61,6 +67,7 @@ fn main() -> CliResult {
     let global_context = near_cli_rs::GlobalContext {
         config,
         offline: false,
+        teach_me: false,
     };
 
     let bos_exec_path: String = std::env::args().next().unwrap_or("./bos".to_owned());
@@ -73,8 +80,8 @@ fn main() -> CliResult {
         | interactive_clap::ResultFromCli::Cancel(Some(cli_cmd)) => {
             eprintln!(
                 "Your console command:\n{} {}",
-                bos_exec_path,
-                shell_words::join(cli_cmd.to_cli_args())
+                bos_exec_path.yellow(),
+                shell_words::join(cli_cmd.to_cli_args()).yellow()
             );
             Ok(Some(cli_cmd))
         }
@@ -89,8 +96,8 @@ fn main() -> CliResult {
             if let Some(cli_cmd) = optional_cli_cmd {
                 eprintln!(
                     "Your console command:\n{} {}",
-                    bos_exec_path,
-                    shell_words::join(cli_cmd.to_cli_args())
+                    bos_exec_path.yellow(),
+                    shell_words::join(cli_cmd.to_cli_args()).yellow()
                 );
             }
             Err(err)
@@ -143,6 +150,7 @@ fn main() -> CliResult {
                     shell_words::join(
                         std::iter::once(bos_exec_path).chain(self_update_cli_cmd.to_cli_args())
                     )
+                    .yellow()
                 );
             }
         }

@@ -40,20 +40,26 @@ glob = "0.3.1"
 lazy_static = "1.4.0"
 linked-hash-map = "0.5.6"
 
-near-crypto = "0.23.0"
-near-primitives = "0.23.0"
-near-jsonrpc-client = "0.10.1"
-near-jsonrpc-primitives = "0.23.0"
+indicatif = "0.17.8"
+indenter = "0.3"
+tracing = "0.1.40"
+tracing-indicatif = "0.3.6"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-interactive-clap = "0.2.10"
-interactive-clap-derive = "0.2.10"
+near-crypto = "0.24"
+near-primitives = "0.24"
+near-jsonrpc-client = "0.11"
+near-jsonrpc-primitives = "0.24"
+
+interactive-clap = "0.3"
+interactive-clap-derive = "0.3"
 
 console = "0.15.5"
 
-near-cli-rs = { version = "0.13.0", default-features = false }
-near-socialdb-client = "0.3.1"
+near-cli-rs = { version = "0.14.0", default-features = false }
+near-socialdb-client = "0.5"
 semver = "1.0.4"
-self_update = { version = "0.40.0", features = [
+self_update = { version = "0.41.0", features = [
     "archive-tar",
     "compression-flate2",
 ] }

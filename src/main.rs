@@ -9,6 +9,12 @@ use near_cli_rs::config::Config;
 pub use near_cli_rs::CliResult;
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
+use indicatif::ProgressStyle;
+use tracing_indicatif::IndicatifLayer;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::EnvFilter;
+
 pub mod common;
 mod components;
 pub mod consts;
@@ -22,6 +28,9 @@ pub mod socialdb_types;
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = near_cli_rs::GlobalContext)]
 struct Cmd {
+    /// TEACH-ME mode
+    #[interactive_clap(long)]
+    teach_me: bool,
     #[interactive_clap(subcommand)]
     command: self::Command,
 }
@@ -62,6 +71,53 @@ fn main() -> CliResult {
     let cli = match Cmd::try_parse() {
         Ok(cli) => cli,
         Err(error) => error.exit(),
+    };
+
+    if cli.teach_me {
+        let env_filter = EnvFilter::from_default_env()
+            .add_directive(tracing::Level::WARN.into())
+            .add_directive("near_teach_me=info".parse()?)
+            .add_directive("near_cli_rs=info".parse()?)
+            .add_directive("bos=info".parse()?);
+        tracing_subscriber::registry()
+            .with(
+                tracing_subscriber::fmt::layer()
+                    .without_time()
+                    .with_target(false),
+            )
+            .with(env_filter)
+            .init();
+    } else {
+        let indicatif_layer = IndicatifLayer::new()
+            .with_progress_style(
+                ProgressStyle::with_template(
+                    "{spinner:.blue}{span_child_prefix} {span_name} {msg} {span_fields}",
+                )
+                .unwrap()
+                .tick_strings(&[
+                    "▹▹▹▹▹",
+                    "▸▹▹▹▹",
+                    "▹▸▹▹▹",
+                    "▹▹▸▹▹",
+                    "▹▹▹▸▹",
+                    "▹▹▹▹▸",
+                    "▪▪▪▪▪",
+                ]),
+            )
+            .with_span_child_prefix_symbol("↳ ");
+        let env_filter = EnvFilter::from_default_env()
+            .add_directive(tracing::Level::WARN.into())
+            .add_directive("near_cli_rs=info".parse()?)
+            .add_directive("bos=info".parse()?);
+        tracing_subscriber::registry()
+            .with(
+                tracing_subscriber::fmt::layer()
+                    .without_time()
+                    .with_writer(indicatif_layer.get_stderr_writer()),
+            )
+            .with(indicatif_layer)
+            .with(env_filter)
+            .init();
     };
 
     let global_context = near_cli_rs::GlobalContext {
@@ -135,6 +191,7 @@ fn main() -> CliResult {
                     "`bos` CLI has a new update available \x1b[2m{current_version}\x1b[0m →  \x1b[32m{latest_version}\x1b[0m"
                 );
                 let self_update_cli_cmd = CliCmd {
+                    teach_me: false,
                     command: Some(self::CliCommand::Extensions(
                         self::extensions::CliExtensions {
                             extensions_actions: Some(

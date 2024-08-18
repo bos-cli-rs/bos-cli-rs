@@ -2,5 +2,5 @@
 /test*
 .DS_Store
 *.wasm
-*.json
+./*.json
 *.jsx

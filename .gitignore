@@ -1,5 +1,4 @@
 /target
-/test*
 .DS_Store
 *.wasm
 ./*.json

@@ -69,7 +69,8 @@ assert_cmd = "2.0"
 httpmock = "0.6"
 tempfile = "3.3"
 predicates = "2.1"
-
+dirs = "5.0.1"
+ 
 [target.'cfg(target_os = "macos")'.dependencies]
 security-framework = "2.7.0"
 

@@ -13,45 +13,36 @@ fn test_bos_components_deploy_with_mocked_rpc() {
     let config_dir = dirs::config_dir().unwrap().join("near-cli");
     let config_path = config_dir.join("config.toml");
 
-    // Step 3: Backup the original config.toml if it exists
+    // Step 3: Backup and remove the original config.toml if it exists
     let backup_path = config_dir.join("config_backup.toml");
-    let config_exists = config_path.exists();
-    if config_exists {
-        fs::copy(&config_path, &backup_path).expect("Failed to backup config.toml");
-    } else {
-        // If config.toml does not exist, create it with minimal content
-        fs::create_dir_all(&config_dir).expect("Failed to create config directory");
-        fs::write(
-            &config_path,
+    if config_path.exists() {
+        fs::rename(&config_path, &backup_path).expect("Failed to backup original config.toml");
+    }
+
+    // Step 4: Create a new config.toml with the mock server configuration
+    fs::create_dir_all(&config_dir).expect("Failed to create config directory");
+    fs::write(
+        &config_path,
+        format!(
             r#"
             version = "2"
             credentials_home_dir = "~/.near-credentials"
+
+            [network_connection.mainnet]
+            network_name = "mainnet"
+            rpc_url = "{}"
+            wallet_url = "https://app.mynearwallet.com/"
+            explorer_transaction_url = "https://explorer.near.org/transactions/"
+            linkdrop_account_id = "near"
+            near_social_db_contract_account_id = "social.near"
+            fastnear_url = "https://api.fastnear.com/"
+            staking_pools_factory_account_id = "poolv1.near"
+            coingecko_url = "https://api.coingecko.com/"
             "#,
-        )
-        .expect("Failed to create initial config.toml");
-    }
-
-    // Step 4: Modify the config.toml to use the mock server
-    let mut config_content = fs::read_to_string(&config_path).expect("Failed to read config.toml");
-
-    // Add or modify the [network_connection.mainnet] section
-    config_content.push_str(&format!(
-        r#"
-[network_connection.mainnet]
-network_name = "mainnet"
-rpc_url = "{}"
-wallet_url = "https://app.mynearwallet.com/"
-explorer_transaction_url = "https://explorer.near.org/transactions/"
-linkdrop_account_id = "near"
-near_social_db_contract_account_id = "social.near"
-fastnear_url = "https://api.fastnear.com/"
-staking_pools_factory_account_id = "poolv1.near"
-coingecko_url = "https://api.coingecko.com/"
-"#,
-        server.url("/"), // Pointing to the mock server
-    ));
-
-    fs::write(&config_path, config_content).expect("Failed to write to config.toml");
+            server.url("/")
+        ),
+    )
+    .expect("Failed to create test config.toml");
 
     // Step 5: Set up a temporary directory for components
     let temp_dir = tempdir().unwrap();
@@ -172,11 +163,10 @@ coingecko_url = "https://api.coingecko.com/"
     .stdout(predicates::str::contains("Deployment successful"));
 
     // Step 10: Restore the original config.toml if it existed
-    if config_exists {
-        fs::copy(&backup_path, &config_path).expect("Failed to restore original config.toml");
-        fs::remove_file(&backup_path).expect("Failed to remove backup config.toml");
+    if backup_path.exists() {
+        fs::rename(&backup_path, &config_path).expect("Failed to restore original config.toml");
     } else {
-        // If the original config.toml didn't exist, just delete the one we created
+        // If the original config.toml didn't exist, delete the one we created
         fs::remove_file(&config_path).expect("Failed to remove generated config.toml");
     }
 

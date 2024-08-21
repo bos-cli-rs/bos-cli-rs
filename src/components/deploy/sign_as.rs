@@ -147,18 +147,20 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 let deploy_to_account_id = item.deploy_to_account_id.clone();
                 move |prepopulated_unsigned_transaction, network_config| {
                     let json_rpc_client = network_config.json_rpc_client();
-                    if let near_primitives::transaction::Action::FunctionCall(action) =
-                        &mut prepopulated_unsigned_transaction.actions[0]
+                    let public_key = prepopulated_unsigned_transaction.public_key().clone();
+                    let receiver_id = prepopulated_unsigned_transaction.receiver_id().clone();
+                    if let Some(near_primitives::transaction::Action::FunctionCall(action)) =
+                        prepopulated_unsigned_transaction.actions_mut().get_mut(0)
                     {
                         action.deposit = tokio::runtime::Runtime::new()
                             .unwrap()
                             .block_on(near_socialdb_client::get_deposit(
                                 &json_rpc_client,
                                 &signer_account_id,
-                                &prepopulated_unsigned_transaction.public_key,
+                                &public_key,
                                 &deploy_to_account_id,
                                 &social_db_folder,
-                                &prepopulated_unsigned_transaction.receiver_id,
+                                &receiver_id,
                                 near_cli_rs::types::near_token::NearToken::from_yoctonear(
                                     action.deposit,
                                 )

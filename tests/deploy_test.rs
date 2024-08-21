@@ -60,23 +60,22 @@ fn test_bos_components_deploy_with_mocked_rpc() {
         when.method(httpmock::Method::POST)
             .path("/")
             .body_contains("view_access_key");
-        then.status(200)
-            .json_body(json!({
-                "jsonrpc": "2.0",
-                "result": {
-                    "nonce": 85,
-                    "permission": {
-                        "FunctionCall": {
-                            "allowance": "18501534631167209000000000",
-                            "receiver_id": "social.near",
-                            "method_names": ["set"]
-                        }
-                    },
-                    "block_height": 19884918,
-                    "block_hash": "GGJQ8yjmo7aEoj8ZpAhGehnq9BSWFx4xswHYzDwwAP2n"
+        then.status(200).json_body(json!({
+            "jsonrpc": "2.0",
+            "result": {
+                "nonce": 85,
+                "permission": {
+                    "FunctionCall": {
+                        "allowance": "18501534631167209000000000",
+                        "receiver_id": "social.near",
+                        "method_names": ["set"]
+                    }
                 },
-                "id": "dontcare"
-            }));
+                "block_height": 19884918,
+                "block_hash": "GGJQ8yjmo7aEoj8ZpAhGehnq9BSWFx4xswHYzDwwAP2n"
+            },
+            "id": "dontcare"
+        }));
     });
 
     // Mock the RPC call for `view_access_key_list`
@@ -84,37 +83,36 @@ fn test_bos_components_deploy_with_mocked_rpc() {
         when.method(httpmock::Method::POST)
             .path("/")
             .body_contains(r#""request_type":"view_access_key_list""#);
-        then.status(200)
-            .json_body(json!({
-                "jsonrpc": "2.0",
-                "result": {
-                    "keys": [
-                        {
-                            "public_key": "ed25519:7fvCiaE4NTmhexo8fDoa3CFNupL6mvJmNjL1hydN65fm",
-                            "access_key": {
-                                "nonce": 17,
-                                "permission": {
-                                    "FunctionCall": {
-                                        "allowance": "9999203942481156415000",
-                                        "receiver_id": "social.near",
-                                        "method_names": ["set"]
-                                    }
+        then.status(200).json_body(json!({
+            "jsonrpc": "2.0",
+            "result": {
+                "keys": [
+                    {
+                        "public_key": "ed25519:7fvCiaE4NTmhexo8fDoa3CFNupL6mvJmNjL1hydN65fm",
+                        "access_key": {
+                            "nonce": 17,
+                            "permission": {
+                                "FunctionCall": {
+                                    "allowance": "9999203942481156415000",
+                                    "receiver_id": "social.near",
+                                    "method_names": ["set"]
                                 }
                             }
-                        },
-                        {
-                            "public_key": "ed25519:4F9TwuSqWwvoyu7JVZDsupPhC7oYbYNsisBV2yQvyXFn",
-                            "access_key": {
-                                "nonce": 0,
-                                "permission": "FullAccess"
-                            }
                         }
-                    ],
-                    "block_height": 17798231,
-                    "block_hash": "Gm7YSdx22wPuciW1jTTeRGP9mFqmon69ErFQvgcFyEEB"
-                },
-                "id": "dontcare"
-            }));
+                    },
+                    {
+                        "public_key": "ed25519:4F9TwuSqWwvoyu7JVZDsupPhC7oYbYNsisBV2yQvyXFn",
+                        "access_key": {
+                            "nonce": 0,
+                            "permission": "FullAccess"
+                        }
+                    }
+                ],
+                "block_height": 17798231,
+                "block_hash": "Gm7YSdx22wPuciW1jTTeRGP9mFqmon69ErFQvgcFyEEB"
+            },
+            "id": "dontcare"
+        }));
     });
 
     // Step 7: Mock the `query` RPC call for getting an empty JSON object as a result
@@ -124,17 +122,16 @@ fn test_bos_components_deploy_with_mocked_rpc() {
             .body_contains(r#""method":"query""#)
             .body_contains(r#""request_type":"call_function""#)
             .body_contains(r#""method_name":"get""#);
-        then.status(200)
-            .json_body(json!({
-                "jsonrpc": "2.0",
-                "result": {
-                    "result": [123, 125], // ASCII for `{}` is 123, 125
-                    "logs": [],
-                    "block_height": 17817336,
-                    "block_hash": "4qkA4sUUG8opjH5Q9bL5mWJTnfR4ech879Db1BZXbx6P"
-                },
-                "id": "dontcare"
-            }));
+        then.status(200).json_body(json!({
+            "jsonrpc": "2.0",
+            "result": {
+                "result": [123, 125], // ASCII for `{}` is 123, 125
+                "logs": [],
+                "block_height": 17817336,
+                "block_hash": "4qkA4sUUG8opjH5Q9bL5mWJTnfR4ech879Db1BZXbx6P"
+            },
+            "id": "dontcare"
+        }));
     });
 
     // Step 8: Mock the `query` RPC call for `storage_balance_of`
@@ -144,24 +141,33 @@ fn test_bos_components_deploy_with_mocked_rpc() {
             .body_contains(r#""method":"query""#)
             .body_contains(r#""request_type":"call_function""#)
             .body_contains(r#""method_name":"storage_balance_of""#);
-        then.status(200)
-            .json_body(json!({
-                "jsonrpc": "2.0",
-                "result": {
-                    "result": [123, 125], // ASCII for `{}` is 123, 125
-                    "logs": [],
-                    "block_height": 17817337,
-                    "block_hash": "6qkA4sUUG8opjH5Q9bL5mWJTnfR4ech879Db1BZXbx7Q"
-                },
-                "id": "dontcare"
-            }));
+
+        // Create the JSON object
+        let balance_json = json!({
+            "available": "17413620000000000000000015",
+            "total": "27100000000000000000000015"
+        });
+
+        // Serialize to a string and convert to ASCII character codes
+        let balance_string = balance_json.to_string();
+        let result: Vec<u8> = balance_string.bytes().collect();
+
+        then.status(200).json_body(json!({
+            "jsonrpc": "2.0",
+            "result": {
+                "result": result,
+                "logs": [],
+                "block_height": 17817337,
+                "block_hash": "6qkA4sUUG8opjH5Q9bL5mWJTnfR4ech879Db1BZXbx7Q"
+            },
+            "id": "dontcare"
+        }));
     });
 
     let write_permission = false;
     server.mock(|when, then| {
         when.body_contains("is_write_permission_granted");
-        let write_permission_json_str =
-            serde_json::to_string(&json!(write_permission)).unwrap();
+        let write_permission_json_str = serde_json::to_string(&json!(write_permission)).unwrap();
         let binary_write_permission = write_permission_json_str.as_bytes().to_vec();
         then.json_body(json!({
           "jsonrpc": "2.0",

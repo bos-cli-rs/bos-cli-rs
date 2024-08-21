@@ -1,9 +1,8 @@
 use assert_cmd::Command;
-use httpmock::Method::POST;
-use httpmock::MockServer;
+use httpmock::{MockServer, Then, When};
+use serde_json::{json, Value};
 use std::fs;
 use tempfile::tempdir;
-use serde_json::json;
 
 #[test]
 fn test_bos_components_deploy_with_mocked_rpc() {
@@ -34,16 +33,17 @@ fn test_bos_components_deploy_with_mocked_rpc() {
 
     // Step 4: Modify the config.toml to use the mock server
     let mut config_content = fs::read_to_string(&config_path).expect("Failed to read config.toml");
-    
-    // Add or modify the [network_connection.mocknet] section
+
+    // Add or modify the [network_connection.mainnet] section
     config_content.push_str(&format!(
         r#"
-[network_connection.mocknet]
-network_name = "mocknet"
+[network_connection.mainnet]
+network_name = "mainnet"
 rpc_url = "{}"
-wallet_url = "https://wallet.near.org/"
+wallet_url = "https://app.mynearwallet.com/"
 explorer_transaction_url = "https://explorer.near.org/transactions/"
 linkdrop_account_id = "near"
+near_social_db_contract_account_id = "social.near"
 fastnear_url = "https://api.fastnear.com/"
 staking_pools_factory_account_id = "poolv1.near"
 coingecko_url = "https://api.coingecko.com/"
@@ -63,8 +63,10 @@ coingecko_url = "https://api.coingecko.com/"
     fs::write(&component_path, "console.log('Hello, world!');").unwrap();
 
     // Step 6: Mock the necessary RPC calls on the mock server
-    let _mock = server.mock(|when, then| {
-        when.method(POST)
+
+    // Mock for view_access_key RPC call
+    server.mock(|when: When, then: Then| {
+        when.method(httpmock::Method::POST)
             .path("/")
             .body_contains("view_access_key");
         then.status(200)
@@ -87,8 +89,8 @@ coingecko_url = "https://api.coingecko.com/"
     });
 
     // Mock the RPC call for `view_access_key_list`
-    server.mock(|when, then| {
-        when.method(POST)
+    server.mock(|when: When, then: Then| {
+        when.method(httpmock::Method::POST)
             .path("/")
             .body_contains(r#""request_type":"view_access_key_list""#);
         then.status(200)
@@ -124,10 +126,30 @@ coingecko_url = "https://api.coingecko.com/"
             }));
     });
 
-    // Step 7: Change the current directory to the temporary directory for components
+    // Step 7: Log unmatched requests and return a 500 error
+    server.mock(|when: When, then: Then| {
+        when.matches(|req| {
+            if let Some(body_bytes) = &req.body {
+                // Convert body to string
+                let body_str = String::from_utf8_lossy(body_bytes);
+                if let Ok(json_body) = serde_json::from_str::<Value>(&body_str) {
+                    println!(
+                        "No mock for request: {}",
+                        serde_json::to_string_pretty(&json_body).unwrap()
+                    );
+                } else {
+                    println!("Failed to parse JSON body");
+                }
+            }
+            true
+        });
+        then.status(500);
+    });
+
+    // Step 8: Change the current directory to the temporary directory for components
     std::env::set_current_dir(&temp_dir).unwrap();
 
-    // Step 8: Run the CLI command as a subprocess
+    // Step 9: Run the CLI command as a subprocess
     let mut cmd = Command::cargo_bin("bos").unwrap();
 
     cmd.args(&[
@@ -137,7 +159,7 @@ coingecko_url = "https://api.coingecko.com/"
         "sign-as",
         "test.near",
         "network-config",
-        "mocknet", // Use the mock network we added
+        "mainnet", // Use the mock network we added
         "sign-with-plaintext-private-key",
         "--signer-public-key",
         "ed25519:7fvCiaE4NTmhexo8fDoa3CFNupL6mvJmNjL1hydN65fm",
@@ -149,7 +171,7 @@ coingecko_url = "https://api.coingecko.com/"
     .success()
     .stdout(predicates::str::contains("Deployment successful"));
 
-    // Step 9: Restore the original config.toml if it existed
+    // Step 10: Restore the original config.toml if it existed
     if config_exists {
         fs::copy(&backup_path, &config_path).expect("Failed to restore original config.toml");
         fs::remove_file(&backup_path).expect("Failed to remove backup config.toml");
@@ -158,5 +180,5 @@ coingecko_url = "https://api.coingecko.com/"
         fs::remove_file(&config_path).expect("Failed to remove generated config.toml");
     }
 
-    // Step 10: Clean up the temp directory is handled automatically by `tempdir`
+    // Step 11: Clean up the temp directory is handled automatically by `tempdir`
 }

@@ -2,7 +2,6 @@ use assert_cmd::Command;
 use httpmock::Method::POST;
 use httpmock::MockServer;
 use std::fs;
-use std::path::PathBuf;
 use tempfile::tempdir;
 use serde_json::json;
 
@@ -15,9 +14,23 @@ fn test_bos_components_deploy_with_mocked_rpc() {
     let config_dir = dirs::config_dir().unwrap().join("near-cli");
     let config_path = config_dir.join("config.toml");
 
-    // Step 3: Backup the original config.toml
+    // Step 3: Backup the original config.toml if it exists
     let backup_path = config_dir.join("config_backup.toml");
-    fs::copy(&config_path, &backup_path).expect("Failed to backup config.toml");
+    let config_exists = config_path.exists();
+    if config_exists {
+        fs::copy(&config_path, &backup_path).expect("Failed to backup config.toml");
+    } else {
+        // If config.toml does not exist, create it with minimal content
+        fs::create_dir_all(&config_dir).expect("Failed to create config directory");
+        fs::write(
+            &config_path,
+            r#"
+            version = "2"
+            credentials_home_dir = "~/.near-credentials"
+            "#,
+        )
+        .expect("Failed to create initial config.toml");
+    }
 
     // Step 4: Modify the config.toml to use the mock server
     let mut config_content = fs::read_to_string(&config_path).expect("Failed to read config.toml");
@@ -136,11 +149,14 @@ coingecko_url = "https://api.coingecko.com/"
     .success()
     .stdout(predicates::str::contains("Deployment successful"));
 
-    // Step 9: Restore the original config.toml
-    fs::copy(&backup_path, &config_path).expect("Failed to restore original config.toml");
+    // Step 9: Restore the original config.toml if it existed
+    if config_exists {
+        fs::copy(&backup_path, &config_path).expect("Failed to restore original config.toml");
+        fs::remove_file(&backup_path).expect("Failed to remove backup config.toml");
+    } else {
+        // If the original config.toml didn't exist, just delete the one we created
+        fs::remove_file(&config_path).expect("Failed to remove generated config.toml");
+    }
 
-    // Step 10: Clean up the backup file
-    fs::remove_file(backup_path).expect("Failed to remove backup config.toml");
-
-    // Step 11: Clean up the temp directory is handled automatically by `tempdir`
+    // Step 10: Clean up the temp directory is handled automatically by `tempdir`
 }

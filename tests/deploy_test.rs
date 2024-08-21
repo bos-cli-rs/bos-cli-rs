@@ -117,7 +117,7 @@ fn test_bos_components_deploy_with_mocked_rpc() {
             }));
     });
 
-    // Step 7: Mock the `query` RPC call to return an empty JSON object as a result
+    // Step 7: Mock the `query` RPC call for getting an empty JSON object as a result
     server.mock(|when: When, then: Then| {
         when.method(httpmock::Method::POST)
             .path("/")
@@ -137,7 +137,45 @@ fn test_bos_components_deploy_with_mocked_rpc() {
             }));
     });
 
-    // Step 8: Log unmatched requests and return a 500 error
+    // Step 8: Mock the `query` RPC call for `storage_balance_of`
+    server.mock(|when: When, then: Then| {
+        when.method(httpmock::Method::POST)
+            .path("/")
+            .body_contains(r#""method":"query""#)
+            .body_contains(r#""request_type":"call_function""#)
+            .body_contains(r#""method_name":"storage_balance_of""#);
+        then.status(200)
+            .json_body(json!({
+                "jsonrpc": "2.0",
+                "result": {
+                    "result": [123, 125], // ASCII for `{}` is 123, 125
+                    "logs": [],
+                    "block_height": 17817337,
+                    "block_hash": "6qkA4sUUG8opjH5Q9bL5mWJTnfR4ech879Db1BZXbx7Q"
+                },
+                "id": "dontcare"
+            }));
+    });
+
+    let write_permission = false;
+    server.mock(|when, then| {
+        when.body_contains("is_write_permission_granted");
+        let write_permission_json_str =
+            serde_json::to_string(&json!(write_permission)).unwrap();
+        let binary_write_permission = write_permission_json_str.as_bytes().to_vec();
+        then.json_body(json!({
+          "jsonrpc": "2.0",
+          "result": {
+            "result": binary_write_permission,
+            "logs": [],
+            "block_height": 17817336,
+            "block_hash": "4qkA4sUUG8opjH5Q9bL5mWJTnfR4ech879Db1BZXbx6P"
+          },
+          "id": "dontcare"
+        }));
+    });
+
+    // Step 9: Log unmatched requests and return a 500 error
     server.mock(|when: When, then: Then| {
         when.matches(|req| {
             if let Some(body_bytes) = &req.body {
@@ -157,10 +195,10 @@ fn test_bos_components_deploy_with_mocked_rpc() {
         then.status(500);
     });
 
-    // Step 9: Change the current directory to the temporary directory for components
+    // Step 10: Change the current directory to the temporary directory for components
     std::env::set_current_dir(&temp_dir).unwrap();
 
-    // Step 10: Run the CLI command as a subprocess
+    // Step 11: Run the CLI command as a subprocess
     let mut cmd = Command::cargo_bin("bos").unwrap();
 
     cmd.args(&[
@@ -182,7 +220,7 @@ fn test_bos_components_deploy_with_mocked_rpc() {
     .success()
     .stdout(predicates::str::contains("Deployment successful"));
 
-    // Step 11: Restore the original config.toml if it existed
+    // Step 12: Restore the original config.toml if it existed
     if backup_path.exists() {
         fs::rename(&backup_path, &config_path).expect("Failed to restore original config.toml");
     } else {
@@ -190,5 +228,5 @@ fn test_bos_components_deploy_with_mocked_rpc() {
         fs::remove_file(&config_path).expect("Failed to remove generated config.toml");
     }
 
-    // Step 12: Clean up the temp directory is handled automatically by `tempdir`
+    // Step 13: Clean up the temp directory is handled automatically by `tempdir`
 }

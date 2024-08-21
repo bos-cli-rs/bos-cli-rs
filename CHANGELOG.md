@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.16](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.15...v0.3.16) - 2024-08-21
+
+### Other
+- Updated near-* dependencies to the latest versions (nearcore crates 0.24.1 and near-cli-rs 0.14.1) ([#98](https://github.com/bos-cli-rs/bos-cli-rs/pull/98))
+- updated deps to 0.23 version ([#96](https://github.com/bos-cli-rs/bos-cli-rs/pull/96))
+
 ## [0.3.15](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.14...v0.3.15) - 2024-06-21
 
 ### Fixed

@@ -1,5 +1,5 @@
 use assert_cmd::Command;
-use base64;
+use base64::prelude::*;
 use httpmock::{MockServer, Then, When};
 use serde_json::{json, Value};
 use std::fs;
@@ -17,7 +17,9 @@ fn match_broadcast_tx_commit(body: &[u8], component_content: &str) -> bool {
         if let Some(params) = json_body.get("params").and_then(|p| p.get(0)) {
             // Decode the base64 string
             if let Some(params_str) = params.as_str() {
-                let decoded_params = base64::decode(params_str).expect("Failed to decode base64");
+                let decoded_params = BASE64_STANDARD
+                    .decode(params_str)
+                    .expect("Failed to decode base64");
 
                 // Convert to string
                 let decoded_str = String::from_utf8_lossy(&decoded_params);
@@ -214,6 +216,11 @@ fn test_bos_components_deploy_with_mocked_rpc() {
 
     // Mock the `broadcast_tx_commit` RPC call
 
+    let expected_args_base64 = BASE64_STANDARD.encode(format!(
+        r#"{{"data":{{"test.near":{{"widget":{{"example_component":{{"":{}}}}}}}}}}}"#,
+        serde_json::to_string(&COMPONENT_CONTENT).unwrap()
+    ));
+
     server.mock(move |when: When, then: Then| {
         when.method(httpmock::Method::POST)
             .path("/")
@@ -238,7 +245,14 @@ fn test_bos_components_deploy_with_mocked_rpc() {
                     "priority_fee": 0,
                     "signature": "ed25519:7oCBMfSHrZkT7tzPDBxxCd3tWFhTES38eks3MCZMpYPJRfPWKxJsvmwQiVBBxRLoxPTnXVaMU2jPV3MdFKZTobH",
                     "nonce": 13,
-                    "actions": [],
+                    "actions": [{
+                        "FunctionCall": {
+                            "method_name": "set",
+                            "gas": 0,
+                            "deposit": "0",
+                            "args": expected_args_base64
+                        }
+                    }],
                     "hash": "ASS7oYwGiem9HaNwJe6vS2kznx2CxueKDvU9BAYJRjNR"
                 },
                 "transaction_outcome": {
@@ -321,7 +335,7 @@ fn test_bos_components_deploy_with_mocked_rpc() {
     ])
     .assert()
     .success()
-    .stdout(predicates::str::contains("Deployment successful"));
+    .stdout(predicates::str::contains("components were successfully deployed"));
 
     // Restore the original config.toml if it existed
     if backup_path.exists() {

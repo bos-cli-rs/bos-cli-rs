@@ -17,5 +17,9 @@ jobs:
         uses: actions/checkout@v2
       - name: Install Rust
         uses: Swatinem/rust-cache@v1
+      - name: Install libudev-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install --assume-yes libudev-dev
       - name: Tests
         run: cargo test

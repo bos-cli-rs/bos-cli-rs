@@ -1,25 +1,56 @@
 use assert_cmd::Command;
+use base64;
 use httpmock::{MockServer, Then, When};
-use serde_json::{json, Value}; // Import for Value
+use serde_json::{json, Value};
 use std::fs;
 use tempfile::tempdir;
 
+static COMPONENT_CONTENT: &str = "return <>hello</>";
+
+// Define a function to handle the matching logic
+fn match_broadcast_tx_commit(body: &[u8], component_content: &str) -> bool {
+    // Convert body to string
+    let body_str = String::from_utf8_lossy(body);
+
+    if let Ok(json_body) = serde_json::from_str::<Value>(&body_str) {
+        // Extract the params
+        if let Some(params) = json_body.get("params").and_then(|p| p.get(0)) {
+            // Decode the base64 string
+            if let Some(params_str) = params.as_str() {
+                let decoded_params = base64::decode(params_str).expect("Failed to decode base64");
+
+                // Convert to string
+                let decoded_str = String::from_utf8_lossy(&decoded_params);
+
+                // Check for the expected component content
+                let expected_data = format!(
+                    r#"{{"data":{{"test.near":{{"widget":{{"example_component":{{"":{}}}}}}}}}"#,
+                    serde_json::to_string(&component_content).unwrap()
+                );
+
+                return decoded_str.contains(&expected_data);
+            }
+        }
+    }
+    false
+}
+
 #[test]
 fn test_bos_components_deploy_with_mocked_rpc() {
-    // Step 1: Start a mock server to simulate the NEAR RPC server
+    // Start a mock server to simulate the NEAR RPC server
     let server = MockServer::start();
 
-    // Step 2: Locate the existing config directory
+    // Locate the existing config directory
     let config_dir = dirs::config_dir().unwrap().join("near-cli");
     let config_path = config_dir.join("config.toml");
 
-    // Step 3: Backup and remove the original config.toml if it exists
+    // Backup and remove the original config.toml if it exists
     let backup_path = config_dir.join("config_backup.toml");
     if config_path.exists() {
         fs::rename(&config_path, &backup_path).expect("Failed to backup original config.toml");
     }
 
-    // Step 4: Create a new config.toml with the mock server configuration
+    // Create a new config.toml with the mock server configuration
     fs::create_dir_all(&config_dir).expect("Failed to create config directory");
     fs::write(
         &config_path,
@@ -44,16 +75,16 @@ fn test_bos_components_deploy_with_mocked_rpc() {
     )
     .expect("Failed to create test config.toml");
 
-    // Step 5: Set up a temporary directory for components
+    // Set up a temporary directory for components
     let temp_dir = tempdir().unwrap();
     let src_dir = temp_dir.path().join("src");
     fs::create_dir(&src_dir).unwrap();
 
     // Create a mock component file in the temp directory
     let component_path = src_dir.join("example_component.jsx");
-    fs::write(&component_path, "console.log('Hello, world!');").unwrap();
+    fs::write(&component_path, COMPONENT_CONTENT).unwrap();
 
-    // Step 6: Mock the necessary RPC calls on the mock server
+    // Mock the necessary RPC calls on the mock server
 
     // Mock for view_access_key RPC call
     server.mock(|when: When, then: Then| {
@@ -115,7 +146,7 @@ fn test_bos_components_deploy_with_mocked_rpc() {
         }));
     });
 
-    // Step 7: Mock the `query` RPC call for getting an empty JSON object as a result
+    // Mock the `query` RPC call for getting an empty JSON object as a result
     server.mock(|when: When, then: Then| {
         when.method(httpmock::Method::POST)
             .path("/")
@@ -134,7 +165,7 @@ fn test_bos_components_deploy_with_mocked_rpc() {
         }));
     });
 
-    // Step 8: Mock the `query` RPC call for `storage_balance_of`
+    // Mock the `query` RPC call for `storage_balance_of`
     server.mock(|when: When, then: Then| {
         when.method(httpmock::Method::POST)
             .path("/")
@@ -181,7 +212,73 @@ fn test_bos_components_deploy_with_mocked_rpc() {
         }));
     });
 
-    // Step 9: Log unmatched requests and return a 500 error
+    // Mock the `broadcast_tx_commit` RPC call
+
+    server.mock(move |when: When, then: Then| {
+        when.method(httpmock::Method::POST)
+            .path("/")
+            .matches(move |req| {
+                if let Some(body) = &req.body {
+                    return match_broadcast_tx_commit(body, COMPONENT_CONTENT);
+                }
+                false
+            });
+
+        then.status(200).json_body(json!({
+            "jsonrpc": "2.0",
+            "result": {
+                "final_execution_status": "FINAL",
+                "status": {
+                    "SuccessValue": ""
+                },
+                "transaction": {
+                    "signer_id": "test.near",
+                    "receiver_id": "social.near",
+                    "public_key": "ed25519:7fvCiaE4NTmhexo8fDoa3CFNupL6mvJmNjL1hydN65fm",
+                    "priority_fee": 0,
+                    "signature": "ed25519:7oCBMfSHrZkT7tzPDBxxCd3tWFhTES38eks3MCZMpYPJRfPWKxJsvmwQiVBBxRLoxPTnXVaMU2jPV3MdFKZTobH",
+                    "nonce": 13,
+                    "actions": [],
+                    "hash": "ASS7oYwGiem9HaNwJe6vS2kznx2CxueKDvU9BAYJRjNR"
+                },
+                "transaction_outcome": {
+                "proof": [],
+                "block_hash": "9MzuZrRPW1BGpFnZJUJg6SzCrixPpJDfjsNeUobRXsLe",
+                "id": "ASS7oYwGiem9HaNwJe6vS2kznx2CxueKDvU9BAYJRjNR",
+                "outcome": {
+                    "logs": [],
+                    "receipt_ids": ["BLV2q6p8DX7pVgXRtGtBkyUNrnqkNyU7iSksXG7BjVZh"],
+                    "gas_burnt": 1,
+                    "tokens_burnt": "22318256250000000000",
+                    "executor_id": "sender.testnet",
+                    "status": {
+                    "SuccessReceiptId": "BLV2q6p8DX7pVgXRtGtBkyUNrnqkNyU7iSksXG7BjVZh"
+                    }
+                }
+                },
+                "receipts_outcome": [
+                    {
+                        "proof": [],
+                        "block_hash": "5Hpj1PeCi32ZkNXgiD1DrW4wvW4Xtic74DJKfyJ9XL3a",
+                        "id": "BLV2q6p8DX7pVgXRtGtBkyUNrnqkNyU7iSksXG7BjVZh",
+                        "outcome": {
+                          "logs": [],
+                          "receipt_ids": ["3sawynPNP8UkeCviGqJGwiwEacfPyxDKRxsEWPpaUqtR"],
+                          "gas_burnt": 1,
+                          "tokens_burnt": "22318256250000000000",
+                          "executor_id": "receiver.testnet",
+                          "status": {
+                            "SuccessValue": ""
+                          }
+                        }
+                      }
+                ]
+            },
+            "id": "dontcare"
+        }));
+    });
+
+    // Log unmatched requests and return a 500 error
     server.mock(|when: When, then: Then| {
         when.matches(|req| {
             if let Some(body_bytes) = &req.body {
@@ -201,10 +298,10 @@ fn test_bos_components_deploy_with_mocked_rpc() {
         then.status(500);
     });
 
-    // Step 10: Change the current directory to the temporary directory for components
+    // Change the current directory to the temporary directory for components
     std::env::set_current_dir(&temp_dir).unwrap();
 
-    // Step 11: Run the CLI command as a subprocess
+    // Run the CLI command as a subprocess
     let mut cmd = Command::cargo_bin("bos").unwrap();
 
     cmd.args(&[
@@ -226,7 +323,7 @@ fn test_bos_components_deploy_with_mocked_rpc() {
     .success()
     .stdout(predicates::str::contains("Deployment successful"));
 
-    // Step 12: Restore the original config.toml if it existed
+    // Restore the original config.toml if it existed
     if backup_path.exists() {
         fs::rename(&backup_path, &config_path).expect("Failed to restore original config.toml");
     } else {
@@ -234,5 +331,5 @@ fn test_bos_components_deploy_with_mocked_rpc() {
         fs::remove_file(&config_path).expect("Failed to remove generated config.toml");
     }
 
-    // Step 13: Clean up the temp directory is handled automatically by `tempdir`
+    // Clean up the temp directory is handled automatically by `tempdir`
 }

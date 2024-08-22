@@ -70,7 +70,8 @@ httpmock = "0.7.0"
 tempfile = "3.3"
 predicates = "2.1"
 dirs = "5.0.1"
- 
+base64 = "0.22.1"
+
 [target.'cfg(target_os = "macos")'.dependencies]
 security-framework = "2.7.0"
 

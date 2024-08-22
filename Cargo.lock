@@ -696,6 +696,7 @@ name = "bos-cli"
 version = "0.3.16"
 dependencies = [
  "assert_cmd",
+ "base64 0.22.1",
  "clap",
  "color-eyre",
  "console",

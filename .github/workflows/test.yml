@@ -21,5 +21,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --assume-yes libudev-dev
+      - name: Clone submodule
+        run: |
+          git submodule init
+          git submodule update
       - name: Tests
         run: cargo test

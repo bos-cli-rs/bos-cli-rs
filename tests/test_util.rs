@@ -6,6 +6,17 @@ use std::fs;
 use std::path::Path;
 use tempfile::TempDir;
 
+/// Backs up the existing `config.toml` file in the given directory and creates a new one
+/// using the provided `server_url`. Returns the path to the backup if one was created.
+///
+/// # Arguments
+///
+/// * `config_dir` - The path to the directory containing `config.toml`.
+/// * `server_url` - The URL of the mock server to be used in the new config.
+///
+/// # Returns
+///
+/// * `Option<std::path::PathBuf>` - The path to the backup `config.toml`, if it exists.
 pub fn setup_config(config_dir: &Path, server_url: &str) -> Option<std::path::PathBuf> {
     let config_path = config_dir.join("config.toml");
     let backup_path = config_dir.join("config_backup.toml");
@@ -45,6 +56,12 @@ pub fn setup_config(config_dir: &Path, server_url: &str) -> Option<std::path::Pa
     }
 }
 
+/// Restores the original `config.toml` file from a backup, or deletes the generated one if no backup exists.
+///
+/// # Arguments
+///
+/// * `config_dir` - The path to the directory containing `config.toml`.
+/// * `backup_path` - The path to the backup `config.toml`, if it exists.
 pub fn restore_config(config_dir: &Path, backup_path: Option<std::path::PathBuf>) {
     let config_path = config_dir.join("config.toml");
     if let Some(backup_path) = backup_path {
@@ -54,6 +71,11 @@ pub fn restore_config(config_dir: &Path, backup_path: Option<std::path::PathBuf>
     }
 }
 
+/// Sets up a temporary directory for storing test components and returns a `TempDir` object.
+///
+/// # Returns
+///
+/// * `TempDir` - The temporary directory object, which cleans up automatically when dropped.
 pub fn setup_temp_dir() -> TempDir {
     let temp_dir = tempfile::tempdir().unwrap();
     let src_dir = temp_dir.path().join("src");
@@ -61,6 +83,11 @@ pub fn setup_temp_dir() -> TempDir {
     temp_dir
 }
 
+/// Sets up a `MockServer` with common NEAR RPC call mocks and returns the server instance.
+///
+/// # Returns
+///
+/// * `MockServer` - The mock server instance, which can be used to simulate NEAR RPC calls.
 pub fn setup_mock_server() -> MockServer {
     let server = MockServer::start();
 
@@ -193,8 +220,17 @@ pub fn setup_mock_server() -> MockServer {
     server
 }
 
+/// Logs unmatched requests to the `MockServer` and returns a 500 status code for them.
+/// This is useful to detect when new mocks are needed during test development.
+///
+/// # Arguments
+///
+/// * `server` - The mock server instance to log unmatched requests.
+///
+/// # Returns
+///
+/// * `MockServer` - The mock server instance with the unmatched request handling added.
 pub fn mock_unmatched(server: MockServer) -> MockServer {
-    // Log unmatched requests and return a 500 error
     server.mock(|when: When, then: Then| {
         when.matches(|req| {
             if let Some(body_bytes) = &req.body {
@@ -216,14 +252,29 @@ pub fn mock_unmatched(server: MockServer) -> MockServer {
     server
 }
 
-pub fn mock_broadcast_tx_commit(server: MockServer, component_content: &str, matcher: fn(&HttpMockRequest) -> bool) -> MockServer {
+/// Mocks the `broadcast_tx_commit` RPC call on the `MockServer` using the provided `component_content`
+/// and a custom matcher function.
+///
+/// # Arguments
+///
+/// * `server` - The mock server instance to set up the mock on.
+/// * `component_content` - The component content to be used in the mock.
+/// * `matcher` - A function to match the incoming requests.
+///
+/// # Returns
+///
+/// * `MockServer` - The mock server instance with the `broadcast_tx_commit` mock added.
+pub fn mock_broadcast_tx_commit(
+    server: MockServer,
+    component_content: &str,
+    matcher: fn(&HttpMockRequest) -> bool,
+) -> MockServer {
     let expected_args_base64 = BASE64_STANDARD.encode(format!(
         r#"{{"data":{{"test.near":{{"widget":{{"example_component":{{"":{}}}}}}}}}}}"#,
         serde_json::to_string(component_content).unwrap()
     ));
 
     server.mock(move |when: When, then: Then| {
-        
         when.method(httpmock::Method::POST)
             .path("/")
             .matches(matcher);
@@ -291,7 +342,20 @@ pub fn mock_broadcast_tx_commit(server: MockServer, component_content: &str, mat
     server
 }
 
-pub fn match_broadcast_tx_commit_for_component_content(body: &[u8], component_content: &str) -> bool {
+/// Matches the `broadcast_tx_commit` request body against the expected `component_content`.
+///
+/// # Arguments
+///
+/// * `body` - The raw HTTP request body as a byte slice.
+/// * `component_content` - The expected component content to match against.
+///
+/// # Returns
+///
+/// * `bool` - `true` if the request body matches the expected content, `false` otherwise.
+pub fn match_broadcast_tx_commit_for_component_content(
+    body: &[u8],
+    component_content: &str,
+) -> bool {
     let body_str = String::from_utf8_lossy(body);
 
     if let Ok(json_body) = serde_json::from_str::<Value>(&body_str) {
@@ -304,7 +368,7 @@ pub fn match_broadcast_tx_commit_for_component_content(body: &[u8], component_co
                 let decoded_str = String::from_utf8_lossy(&decoded_params);
 
                 let expected_data = format!(
-                    r#"{{"data":{{"test.near":{{"widget":{{"example_component":{{"":{}}}}}}}}}"#,
+                    r#"{{"data":{{"test.near":{{"widget":{{"example_component":{{"":{}}}}}}}}}}}"#,
                     serde_json::to_string(&component_content).unwrap()
                 );
 

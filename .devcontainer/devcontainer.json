@@ -1,0 +1,12 @@
+{
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "dtsvet.vscode-wasm",
+                "rust-lang.rust-analyzer",
+                "github.vscode-github-actions"
+            ]
+        }
+    },
+    "postCreateCommand": "./.devcontainer/post-create.sh"
+}

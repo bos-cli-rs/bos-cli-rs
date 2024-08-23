@@ -18,7 +18,7 @@ jobs:
         with: 
           submodules: recursive 
       - name: Install Rust
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
       - name: Install libudev-dev
         run: |
           sudo apt-get update

@@ -1,0 +1,27 @@
+name: Tests
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  codestyle:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with: 
+          submodules: recursive 
+      - name: Install Rust
+        uses: Swatinem/rust-cache@v2
+      - name: Install libudev-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install --assume-yes libudev-dev
+      - name: Tests
+        run: cargo test

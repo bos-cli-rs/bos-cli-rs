@@ -65,6 +65,14 @@ self_update = { version = "0.41.0", features = [
     "compression-flate2",
 ] }
 
+[dev-dependencies]
+assert_cmd = "2.0.16"
+httpmock = "0.7.0"
+tempfile = "3.12.0"
+predicates = "3.1.2"
+dirs = "5.0.1"
+base64 = "0.22.1"
+
 [target.'cfg(target_os = "macos")'.dependencies]
 security-framework = "2.7.0"
 

@@ -28,6 +28,7 @@ pub fn diff_code(old_code: &str, new_code: &str) -> Result<(), DiffCodeError> {
     if old_code == new_code {
         return Ok(());
     }
+    println!();
 
     let diff = TextDiff::from_lines(old_code, new_code);
 
@@ -297,10 +298,11 @@ pub fn get_updated_components(
         .into_iter()
         .filter(|(component_name, new_component)| {
             if let Some(old_component) = remote_components.get(component_name) {
-                let has_code_changed = crate::common::diff_code(old_component.code(), new_component.code()).is_err();
+                print!("Code for component <{component_name}> ");
+                let has_code_changed = diff_code(old_component.code(), new_component.code()).is_err();
                 let has_metadata_changed = old_component.metadata() != new_component.metadata() && new_component.metadata().is_some();
                 if !has_code_changed {
-                    println!("Code for component <{component_name}> has not changed");
+                    println!("has not changed");
                 }
                 if has_metadata_changed {
                     println!(

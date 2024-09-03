@@ -570,7 +570,7 @@ dependencies = [
 
 [[package]]
 name = "bos-cli"
-version = "0.3.16"
+version = "0.3.17"
 dependencies = [
  "assert_cmd",
  "base64 0.22.1",

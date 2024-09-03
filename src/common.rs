@@ -4,9 +4,10 @@ use color_eyre::eyre::WrapErr;
 use console::{style, Style};
 use futures::StreamExt;
 use glob::glob;
-use near_cli_rs::common::CallResultExt;
+use near_cli_rs::common::{CallResultExt, RpcQueryResponseExt};
 use serde::de::{Deserialize, Deserializer};
 use similar::{ChangeTag, TextDiff};
+use tracing_indicatif::span_ext::IndicatifSpanExt;
 
 struct Line(Option<usize>);
 
@@ -27,6 +28,7 @@ pub fn diff_code(old_code: &str, new_code: &str) -> Result<(), DiffCodeError> {
     if old_code == new_code {
         return Ok(());
     }
+    println!();
 
     let diff = TextDiff::from_lines(old_code, new_code);
 
@@ -106,6 +108,7 @@ pub fn get_local_components(
     Ok(components)
 }
 
+#[tracing::instrument(name = "Getting remote components for", skip_all)]
 pub fn get_remote_components(
     network_config: &near_cli_rs::config::NetworkConfig,
     component_name_list: Vec<&String>,
@@ -115,6 +118,11 @@ pub fn get_remote_components(
 ) -> color_eyre::eyre::Result<
     HashMap<crate::socialdb_types::ComponentName, crate::socialdb_types::SocialDbComponent>,
 > {
+    tracing::Span::current().pb_set_message(&format!(
+        "<{account_id}> from contract <{near_social_account_id}> on network <{}> ...",
+        network_config.network_name
+    ));
+    tracing::info!(target: "near_teach_me", "<{account_id}> from contract <{near_social_account_id}> on network <{}> ...", network_config.network_name);
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()?;
@@ -144,6 +152,7 @@ pub fn get_remote_components(
         })
 }
 
+#[tracing::instrument(name = "Obtaining remote components ...", skip_all)]
 async fn get_components(
     network_config: &near_cli_rs::config::NetworkConfig,
     near_social_account_id: &near_primitives::types::AccountId,
@@ -162,20 +171,106 @@ async fn get_components(
     .wrap_err("Internal error: could not serialize SocialDB input args")?
     .into_bytes();
 
-    match network_config
+    let query_view_method_request = near_jsonrpc_client::methods::query::RpcQueryRequest {
+        block_reference: near_primitives::types::Finality::Final.into(),
+        request: near_primitives::views::QueryRequest::CallFunction {
+            account_id: near_social_account_id.clone(),
+            method_name: "get".to_string(),
+            args: near_primitives::types::FunctionArgs::from(args.clone()),
+        },
+    };
+
+    tracing::info!(
+        target: "near_teach_me",
+        parent: &tracing::Span::none(),
+        "I am making HTTP call to NEAR JSON RPC to call a read-only function 'get' of the <{}> contract, learn more https://docs.near.org/api/rpc/contracts#call-a-contract-function",
+        near_social_account_id
+    );
+
+    if let Ok(request_payload) = near_jsonrpc_client::methods::to_json(&query_view_method_request) {
+        tracing::info!(
+            target: "near_teach_me",
+            parent: &tracing::Span::none(),
+            "HTTP POST {}",
+            network_config.json_rpc_client().server_addr()
+        );
+        tracing::info!(
+            target: "near_teach_me",
+            parent: &tracing::Span::none(),
+            "JSON Request Body:\n{}",
+            near_cli_rs::common::indent_payload(&format!("{:#}", request_payload))
+        );
+    }
+
+    let query_view_method_response = network_config
         .json_rpc_client()
-        .call(near_jsonrpc_client::methods::query::RpcQueryRequest {
-            block_reference: near_primitives::types::Finality::Final.into(),
-            request: near_primitives::views::QueryRequest::CallFunction {
-                account_id: near_social_account_id.clone(),
-                method_name: "get".to_string(),
-                args: near_primitives::types::FunctionArgs::from(args),
-            },
-        })
+        .call(&query_view_method_request)
         .await
-        .wrap_err("Failed to query batch of components from Social DB")?
-        .kind
-    {
+        .inspect_err(|err| match err {
+            near_jsonrpc_client::errors::JsonRpcError::TransportError(transport_error) => {
+                tracing::info!(
+                    target: "near_teach_me",
+                    parent: &tracing::Span::none(),
+                    "JSON RPC Request failed due to connectivity issue:\n{}",
+                    near_cli_rs::common::indent_payload(&format!("{:#?}", transport_error))
+                );
+            }
+            near_jsonrpc_client::errors::JsonRpcError::ServerError(
+                near_jsonrpc_client::errors::JsonRpcServerError::HandlerError(handler_error),
+            ) => {
+                tracing::info!(
+                    target: "near_teach_me",
+                    parent: &tracing::Span::none(),
+                    "JSON RPC Request returned a handling error:\n{}",
+                    near_cli_rs::common::indent_payload(&serde_json::to_string_pretty(handler_error).unwrap_or_else(|_| handler_error.to_string()))
+                );
+            }
+            near_jsonrpc_client::errors::JsonRpcError::ServerError(server_error) => {
+                tracing::info!(
+                    target: "near_teach_me",
+                    parent: &tracing::Span::none(),
+                    "JSON RPC Request returned a generic server error:\n{}",
+                    near_cli_rs::common::indent_payload(&format!("{:#?}", server_error))
+                );
+            }
+        })
+        .wrap_err("Failed to query batch of components from Social DB")?;
+
+    query_view_method_response
+        .call_result()
+        .inspect(|call_result| {
+            tracing::info!(
+                target: "near_teach_me",
+                parent: &tracing::Span::none(),
+                "JSON RPC Response:\n{}",
+                near_cli_rs::common::indent_payload(&format!(
+                    "{{\n  \"block_hash\": {}\n  \"block_height\": {}\n  \"logs\": {:?}\n  \"result\": {:?}\n}}",
+                    query_view_method_response.block_hash,
+                    query_view_method_response.block_height,
+                    call_result.logs,
+                    call_result.result
+                ))
+            );
+            tracing::info!(
+                target: "near_teach_me",
+                parent: &tracing::Span::none(),
+                "Decoding the \"result\" array of bytes as UTF-8 string (tip: you can use this Python snippet to do it: `\"\".join([chr(c) for c in result])`):\n{}\n",
+                near_cli_rs::common::indent_payload(
+                    &String::from_utf8(call_result.result.clone())
+                        .unwrap_or_else(|_| "<decoding failed - the result is not a UTF-8 string>".to_owned())
+                )
+            );
+        })
+        .inspect_err(|_| {
+            tracing::info!(
+                target: "near_teach_me",
+                parent: &tracing::Span::none(),
+                "JSON RPC Response:\n{}",
+                near_cli_rs::common::indent_payload("Internal error: Received unexpected query kind in response to a view-function query call")
+            );
+        })?;
+
+    match query_view_method_response.kind {
         near_jsonrpc_primitives::types::query::QueryResponseKind::CallResult(call_result) => {
             Ok(call_result
                 .parse_result_from_json::<crate::socialdb_types::SocialDb>()
@@ -203,10 +298,11 @@ pub fn get_updated_components(
         .into_iter()
         .filter(|(component_name, new_component)| {
             if let Some(old_component) = remote_components.get(component_name) {
-                let has_code_changed = crate::common::diff_code(old_component.code(), new_component.code()).is_err();
+                print!("Code for component <{component_name}> ");
+                let has_code_changed = diff_code(old_component.code(), new_component.code()).is_err();
                 let has_metadata_changed = old_component.metadata() != new_component.metadata() && new_component.metadata().is_some();
                 if !has_code_changed {
-                    println!("Code for component <{component_name}> has not changed");
+                    println!("has not changed");
                 }
                 if has_metadata_changed {
                     println!(

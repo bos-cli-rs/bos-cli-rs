@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.17](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.16...v0.3.17) - 2024-09-03
+
+### Added
+- Added TEACH-ME mode (activate it with `bos --teach-me`) ([#101](https://github.com/bos-cli-rs/bos-cli-rs/pull/101))
+
+### Other
+- devcontainer and deployment e2e test ([#99](https://github.com/bos-cli-rs/bos-cli-rs/pull/99))
+
 ## [0.3.16](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.15...v0.3.16) - 2024-08-21
 
 ### Other

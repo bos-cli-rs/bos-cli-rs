@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.18](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.17...v0.3.18) - 2024-09-12
+
+### Other
+
+- Updated near-* dependencies to 0.26 release ([#102](https://github.com/bos-cli-rs/bos-cli-rs/pull/102))
+
 ## [0.3.17](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.16...v0.3.17) - 2024-09-03
 
 ### Added

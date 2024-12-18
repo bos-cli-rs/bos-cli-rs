@@ -147,10 +147,10 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 let deploy_to_account_id = item.deploy_to_account_id.clone();
                 move |prepopulated_unsigned_transaction, network_config| {
                     let json_rpc_client = network_config.json_rpc_client();
-                    let public_key = prepopulated_unsigned_transaction.public_key().clone();
-                    let receiver_id = prepopulated_unsigned_transaction.receiver_id().clone();
+                    let public_key = prepopulated_unsigned_transaction.public_key.clone();
+                    let receiver_id = prepopulated_unsigned_transaction.receiver_id.clone();
                     if let Some(near_primitives::transaction::Action::FunctionCall(action)) =
-                        prepopulated_unsigned_transaction.actions_mut().get_mut(0)
+                        prepopulated_unsigned_transaction.actions.get_mut(0)
                     {
                         action.deposit = tokio::runtime::Runtime::new()
                             .unwrap()

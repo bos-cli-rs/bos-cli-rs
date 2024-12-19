@@ -46,18 +46,18 @@ tracing = "0.1.40"
 tracing-indicatif = "0.3.6"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-near-crypto = "0.27"
-near-primitives = "0.27"
-near-jsonrpc-client = "0.14"
-near-jsonrpc-primitives = "0.27"
+near-crypto = "0.28"
+near-primitives = "0.28"
+near-jsonrpc-client = "0.15"
+near-jsonrpc-primitives = "0.28"
 
 interactive-clap = "0.3"
 interactive-clap-derive = "0.3"
 
 console = "0.15.5"
 
-near-cli-rs = { version = "0.16.0", default-features = false }
-near-socialdb-client = "0.8"
+near-cli-rs = { version = "0.17.0", default-features = false }
+near-socialdb-client = "0.9"
 semver = "1.0.4"
 self_update = { version = "0.41.0", features = [
     "archive-tar",
@@ -84,14 +84,16 @@ ledger = ["near-cli-rs/ledger"]
 inherits = "release"
 lto = "thin"
 
-# Config for 'cargo dist'
+# Config for 'dist'
 [workspace.metadata.dist]
-# The preferred cargo-dist version to use in CI (Cargo.toml SemVer syntax)
-cargo-dist-version = "0.9.0"
+# The preferred dist version to use in CI (Cargo.toml SemVer syntax)
+cargo-dist-version = "0.25.1"
 # CI backends to support
-ci = ["github"]
+ci = "github"
 # The installers to generate for each app
 installers = ["shell", "powershell", "npm", "msi"]
+# Publish jobs to run in CI
+publish-jobs = ["npm"]
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = [
     "aarch64-apple-darwin",
@@ -103,11 +105,15 @@ targets = [
 windows-archive = ".tar.gz"
 # The archive format to use for non-windows builds (defaults .tar.xz)
 unix-archive = ".tar.gz"
-# Publish jobs to run in CI
+# Which actions to run on pull requests
 pr-run-mode = "upload"
 # XXX: In order to use custom GITHUB_TOKEN to trigger npm-publish workflow, 
 # we allow dirty CI scripts to avoid cargo-dist complains.
 allow-dirty = ["ci"]
+# Path that installers should place binaries in
+install-path = "CARGO_HOME"
+# Whether to install an updater program
+install-updater = false
 
 [workspace.metadata.dist.dependencies.apt]
 libudev-dev = { version = "*", targets = ["x86_64-unknown-linux-gnu"] }

@@ -84,12 +84,12 @@ ledger = ["near-cli-rs/ledger"]
 inherits = "release"
 lto = "thin"
 
-# Config for 'cargo dist'
+# Config for 'dist'
 [workspace.metadata.dist]
-# The preferred cargo-dist version to use in CI (Cargo.toml SemVer syntax)
+# The preferred dist version to use in CI (Cargo.toml SemVer syntax)
 cargo-dist-version = "0.25.1"
 # CI backends to support
-ci = ["github"]
+ci = "github"
 # The installers to generate for each app
 installers = ["shell", "powershell", "npm", "msi"]
 # Publish jobs to run in CI
@@ -106,11 +106,8 @@ targets = [
 windows-archive = ".tar.gz"
 # The archive format to use for non-windows builds (defaults .tar.xz)
 unix-archive = ".tar.gz"
-# Publish jobs to run in CI
+# Which actions to run on pull requests
 pr-run-mode = "upload"
-# XXX: In order to use custom GITHUB_TOKEN to trigger npm-publish workflow, 
-# we allow dirty CI scripts to avoid cargo-dist complains.
-allow-dirty = ["ci"]
 # Path that installers should place binaries in
 install-path = "CARGO_HOME"
 # Whether to install an updater program

@@ -7,6 +7,7 @@ use color_eyre::{eyre::WrapErr, owo_colors::OwoColorize};
 use interactive_clap::ToCliArgs;
 use near_cli_rs::config::Config;
 pub use near_cli_rs::CliResult;
+use near_cli_rs::Verbosity;
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
 use indicatif::ProgressStyle;
@@ -28,6 +29,9 @@ pub mod socialdb_types;
 #[derive(Debug, Clone, interactive_clap::InteractiveClap)]
 #[interactive_clap(context = near_cli_rs::GlobalContext)]
 struct Cmd {
+    /// Quiet mode
+    #[interactive_clap(long)]
+    quiet: bool,
     /// TEACH-ME mode
     #[interactive_clap(long)]
     teach_me: bool,
@@ -120,10 +124,15 @@ fn main() -> CliResult {
             .init();
     };
 
+    let verbosity = match (cli.quiet, cli.teach_me) {
+        (true, _) => Verbosity::Quiet,
+        (false, true) => Verbosity::TeachMe,
+        (false, false) => Verbosity::Interactive,
+    };
     let global_context = near_cli_rs::GlobalContext {
         config,
         offline: false,
-        teach_me: false,
+        verbosity,
     };
 
     let bos_exec_path: String = std::env::args().next().unwrap_or("./bos".to_owned());
@@ -191,6 +200,7 @@ fn main() -> CliResult {
                     "`bos` CLI has a new update available \x1b[2m{current_version}\x1b[0m →  \x1b[32m{latest_version}\x1b[0m"
                 );
                 let self_update_cli_cmd = CliCmd {
+                    quiet: false,
                     teach_me: false,
                     command: Some(self::CliCommand::Extensions(
                         self::extensions::CliExtensions {

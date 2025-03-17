@@ -46,18 +46,18 @@ tracing = "0.1.40"
 tracing-indicatif = "0.3.6"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-near-crypto = "0.28"
-near-primitives = "0.28"
-near-jsonrpc-client = "0.15"
-near-jsonrpc-primitives = "0.28"
+near-crypto = "0.29"
+near-primitives = "0.29"
+near-jsonrpc-client = "0.16"
+near-jsonrpc-primitives = "0.29"
 
 interactive-clap = "0.3"
 interactive-clap-derive = "0.3"
 
 console = "0.15.5"
 
-near-cli-rs = { version = "0.17.0", default-features = false }
-near-socialdb-client = "0.9"
+near-cli-rs = { version = "0.19.0", default-features = false }
+near-socialdb-client = "0.10"
 semver = "1.0.4"
 self_update = { version = "0.41.0", features = [
     "archive-tar",

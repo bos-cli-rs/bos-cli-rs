@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.19...v0.4.0) - 2025-03-29
+
+### Added
+
+- Upgraded cargo-dist to 0.28.0 ([#111](https://github.com/bos-cli-rs/bos-cli-rs/pull/111))
+
+### Other
+
+- [**breaking**] updates near-* dependencies to 0.29 release ([#109](https://github.com/bos-cli-rs/bos-cli-rs/pull/109))
+- restored to default dist workflow config ([#107](https://github.com/bos-cli-rs/bos-cli-rs/pull/107))
+
 ## [0.3.19](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.18...v0.3.19) - 2024-12-19
 
 ### Other

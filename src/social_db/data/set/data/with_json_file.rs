@@ -61,7 +61,7 @@ impl JsonDataFile {
                     return Ok(Some(path));
                 }
             } else {
-                println!("Access to data file <{:?}> not found!", path)
+                println!("Access to data file <{path:?}> not found!")
             }
         }
     }

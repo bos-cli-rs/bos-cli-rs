@@ -35,7 +35,7 @@ pub fn setup_config(config_dir: &Path, server_url: &str) -> Option<std::path::Pa
 
             [network_connection.mainnet]
             network_name = "mainnet"
-            rpc_url = "{}"
+            rpc_url = "{server_url}"
             wallet_url = "https://app.mynearwallet.com/"
             explorer_transaction_url = "https://explorer.near.org/transactions/"
             linkdrop_account_id = "near"
@@ -43,8 +43,7 @@ pub fn setup_config(config_dir: &Path, server_url: &str) -> Option<std::path::Pa
             fastnear_url = "https://api.fastnear.com/"
             staking_pools_factory_account_id = "poolv1.near"
             coingecko_url = "https://api.coingecko.com/"
-            "#,
-            server_url
+            "#
         ),
     )
     .expect("Failed to create test config.toml");

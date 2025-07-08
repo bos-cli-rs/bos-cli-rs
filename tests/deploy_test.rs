@@ -1,6 +1,5 @@
 mod test_util;
 use assert_cmd::Command;
-use dirs;
 use httpmock::prelude::HttpMockRequest;
 use std::env;
 use std::fs;
@@ -44,7 +43,7 @@ fn test_bos_components_deploy_with_mocked_rpc() {
     // Run the CLI command as a subprocess
     let mut cmd = Command::cargo_bin("bos").unwrap();
 
-    cmd.args(&[
+    cmd.args([
         "components",
         "deploy",
         "test.near",

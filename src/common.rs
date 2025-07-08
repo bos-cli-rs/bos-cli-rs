@@ -198,7 +198,7 @@ async fn get_components(
             target: "near_teach_me",
             parent: &tracing::Span::none(),
             "JSON Request Body:\n{}",
-            near_cli_rs::common::indent_payload(&format!("{:#}", request_payload))
+            near_cli_rs::common::indent_payload(&format!("{request_payload:#}"))
         );
     }
 
@@ -212,7 +212,7 @@ async fn get_components(
                     target: "near_teach_me",
                     parent: &tracing::Span::none(),
                     "JSON RPC Request failed due to connectivity issue:\n{}",
-                    near_cli_rs::common::indent_payload(&format!("{:#?}", transport_error))
+                    near_cli_rs::common::indent_payload(&format!("{transport_error:#?}"))
                 );
             }
             near_jsonrpc_client::errors::JsonRpcError::ServerError(
@@ -230,7 +230,7 @@ async fn get_components(
                     target: "near_teach_me",
                     parent: &tracing::Span::none(),
                     "JSON RPC Request returned a generic server error:\n{}",
-                    near_cli_rs::common::indent_payload(&format!("{:#?}", server_error))
+                    near_cli_rs::common::indent_payload(&format!("{server_error:#?}"))
                 );
             }
         })

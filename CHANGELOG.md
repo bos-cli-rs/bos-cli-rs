@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.4.0...v0.4.1) - 2025-07-08
+
+### Other
+
+- Updates near-* dependencies to 0.30 release  ([#114](https://github.com/bos-cli-rs/bos-cli-rs/pull/114))
+- Replaced ubuntu-20.04 with ubuntu-22.04 for CI runners due to end-of-life support ([#112](https://github.com/bos-cli-rs/bos-cli-rs/pull/112))
+
 ## [0.4.0](https://github.com/bos-cli-rs/bos-cli-rs/compare/v0.3.19...v0.4.0) - 2025-03-29
 
 ### Added

@@ -10,7 +10,7 @@ pub use near_cli_rs::CliResult;
 use near_cli_rs::Verbosity;
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
-use indicatif::ProgressStyle;
+use tracing_indicatif::style::ProgressStyle;
 use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;

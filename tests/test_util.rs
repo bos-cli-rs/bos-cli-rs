@@ -17,13 +17,8 @@ use tempfile::TempDir;
 /// # Returns
 ///
 /// * `Option<std::path::PathBuf>` - The path to the backup `config.toml`, if it exists.
-pub fn setup_config(config_dir: &Path, server_url: &str) -> Option<std::path::PathBuf> {
+pub fn setup_config(config_dir: &Path, server_url: &str) {
     let config_path = config_dir.join("config.toml");
-    let backup_path = config_dir.join("config_backup.toml");
-
-    if config_path.exists() {
-        fs::rename(&config_path, &backup_path).expect("Failed to backup original config.toml");
-    }
 
     fs::create_dir_all(config_dir).expect("Failed to create config directory");
     fs::write(
@@ -47,27 +42,6 @@ pub fn setup_config(config_dir: &Path, server_url: &str) -> Option<std::path::Pa
         ),
     )
     .expect("Failed to create test config.toml");
-
-    if backup_path.exists() {
-        Some(backup_path)
-    } else {
-        None
-    }
-}
-
-/// Restores the original `config.toml` file from a backup, or deletes the generated one if no backup exists.
-///
-/// # Arguments
-///
-/// * `config_dir` - The path to the directory containing `config.toml`.
-/// * `backup_path` - The path to the backup `config.toml`, if it exists.
-pub fn restore_config(config_dir: &Path, backup_path: Option<std::path::PathBuf>) {
-    let config_path = config_dir.join("config.toml");
-    if let Some(backup_path) = backup_path {
-        fs::rename(backup_path, config_path).expect("Failed to restore original config.toml");
-    } else {
-        fs::remove_file(&config_path).expect("Failed to remove generated config.toml");
-    }
 }
 
 /// Sets up a temporary directory for storing test components and returns a `TempDir` object.

@@ -49,7 +49,7 @@ impl AccessToAccount {
             if !near_cli_rs::common::is_account_exist(
                 &context.global_context.config.network_connection,
                 deploy_to_account_id.clone().into(),
-            ) {
+            )? {
                 println!(
                     "\nThe account <{}> does not yet exist.",
                     &deploy_to_account_id

@@ -142,7 +142,7 @@ impl Signer {
             if !near_cli_rs::common::is_account_exist(
                 &context.global_context.config.network_connection,
                 signer_account_id.clone().into(),
-            ) {
+            )? {
                 println!("\nThe account <{signer_account_id}> does not yet exist.");
                 #[derive(strum_macros::Display)]
                 enum ConfirmOptions {

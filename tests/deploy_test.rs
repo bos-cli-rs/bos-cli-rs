@@ -24,14 +24,18 @@ fn test_bos_components_deploy_with_mocked_rpc() {
     server = mock_broadcast_tx_commit(server, COMPONENT_CONTENT, broadcast_tx_commit_matcher);
     server = mock_unmatched(server);
 
-    // Locate the existing config directory
+    // Set up a temporary directory for config and components
+    let temp_dir = setup_temp_dir();
+
+    // Override the existing config directory, so we don't override developer's local NEAR CLI config with testing
+    unsafe {
+        env::set_var("XDG_CONFIG_HOME", temp_dir.path());
+        env::set_var("HOME", temp_dir.path());
+    }
     let config_dir = dirs::config_dir().unwrap().join("near-cli");
 
-    // Backup and create new config.toml
-    let backup_path = setup_config(&config_dir, &server.url("/"));
-
-    // Set up a temporary directory for components
-    let temp_dir = setup_temp_dir();
+    // Create new config.toml
+    setup_config(&config_dir, &server.url("/"));
 
     // Create a mock component file in the temp directory
     let component_path = temp_dir.path().join("src").join("example_component.jsx");
@@ -52,18 +56,12 @@ fn test_bos_components_deploy_with_mocked_rpc() {
         "network-config",
         "mainnet", // Use the mock network we added
         "sign-with-plaintext-private-key",
-        "--signer-public-key",
-        "ed25519:7fvCiaE4NTmhexo8fDoa3CFNupL6mvJmNjL1hydN65fm",
-        "--signer-private-key",
         "ed25519:VzeoRptTNGWeXwq3JNLdo8XqoBKvjSXyV5VxjvxPyzsiGmwo2Vu6LTiBujoQSXYjF8khQS5r3SSQK3xV8uomjv7",
         "send",
     ])
     .assert()
     .success()
     .stdout(predicates::str::contains("components were successfully deployed"));
-
-    // Restore the original config.toml if it existed
-    restore_config(&config_dir, backup_path);
 
     // Clean up the temp directory is handled automatically by `tempdir`
 }

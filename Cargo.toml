@@ -21,7 +21,7 @@ path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.0.18", features = ["derive"] }
-inquire = "0.7"
+inquire-clack = "0.1.0"
 strum = { version = "0.24", features = ["derive"] }
 strum_macros = "0.24"
 
@@ -45,18 +45,24 @@ tracing = "0.1.40"
 tracing-indicatif = "0.3.6"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-near-crypto = "0.30"
-near-primitives = "0.30"
-near-jsonrpc-client = "0.17"
-near-jsonrpc-primitives = "0.30"
+near-crypto = "0.34"
+near-primitives = "0.34"
+near-jsonrpc-client = { version = "0.20", features = ["any"] }
+near-jsonrpc-primitives = "0.34"
 
 interactive-clap = "0.3"
 interactive-clap-derive = "0.3"
 
 console = "0.15.5"
 
-near-cli-rs = { version = "0.21.0", default-features = false }
-near-socialdb-client = "0.11"
+near-cli-rs = { version = "0.23.5", default-features = false }
+near-socialdb-client = "0.14"
+near-token = { version = "0.3", features = [
+    "serde",
+    "borsh",
+    "interactive-clap",
+] }
+
 semver = "1.0.4"
 self_update = { version = "0.41.0", features = [
     "archive-tar",

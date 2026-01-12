@@ -75,8 +75,8 @@ impl DeleteContext {
                             args: serde_json::json!({
                                 "data": social_db_data_to_remove
                             }).to_string().into_bytes(),
-                            gas: near_cli_rs::common::NearGas::from_tgas(300).as_gas(),
-                            deposit: near_cli_rs::types::near_token::NearToken::from_yoctonear(0).as_yoctonear(),
+                            gas: near_primitives::gas::Gas::from_teragas(300),
+                            deposit: near_token::NearToken::from_yoctonear(0),
                         }),
                     )]
                 })

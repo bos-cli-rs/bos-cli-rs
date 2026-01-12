@@ -72,8 +72,8 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         Box::new(near_primitives::transaction::FunctionCallAction {
                             method_name: "grant_write_permission".to_string(),
                             args,
-                            gas: near_cli_rs::common::NearGas::from_tgas(100).as_gas(),
-                            deposit: extra_storage_deposit.as_yoctonear(),
+                            gas: near_primitives::gas::Gas::from_teragas(100),
+                            deposit: extra_storage_deposit.into(),
                         }),
                     )
                 ],

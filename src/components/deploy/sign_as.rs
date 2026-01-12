@@ -130,8 +130,8 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         Box::new(near_primitives::transaction::FunctionCallAction {
                             method_name: "set".to_string(),
                             args,
-                            gas: near_cli_rs::common::NearGas::from_tgas(300).as_gas(),
-                            deposit: deposit.as_yoctonear(),
+                            gas: near_primitives::gas::Gas::from_teragas(300),
+                            deposit,
                         }),
                     )
                 ];
@@ -152,21 +152,17 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     if let Some(near_primitives::transaction::Action::FunctionCall(action)) =
                         prepopulated_unsigned_transaction.actions.get_mut(0)
                     {
-                        action.deposit = tokio::runtime::Runtime::new()
-                            .unwrap()
-                            .block_on(near_socialdb_client::get_deposit(
+                        action.deposit = tokio::runtime::Runtime::new().unwrap().block_on(
+                            near_socialdb_client::get_deposit(
                                 &json_rpc_client,
                                 &signer_account_id,
                                 &public_key,
                                 &deploy_to_account_id,
                                 &social_db_folder,
                                 &receiver_id,
-                                near_cli_rs::types::near_token::NearToken::from_yoctonear(
-                                    action.deposit,
-                                )
-                                .into(),
-                            ))?
-                            .as_yoctonear();
+                                action.deposit,
+                            ),
+                        )?;
                         Ok(())
                     } else {
                         color_eyre::eyre::bail!("Unexpected action to change components",);

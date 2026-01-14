@@ -55,7 +55,7 @@ interactive-clap-derive = "0.3"
 
 console = "0.15.5"
 
-near-cli-rs = { version = "0.23.5", default-features = false }
+near-cli-rs = { git = "https://github.com/near/near-cli-rs/", rev = "ba1940e", default-features = false }
 near-socialdb-client = "0.14"
 near-token = { version = "0.3", features = [
     "serde",

@@ -45,13 +45,15 @@ impl DeployCmd {
         context: &super::ComponentsContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::account_id::AccountId>> {
         let components = crate::common::get_local_components()?;
-        println!(
-            "\nThere are <{}> components in the current folder ready for deployment:",
-            components.len()
-        );
+        let mut info_str = String::new();
         for component in components.keys() {
-            println!(" * {component}")
+            info_str.push_str(&format!("\t* {component}\n "));
         }
+        tracing::info!(
+            "There are <{}> components in the current folder ready for deployment:\n{}",
+            components.len(),
+            near_cli_rs::common::indent_payload(&info_str)
+        );
         loop {
             let deploy_to_account_id =
                 near_cli_rs::common::input_signer_account_id_from_used_account_list(
@@ -63,10 +65,6 @@ impl DeployCmd {
                 &context.global_context.config.network_connection,
                 deploy_to_account_id.clone().into(),
             )? {
-                println!(
-                    "\nThe account <{}> does not yet exist.",
-                    &deploy_to_account_id
-                );
                 #[derive(strum_macros::Display)]
                 enum ConfirmOptions {
                     #[strum(to_string = "Yes, I want to enter a new account name.")]
@@ -75,7 +73,8 @@ impl DeployCmd {
                     No,
                 }
                 let select_choose_input = Select::new(
-                    "Do you want to enter a new component deployment account name?",
+                    &format!("The account <{deploy_to_account_id}> does not yet exist. Do you want to enter a new component deployment account name?",
+                ),
                     vec![ConfirmOptions::Yes, ConfirmOptions::No],
                 )
                 .prompt()?;

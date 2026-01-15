@@ -196,11 +196,14 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     .wrap_err("Internal error: Could not get metadata from SocialDB request that we just created.")?;
                 let updated_components = &social_account_metadata.components;
 
-                println!("\n<{}> components were successfully deployed to <{}>/{db_prefix}/:", updated_components.len(), item.deploy_to_account_id);
-                for component in updated_components.keys() {
-                    println!(" * {component}")
+                if let crate::Verbosity::Interactive | crate::Verbosity::TeachMe = item.global_context.verbosity {
+                    tracing_indicatif::suspend_tracing_indicatif(|| {
+                        eprintln!("<{}> components were successfully deployed to <{}>/{db_prefix}/:", updated_components.len(), item.deploy_to_account_id);
+                        for component in updated_components.keys() {
+                            eprintln!(" * {component}")
+                        }
+                    });
                 }
-                println!();
                 Ok(())
             }
         });
@@ -231,7 +234,6 @@ impl Signer {
                 &context.global_context.config.network_connection,
                 signer_account_id.clone().into(),
             )? {
-                println!("\nThe account <{signer_account_id}> does not yet exist.");
                 #[derive(strum_macros::Display)]
                 enum ConfirmOptions {
                     #[strum(to_string = "Yes, I want to enter a new account name.")]
@@ -240,7 +242,7 @@ impl Signer {
                     No,
                 }
                 let select_choose_input = Select::new(
-                    "Do you want to enter another signer account id?",
+                    &format!("The account <{signer_account_id}> does not yet exist. Do you want to enter another signer account id?"),
                     vec![ConfirmOptions::Yes, ConfirmOptions::No],
                 )
                 .prompt()?;

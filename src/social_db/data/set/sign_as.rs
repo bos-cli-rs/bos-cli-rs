@@ -166,7 +166,6 @@ impl Signer {
                 &context.global_context.config.network_connection,
                 signer_account_id.clone().into(),
             )? {
-                println!("\nThe account <{signer_account_id}> does not yet exist.");
                 #[derive(strum_macros::Display)]
                 enum ConfirmOptions {
                     #[strum(to_string = "Yes, I want to enter a new account name.")]
@@ -175,7 +174,7 @@ impl Signer {
                     No,
                 }
                 let select_choose_input = Select::new(
-                    "Do you want to enter another signer account id?",
+                    &format!("The account <{signer_account_id}> does not yet exist. Do you want to enter another signer account id?"),
                     vec![ConfirmOptions::Yes, ConfirmOptions::No],
                 )
                 .prompt()?;

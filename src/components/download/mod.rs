@@ -65,13 +65,13 @@ impl DownloadCmdContext {
                         {
                             account_components
                         } else {
-                            println!(
+                            eprintln!(
                                     "\nThere are currently no components in the account <{account_id}>.",
                                 );
                             return Ok(());
                         }
                     } else {
-                        println!(
+                        eprintln!(
                             "\nThere are currently no components in the account <{account_id}>.",
                         );
                         return Ok(());
@@ -123,7 +123,7 @@ impl DownloadCmdContext {
                         }
                     }
 
-                    println!(
+                    eprintln!(
                         "Components for account <{}> were downloaded into <{}> successfully",
                         account_id,
                         components_src_folder.display()

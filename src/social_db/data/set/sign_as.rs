@@ -126,7 +126,7 @@ impl SignerContext {
         let on_after_sending_transaction_callback: near_cli_rs::transaction_signature_options::OnAfterSendingTransactionCallback = std::sync::Arc::new({
                 move |transaction_info, _network_config| {
                     if let near_primitives::views::FinalExecutionStatus::SuccessValue(_) = transaction_info.status {
-                        println!("Keys successfully installed on <{set_to_account_id}>");
+                        eprintln!("Keys successfully installed on <{set_to_account_id}>");
                     } else {
                         color_eyre::eyre::bail!("Keys were not successfully installed on <{set_to_account_id}>");
                     };

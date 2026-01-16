@@ -36,7 +36,7 @@ impl DiffCmdContext {
 
                     let local_components = crate::common::get_local_components()?;
                     if local_components.is_empty() {
-                        println!("There are no components in the current ./src folder. Goodbye.");
+                        eprintln!("There are no components in the current ./src folder. Goodbye.");
                         return Ok(());
                     }
                     let local_component_name_list = local_components.keys().collect::<Vec<_>>();
@@ -55,11 +55,11 @@ impl DiffCmdContext {
                             &remote_components,
                         );
                         if updated_components.is_empty() {
-                            println!("There are no new or modified components in the current ./src folder. Goodbye.");
+                            eprintln!("There are no new or modified components in the current ./src folder. Goodbye.");
                             return Ok(());
                         }
                     } else {
-                        println!("\nAll local components are new to <{account_id}>.");
+                        eprintln!("\nAll local components are new to <{account_id}>.");
                     };
                     Ok(())
                 }

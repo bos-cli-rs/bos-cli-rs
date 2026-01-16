@@ -55,7 +55,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 };
                 let local_components = crate::common::get_local_components()?;
                 if local_components.is_empty() {
-                    println!("There are no components in the current ./src folder. Goodbye.");
+                    eprintln!("There are no components in the current ./src folder. Goodbye.");
                     return Ok(prepopulated_transaction);
                 }
                 let local_component_name_list = local_components.keys().collect::<Vec<_>>();
@@ -71,12 +71,12 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     if !remote_components.is_empty() {
                         let updated_components = crate::common::get_updated_components(local_components, &remote_components);
                         if updated_components.is_empty() {
-                            println!("There are no new or modified components in the current ./src folder. Goodbye.");
+                            eprintln!("There are no new or modified components in the current ./src folder. Goodbye.");
                             return Ok(prepopulated_transaction);
                         }
                         updated_components
                     } else {
-                        println!("\nAll local components will be deployed to <{deploy_to_account_id}> as new.");
+                        eprintln!("\nAll local components will be deployed to <{deploy_to_account_id}> as new.");
                         local_components
                     };
 

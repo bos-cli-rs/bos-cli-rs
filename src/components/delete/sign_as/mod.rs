@@ -76,7 +76,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     .parse_result_from_json()
                     .wrap_err("SocialDB `get` data response cannot be parsed")?;
                 if social_db_data_to_remove.as_object().map(|result| result.is_empty()).unwrap_or(true) {
-                    println!("No components to remove. Goodbye.");
+                    eprintln!("No components to remove. Goodbye.");
                     return Ok(near_cli_rs::commands::PrepopulatedTransaction {
                         signer_id: signer_id.clone(),
                         receiver_id: near_social_account_id.clone(),

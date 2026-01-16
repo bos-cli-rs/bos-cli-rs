@@ -58,7 +58,7 @@ impl DeleteContext {
                     .parse_result_from_json()
                     .wrap_err("SocialDB `get` data response cannot be parsed")?;
                 if social_db_data_to_remove.as_object().map(|result| result.is_empty()).unwrap_or(true) {
-                    println!("No keys to remove. Goodbye.");
+                    eprintln!("No keys to remove. Goodbye.");
                     return Ok(near_cli_rs::commands::PrepopulatedTransaction {
                         signer_id: signer_id.clone().into(),
                         receiver_id: near_social_account_id.clone(),
@@ -88,7 +88,7 @@ impl DeleteContext {
 
             move |transaction_info, _network_config| {
                 if let near_primitives::views::FinalExecutionStatus::SuccessValue(_) = transaction_info.status {
-                    println!("Keys successfully removed from <{account_id}>");
+                    eprintln!("Keys successfully removed from <{account_id}>");
                 } else {
                     color_eyre::eyre::bail!("Keys were not successfully removed from <{account_id}>");
                 };

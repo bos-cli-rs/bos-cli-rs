@@ -50,10 +50,6 @@ impl AccessToAccount {
                 &context.global_context.config.network_connection,
                 deploy_to_account_id.clone().into(),
             )? {
-                println!(
-                    "\nThe account <{}> does not yet exist.",
-                    &deploy_to_account_id
-                );
                 #[derive(strum_macros::Display)]
                 enum ConfirmOptions {
                     #[strum(to_string = "Yes, I want to enter a new account name.")]
@@ -62,7 +58,7 @@ impl AccessToAccount {
                     No,
                 }
                 let select_choose_input = Select::new(
-                    "Do you want to enter a new account name?",
+                    &format!("The account <{deploy_to_account_id}> does not yet exist. Do you want to enter a new account name?"),
                     vec![ConfirmOptions::Yes, ConfirmOptions::No],
                 )
                 .prompt()?;

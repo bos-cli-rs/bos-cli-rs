@@ -56,12 +56,12 @@ impl JsonDataFile {
                 )
                 .is_err()
                 {
-                    println!("File data is not in JSON format!");
+                    tracing::warn!("File data is not in JSON format!");
                 } else {
                     return Ok(Some(path));
                 }
             } else {
-                println!("Access to data file <{path:?}> not found!")
+                tracing::warn!("Access to data file <{path:?}> not found!")
             }
         }
     }

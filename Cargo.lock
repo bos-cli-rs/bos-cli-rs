@@ -542,7 +542,7 @@ dependencies = [
  "glob",
  "httpmock",
  "indenter",
- "inquire-clack",
+ "inquire",
  "interactive-clap",
  "interactive-clap-derive",
  "lazy_static",
@@ -2155,10 +2155,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "inquire-clack"
-version = "0.1.0"
+name = "inquire"
+version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a10cedfa14f14aaae2a68f33285baafb1b47a133abcc9ebe8471479e64b6f73"
+checksum = "979f5ab9760427ada4fa5762b2d905e5b12704fb1fada07b6bfa66aeaa586f87"
 dependencies = [
  "bitflags",
  "crossterm",
@@ -2608,8 +2608,9 @@ dependencies = [
 
 [[package]]
 name = "near-cli-rs"
-version = "0.23.5"
-source = "git+https://github.com/near/near-cli-rs/?rev=ba1940e#ba1940ec19261dcd7287b686d75a3cb8760246f3"
+version = "0.23.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b0dd7194a93b96f1def65d8048b7c4adf8036cffed8d2ecdd863032645f8b8f"
 dependencies = [
  "bip39",
  "borsh",
@@ -2625,7 +2626,7 @@ dependencies = [
  "futures",
  "hex",
  "indenter",
- "inquire-clack",
+ "inquire",
  "interactive-clap",
  "interactive-clap-derive",
  "keyring",

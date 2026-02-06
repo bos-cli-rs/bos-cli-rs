@@ -21,7 +21,7 @@ path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.0.18", features = ["derive"] }
-inquire-clack = "0.1.0"
+inquire = "0.9.3"
 strum = { version = "0.24", features = ["derive"] }
 strum_macros = "0.24"
 
@@ -55,7 +55,7 @@ interactive-clap-derive = "0.3"
 
 console = "0.15.5"
 
-near-cli-rs = { git = "https://github.com/near/near-cli-rs/", rev = "ba1940e", default-features = false }
+near-cli-rs = { version = "0.23.6", default-features = false }
 near-socialdb-client = "0.14"
 near-token = { version = "0.3", features = [
     "serde",

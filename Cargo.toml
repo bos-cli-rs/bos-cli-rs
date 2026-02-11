@@ -21,7 +21,7 @@ path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.0.18", features = ["derive"] }
-inquire = "0.7"
+inquire = "0.9.3"
 strum = { version = "0.24", features = ["derive"] }
 strum_macros = "0.24"
 
@@ -45,18 +45,24 @@ tracing = "0.1.40"
 tracing-indicatif = "0.3.6"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-near-crypto = "0.30"
-near-primitives = "0.30"
-near-jsonrpc-client = "0.17"
-near-jsonrpc-primitives = "0.30"
+near-crypto = "0.34"
+near-primitives = "0.34"
+near-jsonrpc-client = { version = "0.20", features = ["any"] }
+near-jsonrpc-primitives = "0.34"
 
 interactive-clap = "0.3"
 interactive-clap-derive = "0.3"
 
 console = "0.15.5"
 
-near-cli-rs = { version = "0.21.0", default-features = false }
-near-socialdb-client = "0.11"
+near-cli-rs = { version = "0.23.6", default-features = false }
+near-socialdb-client = "0.14"
+near-token = { version = "0.3", features = [
+    "serde",
+    "borsh",
+    "interactive-clap",
+] }
+
 semver = "1.0.4"
 self_update = { version = "0.41.0", features = [
     "archive-tar",
@@ -86,7 +92,8 @@ lto = "thin"
 # Config for 'dist'
 [workspace.metadata.dist]
 # The preferred dist version to use in CI (Cargo.toml SemVer syntax)
-cargo-dist-version = "0.28.0"
+cargo-dist-version = "0.30.3"
+# Skip checking whether the specified configuration files are up to date
 allow-dirty = ["ci"]
 # CI backends to support
 ci = "github"
@@ -98,6 +105,7 @@ publish-jobs = ["npm"]
 targets = [
     "aarch64-apple-darwin",
     "aarch64-unknown-linux-gnu",
+    "aarch64-pc-windows-msvc",
     "x86_64-apple-darwin",
     "x86_64-unknown-linux-gnu",
     "x86_64-pc-windows-msvc",
@@ -117,6 +125,9 @@ install-updater = false
 aarch64-unknown-linux-gnu = "ubuntu-24.04-arm"
 x86_64-unknown-linux-gnu = "ubuntu-22.04"
 x86_64-pc-windows-msvc = "windows-2022"
+aarch64-pc-windows-msvc = "windows-2025"
+x86_64-apple-darwin = "macos-15-intel"
+aarch64-apple-darwin = "macos-14"
 
 [workspace.metadata.dist.dependencies.apt]
 libudev-dev = { version = "*", targets = [

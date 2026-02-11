@@ -10,12 +10,6 @@ pub use near_cli_rs::CliResult;
 use near_cli_rs::Verbosity;
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
-use tracing_indicatif::style::ProgressStyle;
-use tracing_indicatif::IndicatifLayer;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::EnvFilter;
-
 pub mod common;
 mod components;
 pub mod consts;
@@ -62,6 +56,8 @@ pub enum Command {
 }
 
 fn main() -> CliResult {
+    inquire::set_global_render_config(near_cli_rs::get_global_render_config());
+
     let config = Config::get_config_toml()?;
 
     #[cfg(not(debug_assertions))]
@@ -77,58 +73,13 @@ fn main() -> CliResult {
         Err(error) => error.exit(),
     };
 
-    if cli.teach_me {
-        let env_filter = EnvFilter::from_default_env()
-            .add_directive(tracing::Level::WARN.into())
-            .add_directive("near_teach_me=info".parse()?)
-            .add_directive("near_cli_rs=info".parse()?)
-            .add_directive("bos=info".parse()?);
-        tracing_subscriber::registry()
-            .with(
-                tracing_subscriber::fmt::layer()
-                    .without_time()
-                    .with_target(false),
-            )
-            .with(env_filter)
-            .init();
-    } else {
-        let indicatif_layer = IndicatifLayer::new()
-            .with_progress_style(
-                ProgressStyle::with_template(
-                    "{spinner:.blue}{span_child_prefix} {span_name} {msg} {span_fields}",
-                )
-                .unwrap()
-                .tick_strings(&[
-                    "▹▹▹▹▹",
-                    "▸▹▹▹▹",
-                    "▹▸▹▹▹",
-                    "▹▹▸▹▹",
-                    "▹▹▹▸▹",
-                    "▹▹▹▹▸",
-                    "▪▪▪▪▪",
-                ]),
-            )
-            .with_span_child_prefix_symbol("↳ ");
-        let env_filter = EnvFilter::from_default_env()
-            .add_directive(tracing::Level::WARN.into())
-            .add_directive("near_cli_rs=info".parse()?)
-            .add_directive("bos=info".parse()?);
-        tracing_subscriber::registry()
-            .with(
-                tracing_subscriber::fmt::layer()
-                    .without_time()
-                    .with_writer(indicatif_layer.get_stderr_writer()),
-            )
-            .with(indicatif_layer)
-            .with(env_filter)
-            .init();
-    };
-
     let verbosity = match (cli.quiet, cli.teach_me) {
         (true, _) => Verbosity::Quiet,
         (false, true) => Verbosity::TeachMe,
         (false, false) => Verbosity::Interactive,
     };
+    near_cli_rs::setup_tracing_with_extra_directives(verbosity, &["bos=info"])?;
+
     let global_context = near_cli_rs::GlobalContext {
         config,
         offline: false,

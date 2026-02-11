@@ -76,7 +76,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     .parse_result_from_json()
                     .wrap_err("SocialDB `get` data response cannot be parsed")?;
                 if social_db_data_to_remove.as_object().map(|result| result.is_empty()).unwrap_or(true) {
-                    println!("No components to remove. Goodbye.");
+                    eprintln!("No components to remove. Goodbye.");
                     return Ok(near_cli_rs::commands::PrepopulatedTransaction {
                         signer_id: signer_id.clone(),
                         receiver_id: near_social_account_id.clone(),
@@ -94,8 +94,8 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                             args: serde_json::json!({
                                 "data": social_db_data_to_remove
                             }).to_string().into_bytes(),
-                            gas: near_cli_rs::common::NearGas::from_tgas(300).as_gas(),
-                            deposit: near_cli_rs::types::near_token::NearToken::from_yoctonear(0).as_yoctonear(),
+                            gas: near_primitives::gas::Gas::from_teragas(300),
+                            deposit: near_token::NearToken::from_yoctonear(0),
                         }),
                     )]
                 })
@@ -107,7 +107,13 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
 
             move |transaction_info, _network_config| {
                 if let near_primitives::views::FinalExecutionStatus::SuccessValue(_) = transaction_info.status {
-                    println!("The components were deleted successfully from <{}>/{}/", &account_id, item.social_db_folder);
+                    if let crate::Verbosity::Interactive | crate::Verbosity::TeachMe = item.global_context.verbosity {
+                        tracing_indicatif::suspend_tracing_indicatif(|| {
+                            eprintln!(
+                                "The components were deleted successfully from <{}>/{}/", &account_id, item.social_db_folder
+                            );
+                        });
+                    }
                 } else {
                     color_eyre::eyre::bail!("The components were not successfully deleted from <{}>/{}/", &account_id, item.social_db_folder);
                 };
@@ -143,7 +149,6 @@ impl Signer {
                 &context.global_context.config.network_connection,
                 signer_account_id.clone().into(),
             )? {
-                println!("\nThe account <{signer_account_id}> does not yet exist.");
                 #[derive(strum_macros::Display)]
                 enum ConfirmOptions {
                     #[strum(to_string = "Yes, I want to enter a new account name.")]
@@ -152,7 +157,7 @@ impl Signer {
                     No,
                 }
                 let select_choose_input = Select::new(
-                    "Do you want to enter another signer account id?",
+                    &format!("The account <{signer_account_id}> does not yet exist. Do you want to enter another signer account id?"),
                     vec![ConfirmOptions::Yes, ConfirmOptions::No],
                 )
                 .prompt()?;

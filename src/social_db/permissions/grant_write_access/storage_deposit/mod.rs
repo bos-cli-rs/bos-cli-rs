@@ -39,7 +39,6 @@ impl ExtraStorageDeposit {
     fn input_extra_storage_deposit(
         _context: &AccessToPermissionKeyContext,
     ) -> color_eyre::eyre::Result<Option<near_cli_rs::types::near_token::NearToken>> {
-        eprintln!();
         match near_cli_rs::types::near_token::NearToken::from_str(
             &Text::new("Enter the amount of the NEAR tokens you want to extra storage deposit (each 100 kb of data requires 1 NEAR deposit):")
                 .with_initial_value("0 NEAR")

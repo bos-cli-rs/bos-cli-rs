@@ -61,7 +61,7 @@ fn test_bos_components_deploy_with_mocked_rpc() {
     ])
     .assert()
     .success()
-    .stdout(predicates::str::contains("components were successfully deployed"));
+    .stderr(predicates::str::contains("components were successfully deployed"));
 
     // Clean up the temp directory is handled automatically by `tempdir`
 }

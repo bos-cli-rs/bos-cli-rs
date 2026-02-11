@@ -55,7 +55,7 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                 };
                 let local_components = crate::common::get_local_components()?;
                 if local_components.is_empty() {
-                    println!("There are no components in the current ./src folder. Goodbye.");
+                    eprintln!("There are no components in the current ./src folder. Goodbye.");
                     return Ok(prepopulated_transaction);
                 }
                 let local_component_name_list = local_components.keys().collect::<Vec<_>>();
@@ -71,12 +71,12 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     if !remote_components.is_empty() {
                         let updated_components = crate::common::get_updated_components(local_components, &remote_components);
                         if updated_components.is_empty() {
-                            println!("There are no new or modified components in the current ./src folder. Goodbye.");
+                            eprintln!("There are no new or modified components in the current ./src folder. Goodbye.");
                             return Ok(prepopulated_transaction);
                         }
                         updated_components
                     } else {
-                        println!("\nAll local components will be deployed to <{deploy_to_account_id}> as new.");
+                        eprintln!("\nAll local components will be deployed to <{deploy_to_account_id}> as new.");
                         local_components
                     };
 
@@ -130,8 +130,8 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                         Box::new(near_primitives::transaction::FunctionCallAction {
                             method_name: "set".to_string(),
                             args,
-                            gas: near_cli_rs::common::NearGas::from_tgas(300).as_gas(),
-                            deposit: deposit.as_yoctonear(),
+                            gas: near_primitives::gas::Gas::from_teragas(300),
+                            deposit,
                         }),
                     )
                 ];
@@ -152,21 +152,17 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     if let Some(near_primitives::transaction::Action::FunctionCall(action)) =
                         prepopulated_unsigned_transaction.actions.get_mut(0)
                     {
-                        action.deposit = tokio::runtime::Runtime::new()
-                            .unwrap()
-                            .block_on(near_socialdb_client::get_deposit(
+                        action.deposit = tokio::runtime::Runtime::new().unwrap().block_on(
+                            near_socialdb_client::get_deposit(
                                 &json_rpc_client,
                                 &signer_account_id,
                                 &public_key,
                                 &deploy_to_account_id,
                                 &social_db_folder,
                                 &receiver_id,
-                                near_cli_rs::types::near_token::NearToken::from_yoctonear(
-                                    action.deposit,
-                                )
-                                .into(),
-                            ))?
-                            .as_yoctonear();
+                                action.deposit,
+                            ),
+                        )?;
                         Ok(())
                     } else {
                         color_eyre::eyre::bail!("Unexpected action to change components",);
@@ -200,11 +196,14 @@ impl From<SignerContext> for near_cli_rs::commands::ActionContext {
                     .wrap_err("Internal error: Could not get metadata from SocialDB request that we just created.")?;
                 let updated_components = &social_account_metadata.components;
 
-                println!("\n<{}> components were successfully deployed to <{}>/{db_prefix}/:", updated_components.len(), item.deploy_to_account_id);
-                for component in updated_components.keys() {
-                    println!(" * {component}")
+                if let crate::Verbosity::Interactive | crate::Verbosity::TeachMe = item.global_context.verbosity {
+                    tracing_indicatif::suspend_tracing_indicatif(|| {
+                        eprintln!("<{}> components were successfully deployed to <{}>/{db_prefix}/:", updated_components.len(), item.deploy_to_account_id);
+                        for component in updated_components.keys() {
+                            eprintln!(" * {component}")
+                        }
+                    });
                 }
-                println!();
                 Ok(())
             }
         });
@@ -235,7 +234,6 @@ impl Signer {
                 &context.global_context.config.network_connection,
                 signer_account_id.clone().into(),
             )? {
-                println!("\nThe account <{signer_account_id}> does not yet exist.");
                 #[derive(strum_macros::Display)]
                 enum ConfirmOptions {
                     #[strum(to_string = "Yes, I want to enter a new account name.")]
@@ -244,7 +242,7 @@ impl Signer {
                     No,
                 }
                 let select_choose_input = Select::new(
-                    "Do you want to enter another signer account id?",
+                    &format!("The account <{signer_account_id}> does not yet exist. Do you want to enter another signer account id?"),
                     vec![ConfirmOptions::Yes, ConfirmOptions::No],
                 )
                 .prompt()?;

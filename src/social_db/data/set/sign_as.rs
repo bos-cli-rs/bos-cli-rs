@@ -86,8 +86,8 @@ impl SignerContext {
                             args: serde_json::json!({
                                 "data": social_db_data_to_set
                             }).to_string().into_bytes(),
-                            gas: near_cli_rs::common::NearGas::from_tgas(300).as_gas(),
-                            deposit: deposit.as_yoctonear(),
+                            gas: near_primitives::gas::Gas::from_teragas(300),
+                            deposit,
                         }),
                     )
                 ]})
@@ -105,21 +105,17 @@ impl SignerContext {
                     if let Some(near_primitives::transaction::Action::FunctionCall(action)) =
                         prepopulated_unsigned_transaction.actions.get_mut(0)
                     {
-                        action.deposit = tokio::runtime::Runtime::new()
-                            .unwrap()
-                            .block_on(near_socialdb_client::get_deposit(
+                        action.deposit = tokio::runtime::Runtime::new().unwrap().block_on(
+                            near_socialdb_client::get_deposit(
                                 &json_rpc_client,
                                 &signer_id,
                                 &public_key,
                                 &set_to_account_id,
                                 &key,
                                 &receiver_id,
-                                near_cli_rs::types::near_token::NearToken::from_yoctonear(
-                                    action.deposit,
-                                )
-                                .into(),
-                            ))?
-                            .as_yoctonear();
+                                action.deposit,
+                            ),
+                        )?;
                         Ok(())
                     } else {
                         color_eyre::eyre::bail!("Unexpected action to change components",);
@@ -130,7 +126,7 @@ impl SignerContext {
         let on_after_sending_transaction_callback: near_cli_rs::transaction_signature_options::OnAfterSendingTransactionCallback = std::sync::Arc::new({
                 move |transaction_info, _network_config| {
                     if let near_primitives::views::FinalExecutionStatus::SuccessValue(_) = transaction_info.status {
-                        println!("Keys successfully installed on <{set_to_account_id}>");
+                        eprintln!("Keys successfully installed on <{set_to_account_id}>");
                     } else {
                         color_eyre::eyre::bail!("Keys were not successfully installed on <{set_to_account_id}>");
                     };
@@ -170,7 +166,6 @@ impl Signer {
                 &context.global_context.config.network_connection,
                 signer_account_id.clone().into(),
             )? {
-                println!("\nThe account <{signer_account_id}> does not yet exist.");
                 #[derive(strum_macros::Display)]
                 enum ConfirmOptions {
                     #[strum(to_string = "Yes, I want to enter a new account name.")]
@@ -179,7 +174,7 @@ impl Signer {
                     No,
                 }
                 let select_choose_input = Select::new(
-                    "Do you want to enter another signer account id?",
+                    &format!("The account <{signer_account_id}> does not yet exist. Do you want to enter another signer account id?"),
                     vec![ConfirmOptions::Yes, ConfirmOptions::No],
                 )
                 .prompt()?;
